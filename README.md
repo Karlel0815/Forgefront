@@ -1,31 +1,37 @@
-# Forgefront · V0.1.1
+# Forgefront V0.1.2 – durchgehende Echtzeit
 
-Spielbarer 2D-Browserprototyp mit **Phasenstrategie und Echtzeitkampf** (HTML, CSS, Vanilla JavaScript und Canvas 2D).
+Mobiler 2D-Tower-Defense-Prototyp mit Rohstoffwirtschaft. Auf Basis eines echten Spieltests wurde das frühere Phasenmodell zugunsten **durchgehender Echtzeit** ersetzt.
 
-## So funktioniert eine Runde
+## Spielablauf
 
-1. **Planung:** Keine Produktion und kein Zeitdruck. Baue Gebäude und wähle, ob die Fabrik im nächsten Kampf Munition herstellen soll.
-2. **Kampf:** Starte die nächste Welle. Minen und Fabriken produzieren automatisch, Türme greifen an. **Bauen und Fabrikumschaltung sind während des Kampfes gesperrt.**
-3. **Wellenende:** Du erhältst **16 Metall** (nach Wellen 1 bis 4). Alle Anlagen stehen wieder still, bis du die nächste Welle startest.
-4. **Ziel:** Überlebe fünf Wellen mit deinem Hauptquartier.
+1. Nach **MISSION STARTEN** läuft das Spiel sofort in Echtzeit.
+2. Die **erste Gegnerwelle kommt nach 10 Sekunden**, vier weitere folgen automatisch jeweils **32 Sekunden** später.
+3. **Bauen und Fabrik ein-/ausschalten sind jederzeit möglich**, auch wenn Gegner auf dem Spielfeld sind.
+4. Die Mine fördert kontinuierlich Metall, die Munitionsfabrik verbraucht Metall und produziert Patronen.
+5. **PAUSE** hält Gegner, Wellen-Countdown und Produktion an. Du darfst während der Pause Gebäude platzieren; Warten erzeugt aber keine zusätzlichen Rohstoffe.
+6. Fünf Wellen überleben, bevor das HQ 0 Lebenspunkte erreicht.
 
-## Spielregeln
+Die bisherige Pausenzeit zwischen Wellen sowie der frühere Bonus von 16 Metall je Wellenabschluss wurden entfernt. Mit diesen Regeln dauern erfolgreiche Testläufe ungefähr 2,5–3 Minuten simulierter Spielzeit.
 
-- Start: 34 Metall, 12 Munition, eine Mine, eine Fabrik, 12 HQ-Lebenspunkte.
-- **Mine:** +1 Metall / 2 s in der Kampfphase. Zusätzliche Minen nur auf goldenen Erzfeldern.
-- **Fabrik:** -1 Metall und +2 Munition / 2,5 s in der Kampfphase, wenn vor Kampfbeginn aktiviert. Pausieren spart Metall für den nächsten Ausbau.
-- **MG-Turm:** 24 Metall; jeder Schuss verbraucht eine Munition und fügt Schaden zu.
-- Baue ausschließlich auf freien Feldern direkt neben einem bestehenden Gebäude.
-- Während der Planung kannst du unbegrenzt nachdenken. Es gibt keinen kostenlosen Ressourcengewinn durch Warten.
+## Steuerung und Wirtschaft
 
-**Tastatur:** 1 = MG, 2 = Mine, 3 = Fabrik, Leertaste = Welle starten, Esc = Bauauswahl aufheben.
+- Einen **MG-Turm (24 Metall)** auswählen und an ein bestehendes Gebäude angrenzend platzieren.
+- Zusätzliche **Minen (22 Metall)** dürfen nur auf goldenen Erzfeldern gebaut werden.
+- Eine weitere **Fabrik (18 Metall)** ist neben vorhandenen Gebäuden baubar.
+- Mine: **+1 Metall alle 2 s**, solange das Spiel läuft.
+- Fabrik bei eingeschaltetem Zustand: **−1 Metall, +2 Munition alle 2,5 s**, solange das Spiel läuft.
+- Alle Türme verbrauchen Munition zum Schießen.
+- Der Kernkonflikt: Metall entweder in Bauwerke investieren oder zu Munition verarbeiten.
+- Tastatur: **1/2/3** für Gebäude, **Leertaste** Pause/Fortsetzen, **Esc** Auswahl aufheben.
 
-## Technik und Veröffentlichung
+## Technik
 
-Die V0.1.1 bleibt absichtlich in einer einzigen `index.html` und erfordert keine externen Bibliotheken oder einen Server. Mobile Touch und Desktop-Maus werden unterstützt.
+Vanilla HTML, CSS, JavaScript und Canvas 2D, gebündelt in `index.html`. Keine externen Bibliotheken, Anmeldung oder Server. GitHub-Repository: https://github.com/Karlel0815/Forgefront.
 
-Um GitHub Pages zu aktivieren: **Settings → Pages → Build and deployment → Deploy from a branch → main → /(root) → Save**. Code liegt auf `main`.
+## Veröffentlichung
 
-## Tests
+GitHub Pages in den Einstellungen mit **Deploy from a branch → main → /(root)** aktivieren. Die neue Version ist auf dem `main`-Branch. Für Versionstests kann ein commitfixierter CDN-Link verwendet werden, um alte gecachte Versionen auszuschließen.
 
-Automatisierte Simulationen: Planung erzeugt nach langem Warten keine Ressourcen; Bauen und Umschalten sind im Kampf gesperrt; Wellenbonus und erneute Planungsphase funktionieren; sowohl Sieg als auch Niederlage über fünf Wellen sind erreichbar. Mobile-Gerätetests und externe Spielspaßtests stehen noch aus.
+## Prüfstatus
+
+Automatische Simulationen bestanden: erster Wellenstart nach 10 s, automatische Folgewellen, Fabrikumschalten und Turmbau während der Gefechte, Pause ohne Weiterlaufen der Produktion, Sieg nach Welle 5 mit zwei Türmen sowie Niederlage ohne Verteidigung. Ein neuer **echter Mobil-/Spielspaßtest** steht noch aus.
