@@ -43,7 +43,7 @@ main{display:block}.stage{padding:7px}.panel{margin-top:11px;padding:15px}.panel
 <div class="stats"><div class="stat"><label>▣ METALL</label><strong id="metal">34</strong></div><div class="stat"><label>◆ MUNITION</label><strong id="ammo">12</strong></div><div class="stat"><label>♥ BASIS</label><strong id="hp">12</strong></div><div class="stat"><label>≋ WELLE</label><strong id="wave">0/5</strong></div></div>
 <main><section class="stage"><div class="heading"><span>SEKTOR 01 // AUSSENPOSTEN</span><span id="indicator" class="light">● PLANUNG</span></div><div id="boardbox"><canvas id="board" width="480" height="600" aria-label="8 mal 10 Spielfeld zum Antippen"></canvas><div id="overlay"><div class="intro"><div id="emblem" class="emblem">⬡</div><div id="kicker" class="eyebrow">SEKTOR 01 · MISSION</div><h2 id="o-title">HALTE DIE STELLUNG</h2><p id="o-text">Die Mine liefert Metall. Die Fabrik macht Munition daraus. Jede Patrone kostet Metall, das du sonst zum Bauen nutzen könntest.</p><button id="start" class="primary">MISSION STARTEN <span>→</span></button></div></div></div><p class="notes">◆ Gold = Erzfeld · Blau = Gegnerweg · HQ = Zentrale</p></section>
 <section class="panel"><div class="heading"><span>WERKSTATT</span><span>SEKTOR 01</span></div><h2>BAU & BETRIEB</h2><div class="section">GEBÄUDE</div>
-<div class="builds"><button class="build" data-type="turret"><span class="glyph">⌖</span><b>MG-Turm</b><small>14 Metall</small></button><button class="build" data-type="mine"><span class="glyph">⛏</span><b>Mine</b><small>22 Metall</small></button><button class="build" data-type="factory"><span class="glyph">⚙</span><b>Fabrik</b><small>18 Metall</small></button></div>
+<div class="builds"><button class="build" data-type="turret"><span class="glyph">⌖</span><b>MG-Turm</b><small>24 Metall</small></button><button class="build" data-type="mine"><span class="glyph">⛏</span><b>Mine</b><small>22 Metall</small></button><button class="build" data-type="factory"><span class="glyph">⚙</span><b>Fabrik</b><small>18 Metall</small></button></div>
 <p id="hint" aria-live="polite">Turm wählen, an die Anlage anbauen und Welle 1 starten.</p><hr><div class="section">PRODUKTION</div><div class="factory"><div><b id="factory-name">● Munitionsfabrik aktiv</b><small>1 Metall → 2 Munition / 2,5 s</small></div><button class="switch" id="factory-toggle">PAUSIEREN</button></div>
 <div class="rates"><span id="rate-mines">Minen: +0,5/s</span><span id="rate-ammo">Fabriken: +2/s</span></div><hr><div class="section">MISSION</div><button id="next" class="primary">WELLE 1 STARTEN <span>→</span></button><div id="status" role="status" aria-live="polite">Bereite deine Verteidigung vor.</div><button id="reset">↻ Mission neu starten</button>
 </section></main><footer><span>FORGEFRONT / V0.1</span><span>TOUCH + MAUS · SINGLEPLAYER</span></footer>
@@ -52,7 +52,7 @@ main{display:block}.stage{padding:7px}.panel{margin-top:11px;padding:15px}.panel
 'use strict';
 var W=8,H=10,L=60,MAX_WAVE=5;
 var PATH=[[0,1],[1,1],[2,1],[2,2],[2,3],[3,3],[4,3],[4,4],[5,4],[5,5],[5,6],[6,6],[6,7],[6,8]];
-var ORE={'2,7':1,'1,7':1,'2,8':1,'1,5':1},COST={turret:14,mine:22,factory:18};
+var ORE={'2,7':1,'1,7':1,'2,8':1,'1,5':1},COST={turret:24,mine:22,factory:18};
 var WAVES=[{n:3,hp:6,speed:.85,interval:2.8},{n:4,hp:7,speed:.95,interval:2.55},{n:5,hp:9,speed:1.05,interval:2.35},{n:6,hp:10,speed:1.1,interval:2.15},{n:7,hp:11,speed:1.15,interval:1.9}];
 var el=function(id){return document.getElementById(id)},cnv=el('board'),c=cnv.getContext('2d'),buttons=[].slice.call(document.querySelectorAll('.build'));
 var g,last=performance.now(),acc=0;
@@ -80,7 +80,7 @@ function simulate(dt){
 if(g.mode!=='playing')return;
 g.buildings.forEach(function(b){
 if(b.type==='mine'){b.t+=dt;while(b.t>=2){g.metal++;b.t-=2}}
-if(b.type==='factory'){if(!g.factory){b.t=0;return}b.t+=dt;while(b.t>=2.5){if(g.metal>0&&g.ammo<=38){g.metal--;g.ammo+=2;b.t-=2.5}else{b.t=2.5;break}}}
+if(b.type==='factory'){if(!g.factory){b.t=0;return}b.t+=dt;while(b.t>=2.5){if(g.metal>0&&g.ammo<=78){g.metal--;g.ammo+=2;b.t-=2.5}else{b.t=2.5;break}}}
 });
 if(g.active){
 var def=WAVES[g.wave-1];if(g.toSpawn>0){g.clock-=dt;if(g.clock<=0){g.enemies.push({pos:0,hp:def.hp,max:def.hp,speed:def.speed});g.toSpawn--;g.clock+=def.interval}}
