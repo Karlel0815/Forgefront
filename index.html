@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tap the Target</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #111;
+      background: #f4f4f4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f4f4f4;
+    }
+    .game {
+      width: min(100%, 520px);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+    }
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 14px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+    .hud strong {
+      display: block;
+      font-size: 1.35rem;
+    }
+    .hud span {
+      display: block;
+      font-size: .8rem;
+      color: #666;
+    }
+    .arena {
+      position: relative;
+      flex: 1;
+      min-height: 440px;
+      overflow: hidden;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    .target {
+      position: absolute;
+      width: 78px;
+      height: 78px;
+      border: 0;
+      border-radius: 50%;
+      background: #e53935;
+      box-shadow: 0 6px 16px rgba(0,0,0,.18);
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      display: none;
+    }
+    .target:active {
+      transform: translate(-50%, -50%) scale(.92);
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(255,255,255,.92);
+      text-align: center;
+    }
+    .panel { width: min(100%, 340px); }
+    h1 { margin: 0 0 10px; font-size: 2rem; }
+    p { color: #555; line-height: 1.45; }
+    .primary {
+      width: 100%;
+      min-height: 52px;
+      border: 0;
+      border-radius: 12px;
+      font: inherit;
+      font-weight: 700;
+      background: #111;
+      color: #fff;
+      cursor: pointer;
+      padding: 12px 18px;
+    }
+    .hint {
+      margin-top: 10px;
+      font-size: .82rem;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <section class="hud" aria-label="Spielstand">
+      <div><strong id="score">0</strong><span>Punkte</span></div>
+      <div><strong id="time">30</strong><span>Sekunden</span></div>
+      <div><strong id="highscore">0</strong><span>Highscore</span></div>
+    </section>
+
+    <section class="arena" id="arena" aria-label="Spielfeld">
+      <button id="target" class="target" type="button" aria-label="Ziel antippen"></button>
+      <div id="overlay" class="overlay">
+        <div class="panel">
+          <h1 id="title">Tap the Target</h1>
+          <p id="message">Tippe den roten Kreis so oft wie möglich. Du hast 30 Sekunden.</p>
+          <button id="startBtn" class="primary" type="button">Spiel starten</button>
+          <div class="hint">Optimiert für Handy und Touch.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const GAME_SECONDS = 30;
+    const arena = document.getElementById("arena");
+    const target = document.getElementById("target");
+    const overlay = document.getElementById("overlay");
+    const startBtn = document.getElementById("startBtn");
+    const scoreEl = document.getElementById("score");
+    const timeEl = document.getElementById("time");
+    const highscoreEl = document.getElementById("highscore");
+    const titleEl = document.getElementById("title");
+    const messageEl = document.getElementById("message");
+
+    let score = 0;
+    let timeLeft = GAME_SECONDS;
+    let timerId = null;
+    let running = false;
+
+    function loadHighscore() {
+      const saved = Number(localStorage.getItem("tapTargetHighscore") || 0);
+      return Number.isFinite(saved) ? saved : 0;
+    }
+
+    function setHighscore(value) {
+      localStorage.setItem("tapTargetHighscore", String(value));
+      highscoreEl.textContent = String(value);
+    }
+
+    function moveTarget() {
+      const rect = arena.getBoundingClientRect();
+      const radius = target.offsetWidth / 2;
+      const margin = radius + 10;
+      const minX = margin;
+      const maxX = Math.max(minX, rect.width - margin);
+      const minY = margin;
+      const maxY = Math.max(minY, rect.height - margin);
+      const x = minX + Math.random() * Math.max(0, maxX - minX);
+      const y = minY + Math.random() * Math.max(0, maxY - minY);
+      target.style.left = x + "px";
+      target.style.top = y + "px";
+    }
+
+    function updateHud() {
+      scoreEl.textContent = String(score);
+      timeEl.textContent = String(timeLeft);
+    }
+
+    function endGame() {
+      running = false;
+      clearInterval(timerId);
+      timerId = null;
+      target.style.display = "none";
+      const oldHighscore = loadHighscore();
+      if (score > oldHighscore) {
+        setHighscore(score);
+        titleEl.textContent = "Neuer Highscore!";
+      } else {
+        titleEl.textContent = "Zeit vorbei!";
+      }
+      messageEl.textContent = "Du hast " + score + " Punkte geschafft.";
+      startBtn.textContent = "Nochmal spielen";
+      overlay.style.display = "grid";
+    }
+
+    function startGame() {
+      clearInterval(timerId);
+      score = 0;
+      timeLeft = GAME_SECONDS;
+      running = true;
+      updateHud();
+      overlay.style.display = "none";
+      target.style.display = "block";
+      moveTarget();
+      timerId = setInterval(() => {
+        timeLeft -= 1;
+        updateHud();
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    function hitTarget(event) {
+      if (!running) return;
+      event.preventDefault();
+      score += 1;
+      scoreEl.textContent = String(score);
+      moveTarget();
+    }
+
+    highscoreEl.textContent = String(loadHighscore());
+    timeEl.textContent = String(GAME_SECONDS);
+    startBtn.addEventListener("click", startGame);
+    target.addEventListener("pointerdown", hitTarget);
+    window.addEventListener("resize", () => {
+      if (running) moveTarget();
+    });
+  </script>
+</body>
+</html>
