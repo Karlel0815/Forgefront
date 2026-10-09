@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
+const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DISPLAY_UPDATE_MS=250,DISPLAY_RESPONSE_S=1.5,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
 const ECONOMY={startGold:180,goldPerKill:5,goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
 const HQ={x:16,y:18};
 const PATH=[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[6,4],[6,5],[7,5],[8,5],[9,5],[10,5],[10,6],[10,7],[10,8],[11,8],[12,8],[13,8],[13,9],[13,10],[12,10],[11,10],[11,11],[11,12],[12,12],[13,12],[14,12],[15,12],[15,13],[15,14],[15,15],[16,15],[16,16],[16,17],[16,18]];
@@ -17,7 +17,7 @@ const WAVES=[
 const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d'),boardbox=$('boardbox'),mini=$('minimap'),mc=mini.getContext('2d');
 const buildButtons=[...document.querySelectorAll('.build')],speedValues=[1,1.5,2],minZoom=.35,maxZoom=3;
 const key=(x,y)=>x+','+y,adj=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1;
-let g,previous=performance.now(),acc=0,speedIndex=2,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null,pipeTypeCache=null;
+let g,previous=performance.now(),acc=0,speedIndex=2,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null,pipeTypeCache=null,displayRatios=new Map(),lastDisplayAt=null;
 function building(type,x,y){return {id:nextId++,type,x,y,cool:0,fireCharge:0,waveAmount:0,lastWaveRate:null,lastIssue:'Noch nicht getestet'};}
 function inform(msg){$('hint').textContent=msg;$('status').textContent=msg;}
 function overlay(icon,title,description,action){$('o-icon').textContent=icon;$('o-title').textContent=title;$('o-text').textContent=description;$('start').textContent=action;$('overlay').classList.remove('hidden');}
@@ -50,7 +50,7 @@ function pipeTypes(){if(pipeTypeCache&&pipeTypeCache.version===topologyVersion)r
  const scanned=scanPipeTypes();pipeTypeCache={version:topologyVersion,types:scanned.types};return scanned.types;
 }
 function reset(){
- nextId=1;speedIndex=2;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;
+ nextId=1;speedIndex=2;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;displayRatios.clear();lastDisplayAt=null;
  g={mode:'intro',phase:'build',wave:0,paused:false,time:0,enemyDelay:null,gold:ECONOMY.startGold,metal:0,ammo:0,hp:20,kills:0,
   selected:null,buildings:[],packets:[],enemies:[],shots:[],spawner:null,deliveredMetal:0,deliveredAmmo:0,producedMetal:0,producedAmmo:0,shotsFired:0,
   waves:Array.from({length:MAX_WAVES},()=>({started:false,doneSpawning:false,alive:0,paid:false})),goldEarned:0,goldRefunded:0,waveStart:0,tutorial:{active:false,stage:0,completed:false},selectedBuildingId:null};
@@ -98,7 +98,7 @@ function place(type,x,y,silent=false){
 }
 function startWave(){
  if(g.mode!=='playing'||g.phase!=='build'||g.wave>=MAX_WAVES)return false;
- g.wave++;g.phase='combat';g.paused=false;g.selected=null;g.enemyDelay=FIRST_DELAY;g.spawner=null;g.waveStart=g.time;for(const b of g.buildings){b.waveAmount=0;b.cool=0;b.fireCharge=0;}
+ primeDisplayRatios();g.wave++;g.phase='combat';g.paused=false;g.selected=null;g.enemyDelay=FIRST_DELAY;g.spawner=null;g.waveStart=g.time;for(const b of g.buildings){b.waveAmount=0;b.cool=0;b.fireCharge=0;}
  g.waves[g.wave-1].started=true;syncTutorial();
  showBuildTray(false);
  inform((g.wave===MAX_WAVES?'BOSSWELLE':'WELLE '+g.wave)+' startet! Die Versorgungsbilanz gilt sofort, Gegner erscheinen in '+FIRST_DELAY+' Sekunden.');update();return true;
@@ -225,6 +225,25 @@ function productionInfo(b){const combat=g.phase==='combat',base=flow(false).info
  const idle=combat&&info.kind==='idle';const ratio=idle?(base?.ratio||0):info.ratio;
  return {max:info.max||0,actual:info.rate||0,ratio:Math.round(100*ratio),severity:idle?'idle':info.kind,text:info.issue,period:combat?(idle?'Kampfphase: Bereitschaft für den nächsten Angriff':'Kampfphase: Versorgung nach aktuellem Bedarf'):'Bauphase: Prognose für maximale Auslastung',planned:base?.rate||0};
 }
+// Display-only low-pass filter. The 30 Hz combat simulator and its resource allocation stay exact.
+// Each wave begins from the instant build forecast; planning always shows exact percentages.
+function primeDisplayRatios(){
+ displayRatios.clear();const planned=flow(false).infos;
+ for(const b of g.buildings)if(!isPipe(b))displayRatios.set(b.id,100*(planned.get(b.id)?.ratio||0));
+ lastDisplayAt=null;
+}
+function sampleDisplayRatios(seconds){
+ if(!g||g.mode!=='playing'||g.phase!=='combat'||g.paused)return;
+ const alpha=1-Math.exp(-Math.min(.5,Math.max(0,seconds))/DISPLAY_RESPONSE_S);
+ for(const b of g.buildings){if(isPipe(b))continue;
+  const target=productionInfo(b).ratio,previous=displayRatios.get(b.id)??target;
+  const next=previous+(target-previous)*alpha;
+  displayRatios.set(b.id,Math.abs(target-next)<.45?target:next);
+ }
+}
+function visibleRatio(b,info){
+ return g.phase==='combat'&&displayRatios.has(b.id)?Math.round(displayRatios.get(b.id)):info.ratio;
+}
 function captureWaveMetrics(){for(const b of g.buildings)if(!isPipe(b)){b.lastWaveRate=b.waveAmount/Math.max(.1,g.time-g.waveStart);}}
 function makePlan(def){const list=[];
  if(def.boss){
@@ -294,12 +313,12 @@ function syncTutorial(){if(!g?.tutorial?.active)return;clearGuideMarks();
 function hideDetails(){if(!g)return;g.selectedBuildingId=null;$('details').hidden=true;}
 function inspect(x,y){const b=at(x,y);if(!b||isPipe(b)){hideDetails();return false;}g.selectedBuildingId=b.id;$('tutorial').hidden=true;renderDetails();return true;}
 function renderDetails(){if(!g?.selectedBuildingId)return;const b=g.buildings.find(x=>x.id===g.selectedBuildingId);
- if(!b){hideDetails();return;}const info=productionInfo(b);
+ if(!b){hideDetails();return;}const info=productionInfo(b),percent=visibleRatio(b,info);
  $('details').hidden=false;$('details-title').textContent=({mine:'Erzmine',factory:'Munitionsfabrik',turret:'MG-Turm'})[b.type]+' · VERSORGUNG';
  $('details-max').textContent=info.max.toFixed(2)+' /s';$('details-actual').textContent=(info.severity==='idle'?info.planned:info.actual).toFixed(2)+' /s';
  $('details-actual-label').textContent=g.phase==='combat'?(info.severity==='idle'?'BEREIT · PROGNOSE':'VERFÜGBAR · JETZT'):'VERFÜGBAR · PROGNOSE';
- $('details-meter').style.width=info.ratio+'%';$('details-meter').style.background=info.severity==='danger'?'#f78383':info.severity==='warn'?'#ffbe77':info.severity==='ok'?'#80d9a4':'#9faebd';
- $('details-state').textContent=info.text;$('details-explain').textContent=info.period+' · '+info.ratio+' %'+(b.type==='mine'?' der möglichen Förderung':' des maximalen Bedarfs');
+ $('details-meter').style.width=percent+'%';$('details-meter').style.background=info.severity==='danger'?'#f78383':info.severity==='warn'?'#ffbe77':info.severity==='ok'?'#80d9a4':'#9faebd';
+ $('details-state').textContent=info.text;$('details-explain').textContent=info.period+' · '+percent+' %'+(b.type==='mine'?' der möglichen Förderung':' des maximalen Bedarfs');
 }
 function update(){if(!g)return;
  $('gold').textContent=g.gold;$('metal').textContent=(g.phase==='build'?flow(false):flow(true)).metalRate.toFixed(1);
@@ -344,7 +363,7 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
   const info=productionInfo(b),rateColor=info.severity==='danger'?'#ff8181':info.severity==='warn'?'#ffc36e':info.severity==='ok'?'#83ebb0':'#bed3df';
   // One clear KISS signal, predicted in building phase and live in combat.
   c.fillStyle='#091727';rounded(x+1,y+38,58,22,5);c.fill();c.strokeStyle=rateColor;c.lineWidth=1.5;c.stroke();
-  c.textAlign='center';c.font='bold 19px system-ui,sans-serif';c.fillStyle=rateColor;c.fillText(info.ratio+'%',x+30,y+55);
+  c.textAlign='center';c.font='bold 19px system-ui,sans-serif';c.fillStyle=rateColor;c.fillText(visibleRatio(b,info)+'%',x+30,y+55);
   if(g.selectedBuildingId===b.id){c.strokeStyle='#f5d394';c.lineWidth=3;c.strokeRect(x+1,y+1,S-2,S-2);}
  }
  const hq=[HQ.x,HQ.y];c.fillStyle='#195768';rounded(hq[0]*S+5,hq[1]*S+5,50,50,8);c.fill();c.strokeStyle='#a4e9df';c.lineWidth=3;c.stroke();c.textAlign='center';c.fillStyle='#f0ffff';c.font='bold 15px sans-serif';c.fillText('HQ',hq[0]*S+30,hq[1]*S+36);
@@ -450,8 +469,21 @@ $('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zu
 document.addEventListener('keydown',e=>{if(e.key==='1')select('turret');if(e.key==='2')select('mine');if(e.key==='3')select('factory');if(e.key==='4')select('pipe');if(e.key==='5')select('bridge');if(e.key==='6'||e.key==='Delete')select('eraser');if(e.key==='Escape'){g.selected=null;update();}if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();pause();}});
 document.addEventListener('visibilitychange',()=>{previous=performance.now();acc=0;});
 
-window.ForgefrontDebug={pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect};
-function frame(now){const dt=Math.min(.1,(now-previous)/1000);previous=now;if(!document.hidden&&g?.mode==='playing'&&g.phase==='combat'&&!g.paused){acc+=dt*speedValues[speedIndex];while(acc>=1/30){simulate(1/30);acc-=1/30;}}else acc=0;update();draw();requestAnimationFrame(frame);}
+window.ForgefrontDebug={pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
+function frame(now){
+ const dt=Math.min(.1,(now-previous)/1000);previous=now;
+ if(!document.hidden&&g?.mode==='playing'&&g.phase==='combat'&&!g.paused){
+  acc+=dt*speedValues[speedIndex];while(acc>=1/30){simulate(1/30);acc-=1/30;}
+  if(g.mode==='playing'&&g.phase==='combat'){
+   if(lastDisplayAt===null)lastDisplayAt=now;
+   if(now-lastDisplayAt>=DISPLAY_UPDATE_MS){
+    sampleDisplayRatios((now-lastDisplayAt)/1000);lastDisplayAt=now;
+   }
+  }
+ }else{acc=0;lastDisplayAt=null;}
+ if(g?.phase!=='combat')lastDisplayAt=null;
+ update();draw();requestAnimationFrame(frame);
+}
 
 reset();setZoom((window.innerWidth||900)<700?.7:.82);requestAnimationFrame(frame);
 })();

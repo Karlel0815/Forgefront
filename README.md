@@ -1,4 +1,4 @@
-# Forgefront V0.2.1 – Produktions- und Optimierungspuzzle
+# Forgefront V0.2.2 – Produktions- und Optimierungspuzzle
 
 Spielbarer Browser-Prototyp für Handy und Desktop. Stand: 09.10.2026.
 
@@ -6,9 +6,15 @@ Spielbarer Browser-Prototyp für Handy und Desktop. Stand: 09.10.2026.
 
 **Primär ein knackiges Produktions-/Optimierungspuzzle mit Tower-Defense-Prüfung.** Die Spieler sollen begrenzte Ressourcen und räumliche Positionen optimieren, um die jeweilige Gegnerwelle beziehungsweise später ein dediziertes Level zu meistern. Jede Bauphase bleibt **zeitlich unbegrenzt**, ohne Produktionsfortschritt. Angriffswellen werden bewusst manuell gestartet; die Bauphase ist zum Analysieren und Umbauen gedacht. Die gut lesbare, farbige Prozentprognose der Gebäude ist ein zentrales Spielelement.
 
+## Neue Anzeige in V0.2.2
+
+- Während des Kampfs wird nur die **sichtbare Prozentzahl** ungefähr viermal pro Sekunde aktualisiert und über ca. 1,5 Sekunden sanft geglättet. Keine Änderung an Kampf-Ticks, Rohstoff-Berechnung, Schaden oder Baukosten.
+- Die **Bauphasen-Prognose** bleibt nach jeder Änderung unmittelbar und exakt; Details enthalten weiterhin reale Produktionsraten. Nach jedem Wellenstart beginnt die Darstellung mit der zuletzt geplanten Versorgung.
+- Keine Kanone / kein Mörser in diesem kleinen Qualitätsupdate. Für V0.3.0 vorgesehen: MG, Kanone und Mörser verwenden dieselbe Munition aus der einzigen Metall verarbeitenden Munitionsfabrik.
+
 ## Spiel starten
 
-- `index.html` zusammen mit `style.css` und `game.js` öffnen, oder `Forgefront_V0.2.1.html` als einzelne Offline-Datei verwenden.
+- `index.html` zusammen mit `style.css` und `game.js` öffnen, oder `Forgefront_V0.2.2.html` als einzelne Offline-Datei verwenden.
 - Erstes Tutorial ist neutral, optional und überspringbar, per `? HILFE` während der Bauphase wiederholbar.
 - Unten bleibt beim Bauen eine **kompakte Bauleiste ständig offen**, auch bei Werkzeugwechsel und wiederholter Platzierung; Tippen oder Rohrziehen. Bei Angriff verschwindet die Werkzeugleiste, nach der Welle erscheint sie wieder.
 - Standardtempo **2×** (umschaltbar: 1×, 1,5×, 2×). Nach dem manuellen Start erscheinen Gegner **2 Spielsekunden** später (bei 2× etwa 1 Sekunde Echtzeit).
@@ -48,6 +54,7 @@ node test.cjs
 node pipe_test.cjs
 node onboarding_test.cjs
 node strategies.cjs
+node display_test.cjs
 python browser_test.py
 ```
 
