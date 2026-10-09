@@ -3,7 +3,7 @@
 - HUD: nur Gold oben, HQ-Leben direkt am Hauptquartier. Wellenübersicht in Baupause, Gegner-Restzahl im Kampf.
 - Vier feste Baukategorien ohne horizontales Scrollen. Ein Klick auf Werkzeug schließt die Auswahl, lässt das Werkzeug aktiv.
 - Tempo fest 2x, Pause/Start bleiben.
-- Gegner: sechs Wellen mit 16/25/30/45/65/35 Begleitgegnern, Boss in der letzten Welle zusätzlich (Welle 6: 36 insgesamt). Kompakte Gruppen 4/5/6/9/13/7, Abstand der Trupps 2.4–3.3 Spielsekunden. Bedrohliches Gruppenspiel bei Smartphone-Performance prüfen.
+- Gegner: sechs Wellen mit 16/25/30/45/65/34 Begleitgegnern und einem Boss in der letzten Welle (Welle 6: 35 insgesamt). Kompakte Gruppen 4/5/6/9/13/7, Abstand der Trupps 2.4–3.3 Spielsekunden. Bedrohliches Gruppenspiel bei Smartphone-Performance prüfen.
 - Gold: Scout +1, Normal +2, Heavy +6, Boss +20, Wellenbonus +10. Bisherige Waffen-/Produktionsparameter unverändert.
 
 # Forgefront V0.3.1 – Testkarte mit drei Waffen
