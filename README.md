@@ -1,6 +1,6 @@
 # Forgefront V0.3.4 – Balancekorrektur
 
-Waffenrollen: MG Schussabstand 0,45s, Kanone unverändert als Panzerabwehr, Mörser Schussabstand 2,4s, Schaden 6, Spritzradius 1,1 und 2 Schaden weniger gegen Panzer. Boss-Welle, Gegneranzahl, vier Schwierigkeitseinstellungen, Gold, Baumenü und Reichweitenanzeige bleiben erhalten. Wellen 1–5 erhalten etwas mehr Leben/engere Gruppen; erneute Strategie- und Smartphone-Tests erforderlich. Diese Version ist ein erster Balance-Durchgang, keine nachgewiesene perfekte Balance.
+Waffenrollen: MG Schussabstand 0,45s, Kanone unverändert als Panzerabwehr, Mörser behält 2,2s, 7 Flächenschaden und Spritzradius 1,45 gegen Schwärme, macht gegen Panzer aber nur 4 Grundschaden. Boss-Welle, Gegneranzahl, vier Schwierigkeitseinstellungen, Gold, Baumenü und Reichweitenanzeige bleiben erhalten. Wellen 1–5 erhalten etwas mehr Leben/engere Gruppen; erneute Strategie- und Smartphone-Tests erforderlich. Diese Version ist ein erster Balance-Durchgang, keine nachgewiesene perfekte Balance.
 
 # Forgefront V0.3.4 – Schwärme, Reichweite und Waffenbalance
 
