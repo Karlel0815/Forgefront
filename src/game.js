@@ -2,6 +2,13 @@
 'use strict';
 const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DISPLAY_UPDATE_MS=250,DISPLAY_RESPONSE_S=1.5,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
 const ECONOMY={startGold:180,goldPerKill:5,goldPerType:{scout:1,normal:2,heavy:6,boss:20},goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
+const DIFFICULTIES={
+ easy:{name:'Leicht',startGold:220,hq:30,enemyHp:.8},
+ normal:{name:'Mittel',startGold:180,hq:20,enemyHp:1},
+ hard:{name:'Schwer',startGold:155,hq:15,enemyHp:1.2},
+ crazy:{name:'Verrückt',startGold:135,hq:10,enemyHp:1.4}
+};
+let selectedDifficulty='normal';
 const HQ={x:16,y:18};
 const PATH=[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[6,4],[6,5],[7,5],[8,5],[9,5],[10,5],[10,6],[10,7],[10,8],[10,9],[11,9],[12,9],[12,8],[13,8],[13,9],[13,10],[12,10],[11,10],[11,11],[11,12],[12,12],[13,12],[14,12],[15,12],[15,13],[15,14],[15,15],[16,15],[16,16],[16,17],[16,18]];
 const ORE=new Set(['7,14','6,14','7,15','6,15','4,13','3,13','3,12','4,12','2,9','3,9','5,9','9,17','10,17','12,16','13,16','14,5','15,5','15,6','2,5','3,5','15,18','14,18','11,4','10,14','7,17']);
@@ -63,8 +70,10 @@ function pipeTypes(){if(pipeTypeCache&&pipeTypeCache.version===topologyVersion)r
 }
 function reset(){
  activeCategory=null;delete $('wave-list').dataset.ready;
+ $('difficulty').value=selectedDifficulty;
  nextId=1;speedIndex=0;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;displayRatios.clear();lastDisplayAt=null;
- g={mode:'intro',phase:'build',wave:0,paused:false,time:0,enemyDelay:null,gold:ECONOMY.startGold,metal:0,ammo:0,hp:20,kills:0,
+ const difficulty=DIFFICULTIES[selectedDifficulty];
+ g={mode:'intro',phase:'build',wave:0,paused:false,time:0,enemyDelay:null,difficulty:selectedDifficulty,gold:difficulty.startGold,metal:0,ammo:0,hp:difficulty.hq,kills:0,
   selected:null,buildings:[],packets:[],enemies:[],shots:[],spawner:null,deliveredMetal:0,deliveredAmmo:0,producedMetal:0,producedAmmo:0,shotsFired:0,
   waves:Array.from({length:MAX_WAVES},()=>({started:false,doneSpawning:false,alive:0,paid:false})),goldEarned:0,goldRefunded:0,waveStart:0,tutorial:{active:false,stage:0,completed:false},selectedBuildingId:null};
  acc=0;pointerPositions.clear();gesture=null;
@@ -261,9 +270,9 @@ function captureWaveMetrics(){for(const b of g.buildings)if(!isPipe(b)){b.lastWa
 function makePlan(def){const list=[];
  for(let i=0;i<def.count;i++){
   const kind=def.pattern[i]||'normal';
-  list.push({kind,hp:kind==='heavy'?Math.round(def.hp*1.5):kind==='scout'?Math.round(def.hp*.64):def.hp,speed:kind==='heavy'?def.speed*.72:kind==='scout'?def.speed*1.35:def.speed,armor:kind==='heavy'?2:0});
+  list.push({kind,hp:Math.max(1,Math.round((kind==='heavy'?Math.round(def.hp*1.5):kind==='scout'?Math.round(def.hp*.64):def.hp)*DIFFICULTIES[g.difficulty].enemyHp)),speed:kind==='heavy'?def.speed*.72:kind==='scout'?def.speed*1.35:def.speed,armor:kind==='heavy'?2:0});
  }
- if(def.boss)list.splice(17,0,{kind:'boss',hp:110,speed:.98,armor:0});
+ if(def.boss)list.splice(17,0,{kind:'boss',hp:Math.round(110*DIFFICULTIES[g.difficulty].enemyHp),speed:.98,armor:0});
  return list;
 }
 function splashCount(enemy,radius){
@@ -419,7 +428,7 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
   c.textAlign='center';c.font='bold 19px system-ui,sans-serif';c.fillStyle=rateColor;c.fillText(visibleRatio(b,info)+'%',x+30,y+55);
   if(g.selectedBuildingId===b.id){c.strokeStyle='#f5d394';c.lineWidth=3;c.strokeRect(x+1,y+1,S-2,S-2);}
  }
- const hq=[HQ.x,HQ.y];c.fillStyle='#195768';rounded(hq[0]*S+5,hq[1]*S+5,50,50,8);c.fill();c.strokeStyle='#a4e9df';c.lineWidth=3;c.stroke();c.textAlign='center';c.fillStyle='#f0ffff';c.font='bold 15px sans-serif';c.fillText('HQ',hq[0]*S+30,hq[1]*S+29);c.font='bold 13px sans-serif';c.fillStyle=g.hp<=6?'#ff8686':'#fff0ae';c.fillText('♥ '+g.hp+'/20',hq[0]*S+30,hq[1]*S+47);
+ const hq=[HQ.x,HQ.y];c.fillStyle='#195768';rounded(hq[0]*S+5,hq[1]*S+5,50,50,8);c.fill();c.strokeStyle='#a4e9df';c.lineWidth=3;c.stroke();c.textAlign='center';c.fillStyle='#f0ffff';c.font='bold 15px sans-serif';c.fillText('HQ',hq[0]*S+30,hq[1]*S+29);c.font='bold 13px sans-serif';c.fillStyle=g.hp<=6?'#ff8686':'#fff0ae';c.fillText('♥ '+g.hp+'/'+DIFFICULTIES[g.difficulty].hq,hq[0]*S+30,hq[1]*S+47);
  for(const e of g.enemies){const p=enemyPos(e),x=(p.x+.5)*S,y=(p.y+.5)*S;
   const boss=e.kind==='boss',heavy=e.kind==='heavy',scout=e.kind==='scout',r=boss?23:heavy?18:scout?11:14;
   c.fillStyle=boss?'#ef6f85':heavy?'#ab91dc':scout?'#ffcd72':'#fb8e84';c.beginPath();c.moveTo(x,y-r);c.lineTo(x+r,y);c.lineTo(x,y+r);c.lineTo(x-r,y);c.closePath();c.fill();
@@ -512,8 +521,9 @@ $('pause').addEventListener('click',pause);
 function goto(x,y){const scale=canvas.getBoundingClientRect().width/(W*S);boardbox.scrollLeft=Math.max(0,(x+.5)*S*scale-boardbox.clientWidth/2);boardbox.scrollTop=Math.max(0,(y+.5)*S*scale-boardbox.clientHeight/2);drawMini();}
 mini.addEventListener('click',e=>{const r=mini.getBoundingClientRect();goto(Math.floor((e.clientX-r.left)/r.width*W),Math.floor((e.clientY-r.top)/r.height*H));});
 $('reset').addEventListener('click',()=>{reset();goto(8,10);});
+$('difficulty').addEventListener('change',e=>{if(g.mode!=='intro')return;selectedDifficulty=DIFFICULTIES[e.target.value]?e.target.value:'normal';reset();});
 function enterGame(withTutorial){g.mode='playing';$('overlay').classList.add('hidden');g.tutorial={active:!!withTutorial,stage:0,completed:false};
- inform(withTutorial?'Baue zuerst eine Erzmine auf einem braunen Erzfeld.':'BAUPHASE: Die Prozentwerte zeigen die geplante Versorgung. Startkapital: 180 Gold.');
+ inform(withTutorial?'Baue zuerst eine Erzmine auf einem braunen Erzfeld.':'BAUPHASE: Die Prozentwerte zeigen die geplante Versorgung. Startkapital: '+g.gold+' Gold. Schwierigkeit: '+DIFFICULTIES[g.difficulty].name+'.');
  activeCategory=null;renderBuildCategory();update();goto(8,10);}
 $('start').addEventListener('click',()=>{if(g.mode==='intro')enterGame(true);else reset();});
 $('intro-skip').addEventListener('click',()=>{if(g.mode==='intro')enterGame(false);});
@@ -524,7 +534,7 @@ $('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zu
 document.addEventListener('keydown',e=>{if(e.key==='1')select('turret');if(e.key==='2')select('mine');if(e.key==='3')select('factory');if(e.key==='4')select('pipe');if(e.key==='5')select('bridge');if(e.key==='6'||e.key==='Delete')select('eraser');if(e.key==='Escape'){g.selected=null;update();}if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();pause();}});
 document.addEventListener('visibilitychange',()=>{previous=performance.now();acc=0;});
 
-window.ForgefrontDebug={pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),waves:()=>WAVES.map((w,i)=>({label:w.label,composition:wavePreview(i)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
+window.ForgefrontDebug={setDifficulty:key=>{if(g.mode!=='intro'||!DIFFICULTIES[key])return false;selectedDifficulty=key;reset();return true;},difficulties:()=>JSON.parse(JSON.stringify(DIFFICULTIES)),pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),waves:()=>WAVES.map((w,i)=>({label:w.label,composition:wavePreview(i)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
 function frame(now){
  const dt=Math.min(.1,(now-previous)/1000);previous=now;
  if(!document.hidden&&g?.mode==='playing'&&g.phase==='combat'&&!g.paused){
