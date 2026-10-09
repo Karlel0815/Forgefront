@@ -1,8 +1,16 @@
-# Forgefront V0.3.0 – Testkarte mit drei Waffen
+# Forgefront V0.3.1 – Handy-Bedienung und Angriffstrupps
+
+- HUD: nur Gold oben, HQ-Leben direkt am Hauptquartier. Wellenübersicht in Baupause, Gegner-Restzahl im Kampf.
+- Vier feste Baukategorien ohne horizontales Scrollen. Ein Klick auf Werkzeug schließt die Auswahl, lässt das Werkzeug aktiv.
+- Tempo fest 2x, Pause/Start bleiben.
+- Gegner: sechs Wellen mit 16/25/30/45/65/35 Begleitgegnern, Boss in der letzten Welle zusätzlich (Welle 6: 36 insgesamt). Kompakte Gruppen 4/5/6/9/13/7, Abstand der Trupps 2.4–3.3 Spielsekunden. Bedrohliches Gruppenspiel bei Smartphone-Performance prüfen.
+- Gold: Scout +1, Normal +2, Heavy +6, Boss +20, Wellenbonus +10. Bisherige Waffen-/Produktionsparameter unverändert.
+
+# Forgefront V0.3.1 – Testkarte mit drei Waffen
 
 Kanone: 38 Gold, Reichweite 4, Schaden 11, Schuss alle 1,7 Sekunden, 1,2 Munition/s, Panzerbrecher. Mörser: 42 Gold, Reichweite 1,5 bis 5, 6 Flächenschaden (Radius 1,1), Schuss alle 2,4 Sekunden, 2,4 Munition/s. MG unverändert (3 Schaden, 0,57 s, 1,75 Munition/s). Heavy Rüstung 2, Boss Phase 2 Rüstung 2. Nur eine Munitionsfabrik und ein universelles Munitionsnetz. Testkarte: veränderter Gegnerpfad mit zusätzlichem Knick im Mittelteil und neuen Erzvorkommen; 6 gemischte Wellen; alle Gegner vorab sichtbar. Neubau und Umbau zwischen Wellen: vor Wellenstart neu gesetzt 100 % Rückerstattung, nach Einsatz 50 %. Noch keine Kampagne/Speicherung.
 
-# Forgefront V0.3.0 – Produktions- und Optimierungspuzzle
+# Forgefront V0.3.1 – Produktions- und Optimierungspuzzle
 
 Spielbarer Browser-Prototyp für Handy und Desktop. Stand: 09.10.2026.
 
@@ -10,15 +18,15 @@ Spielbarer Browser-Prototyp für Handy und Desktop. Stand: 09.10.2026.
 
 **Primär ein knackiges Produktions-/Optimierungspuzzle mit Tower-Defense-Prüfung.** Die Spieler sollen begrenzte Ressourcen und räumliche Positionen optimieren, um die jeweilige Gegnerwelle beziehungsweise später ein dediziertes Level zu meistern. Jede Bauphase bleibt **zeitlich unbegrenzt**, ohne Produktionsfortschritt. Angriffswellen werden bewusst manuell gestartet; die Bauphase ist zum Analysieren und Umbauen gedacht. Die gut lesbare, farbige Prozentprognose der Gebäude ist ein zentrales Spielelement.
 
-## Neue Anzeige in V0.3.0
+## Neue Anzeige in V0.3.1
 
 - Während des Kampfs wird nur die **sichtbare Prozentzahl** ungefähr viermal pro Sekunde aktualisiert und über ca. 1,5 Sekunden sanft geglättet. Keine Änderung an Kampf-Ticks, Rohstoff-Berechnung, Schaden oder Baukosten.
 - Die **Bauphasen-Prognose** bleibt nach jeder Änderung unmittelbar und exakt; Details enthalten weiterhin reale Produktionsraten. Nach jedem Wellenstart beginnt die Darstellung mit der zuletzt geplanten Versorgung.
-- Keine Kanone / kein Mörser in diesem kleinen Qualitätsupdate. Für V0.3.0 vorgesehen: MG, Kanone und Mörser verwenden dieselbe Munition aus der einzigen Metall verarbeitenden Munitionsfabrik.
+- Keine Kanone / kein Mörser in diesem kleinen Qualitätsupdate. Für V0.3.1 vorgesehen: MG, Kanone und Mörser verwenden dieselbe Munition aus der einzigen Metall verarbeitenden Munitionsfabrik.
 
 ## Spiel starten
 
-- `index.html` zusammen mit `style.css` und `game.js` öffnen, oder `Forgefront_V0.3.0.html` als einzelne Offline-Datei verwenden.
+- `index.html` zusammen mit `style.css` und `game.js` öffnen, oder `Forgefront_V0.3.1.html` als einzelne Offline-Datei verwenden.
 - Erstes Tutorial ist neutral, optional und überspringbar, per `? HILFE` während der Bauphase wiederholbar.
 - Unten bleibt beim Bauen eine **kompakte Bauleiste ständig offen**, auch bei Werkzeugwechsel und wiederholter Platzierung; Tippen oder Rohrziehen. Bei Angriff verschwindet die Werkzeugleiste, nach der Welle erscheint sie wieder.
 - Standardtempo **2×** (umschaltbar: 1×, 1,5×, 2×). Nach dem manuellen Start erscheinen Gegner **2 Spielsekunden** später (bei 2× etwa 1 Sekunde Echtzeit).
