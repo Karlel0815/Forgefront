@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.2.2 – Logistik-Puzzle</title><link rel="stylesheet" href="style.css"></head>
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.3.0 – Logistik-Puzzle</title><link rel="stylesheet" href="style.css"></head>
 <body><div class="app">
-<header class="brand"><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.2.2</span></div></header>
+<header class="brand"><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.3.0</span></div></header>
 <section class="stats" aria-label="Spielstatus"><div class="stat"><label>● GOLD</label><strong id="gold">180</strong></div><div class="stat"><label>▣ METALL/s</label><strong id="metal">0</strong></div><div class="stat"><label>◆ MUN./s</label><strong id="ammo">0</strong></div><div class="stat"><label>♥ HQ</label><strong id="hp">20</strong></div><div class="stat"><label>≋ WELLE</label><strong id="wave">0/6</strong></div></section>
 <main><div class="maptop"><span id="phase-label">BAUPHASE</span><span id="indicator">Industrie pausiert</span><span id="threat">5 WELLEN + BOSS</span></div>
 <div class="map-frame"><section id="tutorial" class="tutorial" hidden aria-live="polite">
@@ -12,17 +12,17 @@
   <div class="meter"><span id="details-meter"></span></div><p id="details-state">Status</p><small id="details-explain">Werte beziehen sich auf die aktuelle Kampfphase.</small></section><div id="boardbox" class="boardbox"><canvas id="board" width="1080" height="1200" aria-label="Spielfeld – ziehen zum Verschieben, zwei Finger für Zoom"></canvas>
 <div id="overlay"><div class="intro"><div class="o-icon" id="o-icon">⬡</div><h2 id="o-title">ERZFRONT</h2><p id="o-text">Baue eine Mine, eine Fabrik, Rohre und MGs. Zwischen den Wellen darfst du umbauen – während des Angriffs muss alles funktionieren.</p><button id="start" class="primary">TUTORIAL STARTEN →</button><button id="intro-skip" class="intro-skip" type="button">Ohne Tutorial spielen</button></div></div></div>
 <div class="minimap-wrap"><canvas id="minimap" width="180" height="200" title="Kartenübersicht" aria-label="Minikarte"></canvas></div></div>
-<div class="game-hint" id="hint" aria-live="polite">Die Prozentzahlen zeigen die prognostizierte Versorgung. Produktion pausiert.</div>
+<section id="wave-preview" class="wave-preview"><div class="wave-preview-head"><b id="next-wave">NÄCHSTE WELLE</b><button type="button" id="waves-toggle" aria-controls="wave-list" aria-expanded="false">Alle Wellen ▾</button></div><div id="wave-list" class="wave-list" hidden></div></section><div class="game-hint" id="hint" aria-live="polite">Die Prozentzahlen zeigen die prognostizierte Versorgung. Produktion pausiert.</div>
 </main></div>
 <div class="bottom-dock" id="dock" aria-label="Baumenü"><button type="button" id="dock-toggle" class="dock-toggle" aria-expanded="false" aria-controls="build-tray"><span id="dock-chevron">⌃</span><span id="dock-label">BAUEN</span><span id="selection-label">Werkzeug wählen</span></button>
 <div id="build-tray" class="tray" hidden><div class="builds">
 <button class="build" data-type="turret"><span class="glyph">⌖</span><b>MG</b><small>24 Gold</small></button>
-<button class="build" data-type="mine"><span class="glyph">◆</span><b>Erzmine</b><small>Metall 1/s</small></button>
+<button class="build" data-type="cannon"><span class="glyph">✹</span><b>Kanone</b><small>38 Gold</small></button><button class="build" data-type="mortar"><span class="glyph">◉</span><b>Mörser</b><small>42 Gold</small></button><button class="build" data-type="mine"><span class="glyph">◆</span><b>Erzmine</b><small>Metall 1/s</small></button>
 <button class="build" data-type="factory"><span class="glyph">⚙</span><b>Fabrik</b><small>18 Gold</small></button>
 <button class="build" data-type="pipe"><span class="glyph">╋</span><b>Rohr</b><small>4 Gold</small></button>
 <button class="build" data-type="bridge"><span class="glyph">⌒</span><b>Brücke</b><small>10 Gold</small></button>
 <button class="build" data-type="eraser"><span class="glyph">⌫</span><b>Radierer</b><small id="refund-short">100 %</small></button>
 </div><div class="tray-help">Tippen zum Bauen; Rohrziehen möglich. Goldene Auswahl bleibt aktiv. Zum Verschieben abwählen.</div></div>
 <div class="dock-actions"><button type="button" class="primary" id="pause">▶ WELLE 1 STARTEN</button><button type="button" id="speed" class="smallbtn">2×</button><button type="button" id="reset" class="reset" title="Neue Runde">↻</button></div>
-<div id="status" class="dock-status" role="status">V0.2.2 · Produktions-Puzzle · 5 Wellen + Boss</div>
+<div id="status" class="dock-status" role="status">V0.3.0 · Produktions-Puzzle · 5 Wellen + Boss</div>
 </div><script src="game.js"></script></body></html>
