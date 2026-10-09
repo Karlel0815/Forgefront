@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DISPLAY_UPDATE_MS=250,DISPLAY_RESPONSE_S=1.5,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
-const ECONOMY={startGold:180,goldPerKill:5,goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
+const ECONOMY={startGold:180,goldPerKill:5,goldPerType:{scout:1,normal:2,heavy:6,boss:20},goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
 const HQ={x:16,y:18};
 const PATH=[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[6,4],[6,5],[7,5],[8,5],[9,5],[10,5],[10,6],[10,7],[10,8],[10,9],[11,9],[12,9],[12,8],[13,8],[13,9],[13,10],[12,10],[11,10],[11,11],[11,12],[12,12],[13,12],[14,12],[15,12],[15,13],[15,14],[15,15],[16,15],[16,16],[16,17],[16,18]];
 const ORE=new Set(['7,14','6,14','7,15','6,15','4,13','3,13','3,12','4,12','2,9','3,9','5,9','9,17','10,17','12,16','13,16','14,5','15,5','15,6','2,5','3,5','15,18','14,18','11,4','10,14','7,17']);
@@ -9,17 +9,17 @@ const COST={turret:24,cannon:38,mortar:42,mine:22,factory:18,pipe:4,bridge:10};
 const WEAPONS={turret:{range:3.3,interval:.57,damage:3,demand:1/.57},cannon:{range:4,interval:1.7,damage:11,demand:1.2},mortar:{range:5,minRange:1.5,interval:2.4,damage:6,radius:1.1,demand:2.4}};
 const isWeapon=b=>!!b&&WEAPONS[b.type]!==undefined,weaponDemand=b=>WEAPONS[b.type]?.demand||0;
 const WAVES=[
- {label:'ERSTE PROBE',count:6,hp:14,speed:1.35,interval:1.50,pattern:['normal','scout','normal']},
- {label:'SCOUT-VORSTOSS',count:9,hp:16,speed:1.62,interval:1.18,pattern:['scout','normal','scout']},
- {label:'PANZERKOLONNE',count:10,hp:21,speed:1.65,interval:1.25,pattern:['heavy','normal','heavy','scout']},
- {label:'GEMISCHTER ANGRIFF',count:12,hp:23,speed:1.8,interval:1.12,pattern:['heavy','scout','normal','scout']},
- {label:'GROSSER SCHWARM',count:18,hp:25,speed:1.92,interval:.72,pattern:['normal','scout','scout','normal','heavy','scout']},
- {label:'BOSS: EISENBRECHER',count:9,hp:27,speed:1.85,interval:1.7,pattern:['scout','heavy','normal','scout','heavy','scout','heavy','scout','normal'],boss:true}
+ {label:'ERSTE VERTEIDIGUNG',count:16,groupSize:4,interval:.46,gap:2.5,hp:8,speed:1.45,pattern:['normal','normal','scout','normal','scout','normal','normal','scout','normal','scout','normal','normal','scout','normal','normal','scout']},
+ {label:'SCOUT-ANSTURM',count:25,groupSize:5,interval:.36,gap:2.4,hp:9,speed:1.65,pattern:['scout','scout','normal','scout','normal','scout','scout','normal','scout','normal','scout','scout','normal','scout','normal','scout','scout','normal','scout','normal','scout','scout','normal','scout','normal']},
+ {label:'PANZERKOLONNE',count:30,groupSize:6,interval:.48,gap:3,hp:11,speed:1.52,pattern:['heavy','normal','normal','scout','heavy','normal','normal','scout','heavy','normal','normal','scout','heavy','normal','normal','scout','heavy','normal','normal','scout','heavy','normal','normal','scout','heavy','normal','normal','scout','heavy','normal']},
+ {label:'GROSSANGRIFF',count:45,groupSize:9,interval:.36,gap:2.8,hp:11,speed:1.68,pattern:Array.from({length:45},(_,i)=>i<20?'scout':i<37?'normal':'heavy')},
+ {label:'ÜBERMACHT',count:65,groupSize:13,interval:.29,gap:2.6,hp:10,speed:1.86,pattern:Array.from({length:65},(_,i)=>i<40?'scout':i<60?'normal':'heavy')},
+ {label:'BOSS: EISENBRECHER',count:35,groupSize:7,interval:.45,gap:3.3,hp:13,speed:1.58,pattern:Array.from({length:34},(_,i)=>i<15?'scout':i<28?'normal':'heavy'),boss:true}
 ];
 const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d'),boardbox=$('boardbox'),mini=$('minimap'),mc=mini.getContext('2d');
-const buildButtons=[...document.querySelectorAll('.build')],speedValues=[1,1.5,2],minZoom=.35,maxZoom=3;
+const buildButtons=[...document.querySelectorAll('.build')],speedValues=[2],minZoom=.35,maxZoom=3;
 const key=(x,y)=>x+','+y,adj=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1;
-let g,previous=performance.now(),acc=0,speedIndex=2,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null,pipeTypeCache=null,displayRatios=new Map(),lastDisplayAt=null;
+let g,previous=performance.now(),acc=0,speedIndex=0,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null,pipeTypeCache=null,displayRatios=new Map(),lastDisplayAt=null;
 function building(type,x,y){return {id:nextId++,type,x,y,cool:0,fireCharge:0,waveAmount:0,lastWaveRate:null,lastIssue:'Noch nicht getestet',committed:false};}
 function inform(msg){$('hint').textContent=msg;$('status').textContent=msg;}
 function overlay(icon,title,description,action){$('o-icon').textContent=icon;$('o-title').textContent=title;$('o-text').textContent=description;$('start').textContent=action;$('overlay').classList.remove('hidden');}
@@ -27,7 +27,17 @@ function at(x,y){return g.buildings.find(b=>b.x===x&&b.y===y);}
 function isRoad(x,y){return PATH.some(p=>p[0]===x&&p[1]===y);}
 function isPipe(b){return !!b&&(b.type==='pipe'||b.type==='bridge');}
 function nearby(b){return DIRS.map(d=>at(b.x+d[0],b.y+d[1])).filter(Boolean);}
-function showBuildTray(open){$('build-tray').hidden=!open;$('dock').classList.toggle('open',open);$('dock-toggle').setAttribute('aria-expanded',String(open));}
+let activeCategory=null;
+function showBuildTray(open){if(!open)activeCategory=null;else if(!activeCategory)activeCategory='weapons';renderBuildCategory();}
+function renderBuildCategory(){
+ const open=!!activeCategory&&g?.phase==='build'&&g?.mode==='playing';
+ $('build-tray').hidden=!open;$('dock').classList.toggle('open',open);
+ $('dock-toggle').setAttribute('aria-expanded',String(open));
+ for(const b of document.querySelectorAll('.category')){const yes=b.dataset.category===activeCategory;b.classList.toggle('selected',yes);b.setAttribute('aria-pressed',String(yes));}
+ for(const b of buildButtons)b.hidden=!open||b.dataset.category!==activeCategory;
+}
+function toggleCategory(name){if(g.mode!=='playing'||g.phase!=='build')return;activeCategory=activeCategory===name?null:name;renderBuildCategory();}
+
 // Auto-detect a pipe component's material from its terminal buildings.
 // Factories are converters/endpoints, NOT transit nodes for either medium.
 // A component with both mine and turret terminals is not constructible.
@@ -52,7 +62,8 @@ function pipeTypes(){if(pipeTypeCache&&pipeTypeCache.version===topologyVersion)r
  const scanned=scanPipeTypes();pipeTypeCache={version:topologyVersion,types:scanned.types};return scanned.types;
 }
 function reset(){
- nextId=1;speedIndex=2;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;displayRatios.clear();lastDisplayAt=null;
+ activeCategory=null;delete $('wave-list').dataset.ready;
+ nextId=1;speedIndex=0;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;displayRatios.clear();lastDisplayAt=null;
  g={mode:'intro',phase:'build',wave:0,paused:false,time:0,enemyDelay:null,gold:ECONOMY.startGold,metal:0,ammo:0,hp:20,kills:0,
   selected:null,buildings:[],packets:[],enemies:[],shots:[],spawner:null,deliveredMetal:0,deliveredAmmo:0,producedMetal:0,producedAmmo:0,shotsFired:0,
   waves:Array.from({length:MAX_WAVES},()=>({started:false,doneSpawning:false,alive:0,paid:false})),goldEarned:0,goldRefunded:0,waveStart:0,tutorial:{active:false,stage:0,completed:false},selectedBuildingId:null};
@@ -109,7 +120,7 @@ function checkWaveComplete(){
  const r=g.waves[g.wave-1];if(!r||!r.doneSpawning||r.alive!==0||g.spawner||g.enemyDelay!==null||g.phase!=='combat')return;
  if(!r.paid){r.paid=true;g.gold+=ECONOMY.goldPerWave;g.goldEarned+=ECONOMY.goldPerWave;}
  captureWaveMetrics();if(g.wave===MAX_WAVES){finish(true);return;}
- g.phase='build';g.selected=null;g.paused=false;showBuildTray(true);
+ g.phase='build';g.selected=null;g.paused=false;showBuildTray(false);
  inform('Welle '+g.wave+' überstanden! +'+ECONOMY.goldPerWave+' Gold. Industrie pausiert. In Ruhe umbauen, dann Welle '+(g.wave+1)+' starten.');
  update();
 }
@@ -248,11 +259,11 @@ function visibleRatio(b,info){
 }
 function captureWaveMetrics(){for(const b of g.buildings)if(!isPipe(b)){b.lastWaveRate=b.waveAmount/Math.max(.1,g.time-g.waveStart);}}
 function makePlan(def){const list=[];
- if(def.boss){
-  for(let i=0;i<def.count;i++){if(i===4)list.push({kind:'boss',hp:110,speed:.98,armor:0});
-   const kind=def.pattern[i]||'normal';list.push({kind,hp:kind==='heavy'?42:kind==='scout'?15:28,speed:kind==='heavy'?1.13:kind==='scout'?2.55:1.8,armor:kind==='heavy'?2:0});}
- }else for(let i=0;i<def.count;i++){
-  const kind=def.pattern[i%def.pattern.length];list.push({kind,hp:kind==='heavy'?def.hp*1.4:kind==='scout'?def.hp*.68:def.hp,speed:kind==='heavy'?def.speed*.65:kind==='scout'?def.speed*1.36:def.speed,armor:kind==='heavy'?2:0});}
+ for(let i=0;i<def.count;i++){
+  const kind=def.pattern[i]||'normal';
+  list.push({kind,hp:kind==='heavy'?Math.round(def.hp*1.5):kind==='scout'?Math.round(def.hp*.64):def.hp,speed:kind==='heavy'?def.speed*.72:kind==='scout'?def.speed*1.35:def.speed,armor:kind==='heavy'?2:0});
+ }
+ if(def.boss)list.splice(17,0,{kind:'boss',hp:110,speed:.98,armor:0});
  return list;
 }
 function splashCount(enemy,radius){
@@ -267,7 +278,7 @@ function makeTarget(turret){
 }
 function killEnemy(e){
  const i=g.enemies.indexOf(e);if(i<0)return;
- g.enemies.splice(i,1);g.waves[e.wave-1].alive--;g.kills++;g.gold+=ECONOMY.goldPerKill;g.goldEarned+=ECONOMY.goldPerKill;
+ g.enemies.splice(i,1);g.waves[e.wave-1].alive--;g.kills++;const bounty=ECONOMY.goldPerType[e.kind]??2;g.gold+=bounty;g.goldEarned+=bounty;
  if(e.kind==='boss')inform('BOSS GESTOPPT! Besiege die letzten Begleitgegner.');
 }
 function hitEnemy(e,raw,pierce){
@@ -284,9 +295,15 @@ function shoot(turret,target){
 }
 function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')return;
  g.time+=dt;
- if(g.enemyDelay!==null){g.enemyDelay-=dt;if(g.enemyDelay<=0){g.enemyDelay=null;const def=WAVES[g.wave-1];g.spawner={plan:makePlan(def),index:0,timer:0,interval:def.interval};inform((def.boss?'BOSSANGRIFF':'Welle '+g.wave)+' hat begonnen! Die Produktionsbilanz entscheidet.');}}
+ if(g.enemyDelay!==null){g.enemyDelay-=dt;if(g.enemyDelay<=0){g.enemyDelay=null;const def=WAVES[g.wave-1];g.spawner={plan:makePlan(def),index:0,timer:0,interval:def.interval,groupSize:def.groupSize,gap:def.gap};inform((def.boss?'BOSSANGRIFF':'Welle '+g.wave)+' hat begonnen! Die Produktionsbilanz entscheidet.');}}
  if(g.spawner){const sp=g.spawner;sp.timer-=dt;
-  if(sp.index<sp.plan.length&&sp.timer<=0){const unit=sp.plan[sp.index++];const e={id:nextId++,pos:0,hp:unit.hp,max:unit.hp,speed:unit.speed,armor:unit.armor,kind:unit.kind,wave:g.wave,enraged:false};g.enemies.push(e);g.waves[g.wave-1].alive++;sp.timer+=sp.interval;}
+  // Each group is compact, followed by a deliberate gap. One spawn per simulation tick.
+  if(sp.index<sp.plan.length&&sp.timer<=0){
+   const unit=sp.plan[sp.index++];g.enemies.push({id:nextId++,pos:0,hp:unit.hp,max:unit.hp,speed:unit.speed,armor:unit.armor,kind:unit.kind,wave:g.wave,enraged:false});
+   g.waves[g.wave-1].alive++;
+   const crossed=sp.index%sp.groupSize===0&&sp.index<sp.plan.length;
+   sp.timer+=crossed?sp.gap:sp.interval;
+  }
   if(sp.index===sp.plan.length){g.waves[g.wave-1].doneSpawning=true;g.spawner=null;}
  }
  for(let i=g.enemies.length-1;i>=0;i--){const e=g.enemies[i];e.pos+=e.speed*dt;
@@ -313,7 +330,9 @@ function updateWavePreview(){
  const i=Math.min(g.wave,MAX_WAVES-1);
  const label='NÄCHSTE WELLE '+(i+1)+' · '+WAVES[i].label+' · '+WAVE_DESCRIPTIONS[i];
  if($('next-wave').textContent!==label)$('next-wave').textContent=label;
- $('wave-preview').hidden=g.mode==='won'||g.mode==='lost';
+ $('wave-preview').hidden=g.mode==='won'||g.mode==='lost'||g.phase!=='build';
+ $('combat-count').hidden=g.mode!=='playing'||g.phase!=='combat';
+ if(g.phase==='combat')$('combat-count').textContent='⚠ WELLE '+g.wave+'/'+MAX_WAVES+' · '+(g.enemies.length+(g.spawner?g.spawner.plan.length-g.spawner.index:0))+' GEGNER ÜBRIG';
  if(!$('wave-list').dataset.ready){$('wave-list').innerHTML=WAVES.map((w,k)=>'<div><b>'+(k+1)+'. '+w.label+'</b><span>'+WAVE_DESCRIPTIONS[k]+'</span></div>').join('');$('wave-list').dataset.ready='1';}
 }
 const GUIDE=[
@@ -354,15 +373,14 @@ function renderDetails(){if(!g?.selectedBuildingId)return;const b=g.buildings.fi
  $('details-state').textContent=info.text;$('details-explain').textContent=info.period+' · '+percent+' %'+(b.type==='mine'?' der möglichen Förderung':' des maximalen Bedarfs');
 }
 function update(){if(!g)return;
- $('gold').textContent=g.gold;$('metal').textContent=(g.phase==='build'?flow(false):flow(true)).metalRate.toFixed(1);
- $('ammo').textContent=(g.phase==='build'?flow(false):flow(true)).ammoRate.toFixed(1);
+ $('gold').textContent=g.gold;
  if(g.phase==='build'){g.metal=flow(false).metalRate;g.ammo=flow(false).ammoRate;}
- $('hp').textContent=g.hp;$('wave').textContent=g.wave+'/'+MAX_WAVES;
+
  syncTutorial();renderDetails();updateWavePreview();$('refund-short').textContent='Neu 100% · Alt 50%';const build=g.phase==='build';$('phase-label').textContent=build?'BAUPHASE':'KAMPFPHASE';$('phase-label').classList.toggle('combat',!build);
  $('indicator').textContent=g.mode!=='playing'?'Bereit':build?'PROGNOSE · Industrie pausiert':g.paused?'Ⅱ PAUSE':g.enemyDelay!==null?'Gegner in '+Math.max(0,Math.ceil(g.enemyDelay))+'s':'VERSORGUNG · Kampf läuft';
  $('threat').textContent=g.wave===MAX_WAVES?'⚠ BOSS':g.wave===MAX_WAVES-1?'BOSS ALS NÄCHSTES':'5 WELLEN + BOSS';
  $('pause').disabled=g.mode!=='playing';$('pause').textContent=build?'▶ '+(g.wave===MAX_WAVES-1?'BOSS STARTEN':'WELLE '+(g.wave+1)+' STARTEN'):g.paused?'▶ FORTSETZEN':'Ⅱ PAUSE';
- $('speed').textContent=speedValues[speedIndex]+'×';
+ 
  $('dock').classList.toggle('combat',!build);$('dock-label').textContent=build?'BAUEN':'BAUEN GESPERRT';$('selection-label').textContent=build?(g.selected?({turret:'MG',mine:'Erzmine',factory:'Fabrik',pipe:'Rohr',bridge:'Brücke',eraser:'Radierer'}[g.selected]+' gewählt'):'Werkzeug wählen'):'Angriff läuft';
  $('dock-toggle').disabled=g.mode!=='playing'||!build;
  for(const b of buildButtons){b.disabled=g.mode!=='playing'||!build;b.classList.toggle('selected',g.selected===b.dataset.type);b.setAttribute('aria-pressed',String(g.selected===b.dataset.type));}
@@ -401,7 +419,7 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
   c.textAlign='center';c.font='bold 19px system-ui,sans-serif';c.fillStyle=rateColor;c.fillText(visibleRatio(b,info)+'%',x+30,y+55);
   if(g.selectedBuildingId===b.id){c.strokeStyle='#f5d394';c.lineWidth=3;c.strokeRect(x+1,y+1,S-2,S-2);}
  }
- const hq=[HQ.x,HQ.y];c.fillStyle='#195768';rounded(hq[0]*S+5,hq[1]*S+5,50,50,8);c.fill();c.strokeStyle='#a4e9df';c.lineWidth=3;c.stroke();c.textAlign='center';c.fillStyle='#f0ffff';c.font='bold 15px sans-serif';c.fillText('HQ',hq[0]*S+30,hq[1]*S+36);
+ const hq=[HQ.x,HQ.y];c.fillStyle='#195768';rounded(hq[0]*S+5,hq[1]*S+5,50,50,8);c.fill();c.strokeStyle='#a4e9df';c.lineWidth=3;c.stroke();c.textAlign='center';c.fillStyle='#f0ffff';c.font='bold 15px sans-serif';c.fillText('HQ',hq[0]*S+30,hq[1]*S+29);c.font='bold 13px sans-serif';c.fillStyle=g.hp<=6?'#ff8686':'#fff0ae';c.fillText('♥ '+g.hp+'/20',hq[0]*S+30,hq[1]*S+47);
  for(const e of g.enemies){const p=enemyPos(e),x=(p.x+.5)*S,y=(p.y+.5)*S;
   const boss=e.kind==='boss',heavy=e.kind==='heavy',scout=e.kind==='scout',r=boss?23:heavy?18:scout?11:14;
   c.fillStyle=boss?'#ef6f85':heavy?'#ab91dc':scout?'#ffcd72':'#fb8e84';c.beginPath();c.moveTo(x,y-r);c.lineTo(x+r,y);c.lineTo(x,y+r);c.lineTo(x-r,y);c.closePath();c.fill();
@@ -481,7 +499,8 @@ canvas.addEventListener('pointerup',finishPointer);
 canvas.addEventListener('pointercancel',e=>{pointerPositions.delete(e.pointerId);gesture=null;});
 // Keyboard-generated click for accessibility; genuine pointer events are handled above.
 canvas.addEventListener('click',e=>{if(e.detail!==0||g.mode!=='playing')return;const p=gridPos(e);if(g.selected==='eraser')erase(p.x,p.y);else if(g.selected&&!at(p.x,p.y))place(g.selected,p.x,p.y);else inspect(p.x,p.y);});
-buildButtons.forEach(b=>b.addEventListener('click',()=>select(b.dataset.type)));
+buildButtons.forEach(b=>b.addEventListener('click',()=>{select(b.dataset.type);activeCategory=null;renderBuildCategory();}));
+document.querySelectorAll('.category').forEach(b=>b.addEventListener('click',()=>toggleCategory(b.dataset.category)));
 $('dock-toggle').addEventListener('click',()=>{
  if(g.mode!=='playing'||g.phase!=='build')return;
  showBuildTray($('build-tray').hidden);
@@ -489,13 +508,13 @@ $('dock-toggle').addEventListener('click',()=>{
 function pause(){if(g.mode!=='playing')return;if(g.phase==='build'){startWave();return;}
  g.paused=!g.paused;inform(g.paused?'Pause: Kampf und Industrie stehen.':'Kampf und Materialfluss laufen weiter.');update();}
 $('pause').addEventListener('click',pause);
-$('speed').addEventListener('click',()=>{speedIndex=(speedIndex+1)%speedValues.length;update();});
+
 function goto(x,y){const scale=canvas.getBoundingClientRect().width/(W*S);boardbox.scrollLeft=Math.max(0,(x+.5)*S*scale-boardbox.clientWidth/2);boardbox.scrollTop=Math.max(0,(y+.5)*S*scale-boardbox.clientHeight/2);drawMini();}
 mini.addEventListener('click',e=>{const r=mini.getBoundingClientRect();goto(Math.floor((e.clientX-r.left)/r.width*W),Math.floor((e.clientY-r.top)/r.height*H));});
 $('reset').addEventListener('click',()=>{reset();goto(8,10);});
 function enterGame(withTutorial){g.mode='playing';$('overlay').classList.add('hidden');g.tutorial={active:!!withTutorial,stage:0,completed:false};
  inform(withTutorial?'Baue zuerst eine Erzmine auf einem braunen Erzfeld.':'BAUPHASE: Die Prozentwerte zeigen die geplante Versorgung. Startkapital: 180 Gold.');
- showBuildTray(true);update();goto(8,10);}
+ activeCategory=null;renderBuildCategory();update();goto(8,10);}
 $('start').addEventListener('click',()=>{if(g.mode==='intro')enterGame(true);else reset();});
 $('intro-skip').addEventListener('click',()=>{if(g.mode==='intro')enterGame(false);});
 $('tutorial-skip').addEventListener('click',()=>{g.tutorial.active=false;$('tutorial').hidden=true;clearGuideMarks();});
