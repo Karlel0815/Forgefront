@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.3.2 – Logistik-Puzzle</title><style>
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.3.3 – Logistik-Puzzle</title><style>
 :root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#ecf4ff;background:#0b1627;font-synthesis:none}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% -10%,#263c51,#0b1627 68%);min-height:100vh}button{font:inherit;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.42;cursor:default}.app{max-width:1000px;margin:auto;padding:8px 10px 155px}.brand{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 4px 5px}.brand h1{font-size:clamp(20px,4vw,28px);letter-spacing:.055em;margin:0}.brand h1 span{color:#f5c383}.brand small{color:#89abbc;letter-spacing:.08em;font-size:9px}.version{color:#f6c384;border:1px solid #47677a;border-radius:6px;padding:5px 7px;font-size:10px;white-space:nowrap}
 .stats{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:#0b1726f4;backdrop-filter:blur(9px);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:5px 0 7px}.stat{border:1px solid #35536b;background:#193048;border-radius:6px;text-align:center;padding:7px 1px}.stat label{display:block;font-size:clamp(8px,2vw,11px);color:#b4c8db;white-space:nowrap}.stat strong{display:block;font-size:clamp(14px,4vw,23px);font-variant-numeric:tabular-nums}
 .maptop{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:5px 2px;font-size:10px;font-weight:750;color:#b7c8d8;min-height:26px}.maptop #phase-label{background:#315a50;color:#bdf7d6;border-radius:4px;padding:4px 6px;white-space:nowrap}.maptop #phase-label.combat{background:#5e3940;color:#ffe0d0}.maptop #indicator{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.maptop #threat{color:#f9c68e;white-space:nowrap}.map-frame{position:relative}.boardbox{position:relative;height:clamp(340px,72dvh,780px);overflow:auto;border:1px solid #49667d;border-radius:10px;background:#112238;overscroll-behavior:contain;touch-action:pan-x pan-y}#board{display:block;width:864px;height:auto;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}.minimap-wrap{position:absolute;right:8px;top:8px;pointer-events:none;opacity:.9}#minimap{width:61px;height:68px;background:#112438;border:1px solid #6e92a4;border-radius:6px;pointer-events:auto;cursor:crosshair;box-shadow:0 2px 8px #06121ca8}.game-hint{font-size:11px;line-height:1.35;color:#b2cbd8;min-height:32px;margin:8px 2px}
@@ -41,11 +41,13 @@
 /* V0.3.2: compact difficulty choice in start overlay */
 .difficulty-picker{margin:12px 0;padding:10px;background:#1a344a;border:1px solid #648494;border-radius:9px;display:grid;gap:6px;text-align:left}.difficulty-picker label{font-size:10px;font-weight:850;letter-spacing:.06em;color:#ffdda6}.difficulty-picker select{width:100%;min-width:0;min-height:42px;border-radius:6px;border:1px solid #6797ae;background:#153148;color:#fff;font-size:13px;padding:7px}.difficulty-picker small{font-size:10px;color:#bad0dc;line-height:1.4}
 
+.gold-warning{position:fixed;top:75px;left:50%;transform:translateX(-50%);z-index:50;width:min(90vw,400px);background:#782e3e;color:white;border:2px solid #ffb0ac;border-radius:11px;padding:12px;font-size:13px;text-align:center;font-weight:800;box-shadow:0 4px 25px #0009}.gold-warning[hidden]{display:none}.low-gold{color:#ff7d7d!important}.build.too-expensive small{color:#ff8787!important}
+
 </style></head>
 <body><div class="app">
-<header class="brand"><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.3.2</span></div></header>
+<header class="brand"><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.3.3</span></div></header>
 <section class="stats" aria-label="Gold"><div class="stat"><label>● GOLD</label><strong id="gold">180</strong></div></section>
-<main><div class="maptop"><span id="phase-label">BAUPHASE</span><span id="indicator">Industrie pausiert</span><span id="threat">5 WELLEN + BOSS</span></div>
+<main><div id="gold-warning" class="gold-warning" role="alert" hidden></div><div class="maptop"><span id="phase-label">BAUPHASE</span><span id="indicator">Industrie pausiert</span><span id="threat">5 WELLEN + BOSS</span></div>
 <section id="wave-preview" class="wave-preview"><div class="wave-preview-head"><b id="next-wave">NÄCHSTE WELLE</b><button type="button" id="waves-toggle" aria-controls="wave-list" aria-expanded="false">Alle Wellen ▾</button></div><div id="wave-list" class="wave-list" hidden></div></section>
 <div id="combat-count" class="combat-count" hidden></div><div class="map-frame"><section id="tutorial" class="tutorial" hidden aria-live="polite">
   <div class="tutorial-head"><strong id="tutorial-step">TUTORIAL 1/6</strong><button type="button" id="tutorial-skip">Überspringen ×</button></div>
@@ -55,10 +57,10 @@
   <div class="meter"><span id="details-meter"></span></div><p id="details-state">Status</p><small id="details-explain">Werte beziehen sich auf die aktuelle Kampfphase.</small></section><div id="boardbox" class="boardbox"><canvas id="board" width="1080" height="1200" aria-label="Spielfeld – ziehen zum Verschieben, zwei Finger für Zoom"></canvas>
 <div id="overlay"><div class="intro"><div class="o-icon" id="o-icon">⬡</div><h2 id="o-title">ERZFRONT</h2><p id="o-text">Baue eine Mine, eine Fabrik, Rohre und MGs. Zwischen den Wellen darfst du umbauen – während des Angriffs muss alles funktionieren.</p><div class="difficulty-picker"><label for="difficulty">SCHWIERIGKEIT</label>
 <select id="difficulty" aria-label="Schwierigkeitsgrad">
-<option value="easy">🌱 Leicht · 220 Gold · 30 ♥ · Gegner 80 % HP</option>
-<option value="normal" selected>🛡 Mittel · 180 Gold · 20 ♥ · Gegner 100 % HP</option>
-<option value="hard">⚔ Schwer · 155 Gold · 15 ♥ · Gegner 120 % HP</option>
-<option value="crazy">💀 Verrückt · 135 Gold · 10 ♥ · Gegner 140 % HP</option>
+<option value="easy">🌱 Leicht · 220 Gold · 30 ♥ · Gegner 75 % HP</option>
+<option value="normal" selected>🛡 Mittel · 180 Gold · 20 ♥ · Gegner 112 % HP</option>
+<option value="hard">⚔ Schwer · 155 Gold · 15 ♥ · Gegner 132 % HP</option>
+<option value="crazy">💀 Verrückt · 135 Gold · 10 ♥ · Gegner 152 % HP</option>
 </select><small>Wähle vor dem Bau. Der Modus bleibt über alle Wellen erhalten.</small></div>
 <button id="start" class="primary">TUTORIAL STARTEN →</button><button id="intro-skip" class="intro-skip" type="button">Ohne Tutorial spielen</button></div></div></div>
 <div class="minimap-wrap"><canvas id="minimap" width="180" height="200" title="Kartenübersicht" aria-label="Minikarte"></canvas></div></div>
@@ -82,31 +84,31 @@
 <button class="build" data-category="pipes" data-type="eraser"><span class="glyph">⌫</span><b>Abriss</b><small id="refund-short">50/100%</small></button>
 </div></div>
 <div class="dock-actions"><button type="button" class="primary" id="pause">▶ WELLE 1 STARTEN</button><button type="button" id="reset" class="reset" title="Neue Runde">↻</button></div>
-<div id="status" class="dock-status" role="status">V0.3.2 · Produktions-Puzzle · Massenschwärme</div></div><script>
+<div id="status" class="dock-status" role="status">V0.3.3 · Produktions-Puzzle · Massenschwärme</div></div><script>
 (() => {
 'use strict';
 const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DISPLAY_UPDATE_MS=250,DISPLAY_RESPONSE_S=1.5,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
 const ECONOMY={startGold:180,goldPerKill:5,goldPerType:{scout:1,normal:2,heavy:6,boss:20},goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
 const DIFFICULTIES={
- easy:{name:'Leicht',startGold:220,hq:30,enemyHp:.8},
- normal:{name:'Mittel',startGold:180,hq:20,enemyHp:1},
- hard:{name:'Schwer',startGold:155,hq:15,enemyHp:1.2},
- crazy:{name:'Verrückt',startGold:135,hq:10,enemyHp:1.4}
+ easy:{name:'Leicht',startGold:220,hq:30,enemyHp:.75,spawn:.95},
+ normal:{name:'Mittel',startGold:180,hq:20,enemyHp:1.12,spawn:1},
+ hard:{name:'Schwer',startGold:155,hq:15,enemyHp:1.32,spawn:1.14},
+ crazy:{name:'Verrückt',startGold:135,hq:10,enemyHp:1.52,spawn:1.28}
 };
 let selectedDifficulty='normal';
 const HQ={x:16,y:18};
 const PATH=[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[6,4],[6,5],[7,5],[8,5],[9,5],[10,5],[10,6],[10,7],[10,8],[10,9],[11,9],[12,9],[12,8],[13,8],[13,9],[13,10],[12,10],[11,10],[11,11],[11,12],[12,12],[13,12],[14,12],[15,12],[15,13],[15,14],[15,15],[16,15],[16,16],[16,17],[16,18]];
 const ORE=new Set(['7,14','6,14','7,15','6,15','4,13','3,13','3,12','4,12','2,9','3,9','5,9','9,17','10,17','12,16','13,16','14,5','15,5','15,6','2,5','3,5','15,18','14,18','11,4','10,14','7,17']);
 const COST={turret:24,cannon:38,mortar:42,mine:22,factory:18,pipe:4,bridge:10};
-const WEAPONS={turret:{range:3.3,interval:.57,damage:3,demand:1/.57},cannon:{range:4,interval:1.7,damage:11,demand:1.2},mortar:{range:5,minRange:1.5,interval:2.4,damage:6,radius:1.1,demand:2.4}};
+const WEAPONS={turret:{range:3.3,interval:.47,damage:3,demand:1/.47},cannon:{range:4,interval:1.9,damage:11,demand:1.2},mortar:{range:5,minRange:1.5,interval:2.2,damage:7,radius:1.45,demand:2.4}};
 const isWeapon=b=>!!b&&WEAPONS[b.type]!==undefined,weaponDemand=b=>WEAPONS[b.type]?.demand||0;
 const WAVES=[
- {label:"ERSTE VERTEIDIGUNG",count:16,groupSize:4,interval:0.46,gap:2.5,hp:8,speed:1.45,pattern:["normal","normal","scout","normal","scout","normal","normal","normal","scout","normal","scout","normal","normal","scout","normal","scout"]},
- {label:"SCOUT-ANSTURM",count:25,groupSize:5,interval:0.36,gap:2.4,hp:9,speed:1.65,pattern:["scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","normal","scout","normal","scout"]},
- {label:"PANZERKOLONNE",count:30,groupSize:6,interval:0.48,gap:3,hp:11,speed:1.52,pattern:["heavy","normal","normal","scout","heavy","normal","heavy","normal","scout","normal","heavy","normal","scout","normal","heavy","normal","normal","scout","heavy","normal","scout","normal","heavy","normal","scout","normal","heavy","normal","normal","scout"]},
- {label:"GROSSANGRIFF",count:45,groupSize:9,interval:0.36,gap:2.8,hp:11,speed:1.68,pattern:["scout","normal","scout","heavy","normal","scout","normal","heavy","scout","normal","scout","normal","scout","heavy","normal","scout","normal","heavy","scout","normal","scout","heavy","normal","scout","normal","scout","normal","heavy","scout","normal","scout","normal","heavy","scout","normal","scout","normal","scout","heavy","normal","scout","normal","scout","heavy","scout"]},
- {label:"ÜBERMACHT",count:65,groupSize:13,interval:0.29,gap:2.6,hp:10,speed:1.86,pattern:["scout","scout","normal","scout","normal","scout","scout","heavy","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","heavy","normal","scout","scout","normal","scout","normal","scout","scout","normal","scout","scout","heavy","scout","normal","scout","scout","normal","scout","scout","scout","normal","scout","scout","normal","heavy","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","heavy","scout","scout","normal","scout","scout","normal"]},
- {label:"BOSS: EISENBRECHER",count:34,groupSize:7,interval:0.45,gap:3.3,hp:13,speed:1.58,pattern:["scout","normal","scout","heavy","normal","scout","normal","scout","heavy","normal","scout","normal","scout","heavy","scout","normal","scout","normal","heavy","scout","normal","scout","heavy","normal","scout","normal","scout","heavy","scout","normal","scout","normal","scout","normal"],boss:true}
+ {label:"ERSTE VERTEIDIGUNG",count:30,groupSize:6,interval:0.221,gap:0.75,hp:8,speed:1.45,pattern:["normal","normal","scout","normal","scout","normal","normal","normal","scout","normal","scout","normal","normal","scout","normal","scout"]},
+ {label:"SCOUT-ANSTURM",count:50,groupSize:10,interval:0.173,gap:0.72,hp:9,speed:1.65,pattern:["scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","normal","scout","normal","scout"]},
+ {label:"PANZERKOLONNE",count:65,groupSize:13,interval:0.230,gap:0.90,hp:11,speed:1.52,pattern:["heavy","normal","normal","scout","heavy","normal","heavy","normal","scout","normal","heavy","normal","scout","normal","heavy","normal","normal","scout","heavy","normal","scout","normal","heavy","normal","scout","normal","heavy","normal","normal","scout"]},
+ {label:"GROSSANGRIFF",count:90,groupSize:15,interval:0.173,gap:0.84,hp:11,speed:1.68,pattern:["scout","normal","scout","heavy","normal","scout","normal","heavy","scout","normal","scout","normal","scout","heavy","normal","scout","normal","heavy","scout","normal","scout","heavy","normal","scout","normal","scout","normal","heavy","scout","normal","scout","normal","heavy","scout","normal","scout","normal","scout","heavy","normal","scout","normal","scout","heavy","scout"]},
+ {label:"ÜBERMACHT",count:130,groupSize:26,interval:0.139,gap:0.78,hp:10,speed:1.86,pattern:["scout","scout","normal","scout","normal","scout","scout","heavy","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","heavy","normal","scout","scout","normal","scout","normal","scout","scout","normal","scout","scout","heavy","scout","normal","scout","scout","normal","scout","scout","scout","normal","scout","scout","normal","heavy","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","heavy","scout","scout","normal","scout","scout","normal"]},
+ {label:"BOSS: EISENBRECHER",count:74,groupSize:14,interval:0.216,gap:0.99,hp:13,speed:1.58,pattern:["scout","normal","scout","heavy","normal","scout","normal","scout","heavy","normal","scout","normal","scout","heavy","scout","normal","scout","normal","heavy","scout","normal","scout","heavy","normal","scout","normal","scout","heavy","scout","normal","scout","normal","scout","normal"],boss:true}
 ];
 const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d'),boardbox=$('boardbox'),mini=$('minimap'),mc=mini.getContext('2d');
 const buildButtons=[...document.querySelectorAll('.build')],speedValues=[2],minZoom=.35,maxZoom=3;
@@ -154,6 +156,7 @@ function pipeTypes(){if(pipeTypeCache&&pipeTypeCache.version===topologyVersion)r
  const scanned=scanPipeTypes();pipeTypeCache={version:topologyVersion,types:scanned.types};return scanned.types;
 }
 function reset(){
+ warningExpires=0;warningText='';hoverCell=null;$('gold-warning').hidden=true;$('gold').classList.remove('low-gold');
  activeCategory=null;delete $('wave-list').dataset.ready;
  $('difficulty').value=selectedDifficulty;
  nextId=1;speedIndex=0;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;displayRatios.clear();lastDisplayAt=null;
@@ -178,6 +181,15 @@ function buildError(type,x,y){
  if(g.gold<COST[type])return 'Es fehlen '+(COST[type]-g.gold)+' Gold.';
  return null;
 }
+let warningExpires=0,warningText='',hoverCell=null;
+function warnGold(cost,type){
+ const labels={turret:'MG',cannon:'Kanone',mortar:'Mörser',mine:'Erzmine',factory:'Fabrik',pipe:'Rohr',bridge:'Brücke'};
+ warningText='⚠ ZU WENIG GOLD: '+(labels[type]||'Gebäude')+' '+cost+' · vorhanden '+g.gold+' · fehlen '+(cost-g.gold);
+ warningExpires=performance.now()+2400;
+ $('gold-warning').textContent=warningText;$('gold-warning').hidden=false;
+ $('gold').classList.add('low-gold');
+ inform(warningText);
+}
 function payGold(cost){if(g.gold<cost)return false;g.gold-=cost;return true;}
 function refundRate(){return ECONOMY.refundByDifficulty[ECONOMY.difficulty];}
 function erase(x,y,silent=false){
@@ -188,6 +200,7 @@ function erase(x,y,silent=false){
  if(!silent)inform('Abgebaut: '+refund+' Gold zurück.');update();return true;
 }
 function select(type){if(g.mode!=='playing'||g.phase!=='build')return;
+ hoverCell=null;
  g.selected=g.selected===type?null:type;
  inform(g.selected==='pipe'?'Rohr aktiv: mit Finger über die Karte ziehen.':g.selected==='eraser'?'Radierer aktiv: Zum Entfernen auf Gebäude oder Rohr tippen.':g.selected?'Feld wählen: '+({mine:'Erzmine: fördert Metall (MAX 1,0/s) auf Erzfeldern.',factory:'Fabrik frei platzieren.',turret:'MG frei platzieren.',cannon:'Kanone gegen Panzer.',mortar:'Mörser für Gruppen.',bridge:'Brücke auf Gegnerweg bauen.'}[g.selected]||''):'Karte verschieben; mit zwei Fingern zoomen.');
  update();
@@ -199,13 +212,13 @@ function place(type,x,y,silent=false){
  // Validate entire topology before spending gold; abort mixed-medium networks.
  const candidate=building(desired,x,y);g.buildings.push(candidate);
  if(scanPipeTypes().conflicts.length){g.buildings.pop();inform('Rohrkonflikt: Metall und Munition dürfen nicht im selben Rohrnetz sein. Trenne die Leitungen an der Fabrik.');return false;}
- if(!payGold(COST[desired])){g.buildings.pop();return false;}
+ if(!payGold(COST[desired])){g.buildings.pop();if(!silent)warnGold(COST[desired],desired);return false;}
  networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;if(!silent)inform(desired==='bridge'?'Brücke verbunden.':desired==='pipe'?'Rohr gebaut – automatisch verbunden.':desired==='mine'?'Erzmine: MAX 1 Metall/s. Über Rohre mit einer Fabrik verbinden.':'Gebäude steht – Versorgung über Rohre anschließen.');
  update();return true;
 }
 function startWave(){
  if(g.mode!=='playing'||g.phase!=='build'||g.wave>=MAX_WAVES)return false;
- primeDisplayRatios();g.wave++;g.phase='combat';g.paused=false;g.selected=null;g.enemyDelay=FIRST_DELAY;g.spawner=null;g.waveStart=g.time;for(const b of g.buildings){b.waveAmount=0;b.cool=0;b.fireCharge=0;}
+ primeDisplayRatios();g.wave++;g.phase='combat';g.paused=false;g.selected=null;hoverCell=null;g.enemyDelay=FIRST_DELAY;g.spawner=null;g.waveStart=g.time;for(const b of g.buildings){b.waveAmount=0;b.cool=0;b.fireCharge=0;}
  g.waves[g.wave-1].started=true;for(const b of g.buildings)b.committed=true;syncTutorial();
  showBuildTray(false);
  inform((g.wave===MAX_WAVES?'BOSSWELLE':'WELLE '+g.wave)+' startet! Die Versorgungsbilanz gilt sofort, Gegner erscheinen in '+FIRST_DELAY+' Sekunden.');update();return true;
@@ -354,10 +367,10 @@ function visibleRatio(b,info){
 function captureWaveMetrics(){for(const b of g.buildings)if(!isPipe(b)){b.lastWaveRate=b.waveAmount/Math.max(.1,g.time-g.waveStart);}}
 function makePlan(def){const list=[];
  for(let i=0;i<def.count;i++){
-  const kind=def.pattern[i]||'normal';
+  const kind=def.pattern[i%def.pattern.length]||'normal';
   list.push({kind,hp:Math.max(1,Math.round((kind==='heavy'?Math.round(def.hp*1.5):kind==='scout'?Math.round(def.hp*.64):def.hp)*DIFFICULTIES[g?.difficulty||selectedDifficulty].enemyHp)),speed:kind==='heavy'?def.speed*.72:kind==='scout'?def.speed*1.35:def.speed,armor:kind==='heavy'?2:0});
  }
- if(def.boss)list.splice(17,0,{kind:'boss',hp:Math.round(110*DIFFICULTIES[g?.difficulty||selectedDifficulty].enemyHp),speed:.98,armor:0});
+ if(def.boss)list.splice(Math.floor(list.length/2),0,{kind:'boss',hp:Math.round(110*DIFFICULTIES[g?.difficulty||selectedDifficulty].enemyHp),speed:.98,armor:0});
  return list;
 }
 function splashCount(enemy,radius){
@@ -383,7 +396,7 @@ function hitEnemy(e,raw,pierce){
 function shoot(turret,target){
  const spec=WEAPONS[turret.type],pos=enemyPos(target);
  const victims=turret.type==='mortar'?g.enemies.filter(e=>{const q=enemyPos(e);return Math.hypot(q.x-pos.x,q.y-pos.y)<=spec.radius;}):[target];
- for(const e of victims)hitEnemy(e,spec.damage,turret.type==='cannon'?3:0);
+ for(const e of victims)hitEnemy(e,turret.type==='cannon'&&e.kind==='scout'?4:spec.damage,turret.type==='cannon'?3:0);
  turret.cool=spec.interval;g.shotsFired++;g.shots.push({x:turret.x,y:turret.y,tx:pos.x,ty:pos.y,life:.15,mortar:turret.type==='mortar'});
  return true;
 }
@@ -396,7 +409,7 @@ function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')re
    const unit=sp.plan[sp.index++];g.enemies.push({id:nextId++,pos:0,hp:unit.hp,max:unit.hp,speed:unit.speed,armor:unit.armor,kind:unit.kind,wave:g.wave,enraged:false});
    g.waves[g.wave-1].alive++;
    const crossed=sp.index%sp.groupSize===0&&sp.index<sp.plan.length;
-   sp.timer+=crossed?sp.gap:sp.interval;
+   sp.timer+=crossed?sp.gap/DIFFICULTIES[g.difficulty].spawn:sp.interval/DIFFICULTIES[g.difficulty].spawn;
   }
   if(sp.index===sp.plan.length){g.waves[g.wave-1].doneSpawning=true;g.spawner=null;}
  }
@@ -477,7 +490,7 @@ function update(){if(!g)return;
  
  $('dock').classList.toggle('combat',!build);$('dock-label').textContent=build?'BAUEN':'BAUEN GESPERRT';$('selection-label').textContent=build?(g.selected?({turret:'MG',mine:'Erzmine',factory:'Fabrik',pipe:'Rohr',bridge:'Brücke',eraser:'Radierer'}[g.selected]+' gewählt'):'Werkzeug wählen'):'Angriff läuft';
  $('dock-toggle').disabled=g.mode!=='playing'||!build;
- for(const b of buildButtons){b.disabled=g.mode!=='playing'||!build;b.classList.toggle('selected',g.selected===b.dataset.type);b.setAttribute('aria-pressed',String(g.selected===b.dataset.type));}
+ for(const b of buildButtons){b.disabled=g.mode!=='playing'||!build;b.classList.toggle('too-expensive',g.gold<COST[b.dataset.type]);b.classList.toggle('selected',g.selected===b.dataset.type);b.setAttribute('aria-pressed',String(g.selected===b.dataset.type));}
 }
 function rounded(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
 function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
@@ -514,6 +527,14 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
   if(g.selectedBuildingId===b.id){c.strokeStyle='#f5d394';c.lineWidth=3;c.strokeRect(x+1,y+1,S-2,S-2);}
  }
  const hq=[HQ.x,HQ.y];c.fillStyle='#195768';rounded(hq[0]*S+5,hq[1]*S+5,50,50,8);c.fill();c.strokeStyle='#a4e9df';c.lineWidth=3;c.stroke();c.textAlign='center';c.fillStyle='#f0ffff';c.font='bold 15px sans-serif';c.fillText('HQ',hq[0]*S+30,hq[1]*S+29);c.font='bold 13px sans-serif';c.fillStyle=g.hp<=6?'#ff8686':'#fff0ae';c.fillText('♥ '+g.hp+'/'+DIFFICULTIES[g.difficulty].hq,hq[0]*S+30,hq[1]*S+47);
+ const focused=g.buildings.find(b=>b.id===g.selectedBuildingId);
+ const ring=g.mode==='playing'&&g.phase==='build'&&g.selected&&WEAPONS[g.selected]&&hoverCell?{type:g.selected,x:hoverCell.x,y:hoverCell.y}:focused&&isWeapon(focused)?focused:null;
+ if(ring){const spec=WEAPONS[ring.type],cx=(ring.x+.5)*S,cy=(ring.y+.5)*S;
+  c.beginPath();c.arc(cx,cy,spec.range*S,0,Math.PI*2);if(spec.minRange){c.moveTo(cx+spec.minRange*S,cy);c.arc(cx,cy,spec.minRange*S,0,Math.PI*2,true);}
+  c.fillStyle='rgba(104,196,224,.16)';c.fill('evenodd');c.strokeStyle='#8be4f5';c.lineWidth=2;c.setLineDash([7,5]);c.beginPath();c.arc(cx,cy,spec.range*S,0,Math.PI*2);c.stroke();
+  if(spec.minRange){c.strokeStyle='#ffad8b';c.beginPath();c.arc(cx,cy,spec.minRange*S,0,Math.PI*2);c.stroke();}
+  c.setLineDash([]);c.font='bold 14px sans-serif';c.textAlign='center';c.fillStyle='#ccf8ff';c.fillText('R '+spec.range+' / Ø '+(spec.range*2).toFixed(1),cx,Math.max(17,cy-spec.range*S-6));
+ }
  for(const e of g.enemies){const p=enemyPos(e),x=(p.x+.5)*S,y=(p.y+.5)*S;
   const boss=e.kind==='boss',heavy=e.kind==='heavy',scout=e.kind==='scout',r=boss?23:heavy?18:scout?11:14;
   c.fillStyle=boss?'#ef6f85':heavy?'#ab91dc':scout?'#ffcd72':'#fb8e84';c.beginPath();c.moveTo(x,y-r);c.lineTo(x+r,y);c.lineTo(x,y+r);c.lineTo(x-r,y);c.closePath();c.fill();
@@ -554,6 +575,7 @@ function pinchDistance(){const a=[...pointerPositions.values()];return Math.hypo
 function pinchMid(){const a=[...pointerPositions.values()];return{x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2};}
 canvas.addEventListener('pointerdown',e=>{
  if(g.mode!=='playing')return;
+ if(g.phase==='build'&&WEAPONS[g.selected])hoverCell=gridPos(e);
  pointerPositions.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(canvas.setPointerCapture){try{canvas.setPointerCapture(e.pointerId);}catch(_){/* synthetic accessibility/test events may lack an active pointer */}}
  if(pointerPositions.size===2){const mid=pinchMid();gesture={mode:'pinch',distance:pinchDistance(),mid};}
@@ -561,6 +583,7 @@ canvas.addEventListener('pointerdown',e=>{
  e.preventDefault();
 });
 canvas.addEventListener('pointermove',e=>{
+ if(g.mode==='playing'&&g.phase==='build'&&WEAPONS[g.selected])hoverCell=gridPos(e);
  if(!pointerPositions.has(e.pointerId)||!gesture)return;
  pointerPositions.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(pointerPositions.size===2){const d=pinchDistance(),mid=pinchMid();if(gesture.mode!=='pinch'){gesture={mode:'pinch',distance:d,mid};return;}if(gesture.distance>0)setZoom(zoom*d/gesture.distance,mid.x,mid.y);gesture.distance=d;gesture.mid=mid;e.preventDefault();return;}
@@ -621,6 +644,7 @@ document.addEventListener('visibilitychange',()=>{previous=performance.now();acc
 
 window.ForgefrontDebug={setDifficulty:key=>{if(g.mode!=='intro'||!DIFFICULTIES[key])return false;selectedDifficulty=key;reset();return true;},difficulties:()=>JSON.parse(JSON.stringify(DIFFICULTIES)),pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),waves:()=>WAVES.map((w,i)=>({label:w.label,composition:wavePreview(i)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
 function frame(now){
+ if(warningExpires&&now>=warningExpires){warningExpires=0;$('gold-warning').hidden=true;$('gold').classList.remove('low-gold');}
  const dt=Math.min(.1,(now-previous)/1000);previous=now;
  if(!document.hidden&&g?.mode==='playing'&&g.phase==='combat'&&!g.paused){
   acc+=dt*speedValues[speedIndex];while(acc>=1/30){simulate(1/30);acc-=1/30;}
