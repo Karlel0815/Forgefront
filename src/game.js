@@ -121,7 +121,7 @@ function select(type){if(g.mode!=='playing'||g.phase!=='build')return;
 function place(type,x,y,silent=false){
  if(g.mode!=='playing'||g.phase!=='build'){if(!silent)inform('Während der Angriffswelle ist Bauen gesperrt.');return false;}
  let desired=type;if(type==='pipe'&&isRoad(x,y))desired='bridge';
- const err=buildError(desired,x,y);if(err){if(!silent)inform(err);return false;}
+ const err=buildError(desired,x,y);if(err){if(!silent){if(g.gold<COST[desired]&&err.includes('Gold'))warnGold(COST[desired],desired);else inform(err);}return false;}
  // Validate entire topology before spending gold; abort mixed-medium networks.
  const candidate=building(desired,x,y);g.buildings.push(candidate);
  if(scanPipeTypes().conflicts.length){g.buildings.pop();inform('Rohrkonflikt: Metall und Munition dürfen nicht im selben Rohrnetz sein. Trenne die Leitungen an der Fabrik.');return false;}
