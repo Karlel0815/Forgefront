@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.4.0 – Kampagnen-Prototyp</title><link rel="stylesheet" href="style.css"></head>
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.4.0 DEV2 – Kampagnen-Prototyp</title><link rel="stylesheet" href="style.css"></head>
 <body>
 <section id="campaign" class="campaign" aria-label="Forgefront Levelauswahl">
   <div class="campaign-inner">
     <header class="campaign-header"><div><h1>FORGE<span>FRONT</span></h1><p>KAMPAGNE · LEVELAUSWAHL</p></div><button type="button" id="settings-open" class="icon-button" aria-label="Einstellungen öffnen" title="Einstellungen">⚙</button></header>
-    <div class="campaign-heading"><h2>Kapitel wählen</h2><span id="campaign-progress">0 / 2 geschafft</span></div>
+    <div class="campaign-heading"><h2>Kapitel wählen</h2><span id="campaign-progress">0 / 3 geschafft</span></div>
     <nav id="chapter-tabs" class="chapter-tabs" aria-label="Kampagnenkapitel"></nav>
     <div class="campaign-heading"><h2 id="chapter-title">Kapitel 1</h2><span id="chapter-subtitle">Die ersten Schritte</span></div>
     <div id="level-grid" class="level-grid" aria-label="Levelkarten"></div>
@@ -22,12 +22,14 @@
       <label for="theme-choice">Menüdesign</label><select id="theme-choice"><option value="dark">Dunkel</option><option value="light">Hell</option></select>
       <p>Das Menüdesign lässt sich ändern. Die Spielfeldfarben bleiben vorerst unverändert.</p>
       <p>Das Tutorial kannst du im Spiel jederzeit über <b>? HILFE</b> neu starten.</p>
+      <button type="button" class="secondary-action" id="dev-test-levels" aria-pressed="false">TESTZUGANG · Level 2/3 öffnen</button>
+      <p>Nur in dieser Entwicklungsversion: öffnet Level 2 und 3 vorübergehend. Siege im Testmodus verändern keine gespeicherten Sterne.</p>
       <button type="button" id="settings-done" class="primary">Zurück zur Levelauswahl</button>
     </div>
   </section>
 </section>
 <div id="game-shell" hidden><div class="app">
-<header class="brand"><button type="button" id="back-to-campaign" class="back-button" aria-label="Zurück zur Levelauswahl">‹ Levelauswahl</button><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.4.0 · DEV</span></div></header>
+<header class="brand"><button type="button" id="back-to-campaign" class="back-button" aria-label="Zurück zur Levelauswahl">‹ Levelauswahl</button><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.4.0 · DEV2</span></div></header>
 <section class="stats" aria-label="Gold"><div class="stat"><label>● GOLD</label><strong id="gold">180</strong></div></section>
 <main><div id="gold-warning" class="gold-warning" role="alert" hidden></div><div class="maptop"><span id="phase-label">BAUPHASE</span><span id="indicator">Industrie pausiert</span><span id="threat">5 WELLEN + BOSS</span></div>
 <section id="wave-preview" class="wave-preview"><div class="wave-preview-head"><b id="next-wave">NÄCHSTE WELLE</b><button type="button" id="waves-toggle" aria-controls="wave-list" aria-expanded="false">Alle Wellen ▾</button></div><div id="wave-list" class="wave-list" hidden></div></section>
