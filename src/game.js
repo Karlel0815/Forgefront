@@ -308,11 +308,13 @@ function wavePreview(i){
  const counts={normal:0,scout:0,heavy:0,boss:0};for(const e of makePlan(WAVES[i]))counts[e.kind]++;
  return Object.entries(counts).filter(([k,n])=>n).map(([k,n])=>n+'× '+({normal:'Normal',scout:'Scout',heavy:'Panzer',boss:'Boss'}[k])).join(' · ');
 }
+const WAVE_DESCRIPTIONS=WAVES.map((w,i)=>wavePreview(i));
 function updateWavePreview(){
  const i=Math.min(g.wave,MAX_WAVES-1);
- $('next-wave').textContent='NÄCHSTE WELLE '+(i+1)+' · '+WAVES[i].label+' · '+wavePreview(i);
+ const label='NÄCHSTE WELLE '+(i+1)+' · '+WAVES[i].label+' · '+WAVE_DESCRIPTIONS[i];
+ if($('next-wave').textContent!==label)$('next-wave').textContent=label;
  $('wave-preview').hidden=g.mode==='won'||g.mode==='lost';
- $('wave-list').innerHTML=WAVES.map((w,k)=>'<div><b>'+(k+1)+'. '+w.label+'</b><span>'+wavePreview(k)+'</span></div>').join('');
+ if(!$('wave-list').dataset.ready){$('wave-list').innerHTML=WAVES.map((w,k)=>'<div><b>'+(k+1)+'. '+w.label+'</b><span>'+WAVE_DESCRIPTIONS[k]+'</span></div>').join('');$('wave-list').dataset.ready='1';}
 }
 const GUIDE=[
  {title:'Erzmine bauen',text:'Wähle unten die Erzmine und setze sie auf ein braunes Erzfeld. Sie liefert bis zu 1 Metall pro Sekunde.',tool:'mine'},
