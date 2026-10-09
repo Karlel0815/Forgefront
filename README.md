@@ -1,12 +1,16 @@
-# Forgefront V0.3.3 – Schwärme, Reichweite und Waffenbalance
+# Forgefront V0.3.4 – Balancekorrektur
+
+Waffenrollen: MG Schussabstand 0,45s, Kanone unverändert als Panzerabwehr, Mörser Schussabstand 2,4s, Schaden 6, Spritzradius 1,1 und 2 Schaden weniger gegen Panzer. Boss-Welle, Gegneranzahl, vier Schwierigkeitseinstellungen, Gold, Baumenü und Reichweitenanzeige bleiben erhalten. Wellen 1–5 erhalten etwas mehr Leben/engere Gruppen; erneute Strategie- und Smartphone-Tests erforderlich. Diese Version ist ein erster Balance-Durchgang, keine nachgewiesene perfekte Balance.
+
+# Forgefront V0.3.4 – Schwärme, Reichweite und Waffenbalance
 
 Deutlich dichtere und überlappende Angriffstrupps: 30/50/65/90/130/75 Gegner. Temporäre transparente Reichweitenkreise bei Platzierung und Inspektion, Mörser mit innerer Blindzone. Goldmangel-Popup mit Fehlbetrag und rote Baukosten. MG: 0.47s, Kanone: 1.9s und nur 4 Schaden gegen Scouts, Mörser: 7 Flächenschaden, Radius 1.45, 2.2s. Vier Schwierigkeitsgrade Leicht/Mittel/Schwer/Verrückt mit 75/112/132/152% Gegnerleben und Spawnfaktor 0.95/1/1.14/1.28. Diese Werte sind initiales Balancing, vollständige Strategie- und Handytests stehen aus.
 
-# Forgefront V0.3.3 – Schwierigkeitswahl
+# Forgefront V0.3.4 – Schwierigkeitswahl
 
 Vier Stufen vor Spielbeginn (unveränderlich innerhalb einer Runde): Leicht 220 Gold/30 HQ-Leben/80% Gegnerleben; Mittel 180/20/100%; Schwer 155/15/120%; Verrückt 135/10/140%. Die Gegneranzahlen, 2x Geschwindigkeit, gemeinsame Munition, Gold je Gegnertyp und Wellenzusammensetzung bleiben gleich. Auswahl über Startmenü, Reset kehrt zur Auswahl zurück. Die Zahlen sind Start-Balancing und benötigen vollständige Spieltests.
 
-# Forgefront V0.3.3 – Handy-Bedienung und Angriffstrupps
+# Forgefront V0.3.4 – Handy-Bedienung und Angriffstrupps
 
 - HUD: nur Gold oben, HQ-Leben direkt am Hauptquartier. Wellenübersicht in Baupause, Gegner-Restzahl im Kampf.
 - Vier feste Baukategorien ohne horizontales Scrollen. Ein Klick auf Werkzeug schließt die Auswahl, lässt das Werkzeug aktiv.
@@ -14,11 +18,11 @@ Vier Stufen vor Spielbeginn (unveränderlich innerhalb einer Runde): Leicht 220 
 - Gegner: sechs Wellen mit 16/25/30/45/65/34 Begleitgegnern und einem Boss in der letzten Welle (Welle 6: 35 insgesamt). Kompakte Gruppen 4/5/6/9/13/7, Abstand der Trupps 2.4–3.3 Spielsekunden. Bedrohliches Gruppenspiel bei Smartphone-Performance prüfen.
 - Gold: Scout +1, Normal +2, Heavy +6, Boss +20, Wellenbonus +10. Bisherige Waffen-/Produktionsparameter unverändert.
 
-# Forgefront V0.3.3 – Testkarte mit drei Waffen
+# Forgefront V0.3.4 – Testkarte mit drei Waffen
 
 Kanone: 38 Gold, Reichweite 4, Schaden 11, Schuss alle 1,7 Sekunden, 1,2 Munition/s, Panzerbrecher. Mörser: 42 Gold, Reichweite 1,5 bis 5, 6 Flächenschaden (Radius 1,1), Schuss alle 2,4 Sekunden, 2,4 Munition/s. MG unverändert (3 Schaden, 0,57 s, 1,75 Munition/s). Heavy Rüstung 2, Boss Phase 2 Rüstung 2. Nur eine Munitionsfabrik und ein universelles Munitionsnetz. Testkarte: veränderter Gegnerpfad mit zusätzlichem Knick im Mittelteil und neuen Erzvorkommen; 6 gemischte Wellen; alle Gegner vorab sichtbar. Neubau und Umbau zwischen Wellen: vor Wellenstart neu gesetzt 100 % Rückerstattung, nach Einsatz 50 %. Noch keine Kampagne/Speicherung.
 
-# Forgefront V0.3.3 – Produktions- und Optimierungspuzzle
+# Forgefront V0.3.4 – Produktions- und Optimierungspuzzle
 
 Spielbarer Browser-Prototyp für Handy und Desktop. Stand: 09.10.2026.
 
@@ -26,15 +30,15 @@ Spielbarer Browser-Prototyp für Handy und Desktop. Stand: 09.10.2026.
 
 **Primär ein knackiges Produktions-/Optimierungspuzzle mit Tower-Defense-Prüfung.** Die Spieler sollen begrenzte Ressourcen und räumliche Positionen optimieren, um die jeweilige Gegnerwelle beziehungsweise später ein dediziertes Level zu meistern. Jede Bauphase bleibt **zeitlich unbegrenzt**, ohne Produktionsfortschritt. Angriffswellen werden bewusst manuell gestartet; die Bauphase ist zum Analysieren und Umbauen gedacht. Die gut lesbare, farbige Prozentprognose der Gebäude ist ein zentrales Spielelement.
 
-## Neue Anzeige in V0.3.3
+## Neue Anzeige in V0.3.4
 
 - Während des Kampfs wird nur die **sichtbare Prozentzahl** ungefähr viermal pro Sekunde aktualisiert und über ca. 1,5 Sekunden sanft geglättet. Keine Änderung an Kampf-Ticks, Rohstoff-Berechnung, Schaden oder Baukosten.
 - Die **Bauphasen-Prognose** bleibt nach jeder Änderung unmittelbar und exakt; Details enthalten weiterhin reale Produktionsraten. Nach jedem Wellenstart beginnt die Darstellung mit der zuletzt geplanten Versorgung.
-- Keine Kanone / kein Mörser in diesem kleinen Qualitätsupdate. Für V0.3.3 vorgesehen: MG, Kanone und Mörser verwenden dieselbe Munition aus der einzigen Metall verarbeitenden Munitionsfabrik.
+- Keine Kanone / kein Mörser in diesem kleinen Qualitätsupdate. Für V0.3.4 vorgesehen: MG, Kanone und Mörser verwenden dieselbe Munition aus der einzigen Metall verarbeitenden Munitionsfabrik.
 
 ## Spiel starten
 
-- `index.html` zusammen mit `style.css` und `game.js` öffnen, oder `Forgefront_V0.3.3.html` als einzelne Offline-Datei verwenden.
+- `index.html` zusammen mit `style.css` und `game.js` öffnen, oder `Forgefront_V0.3.4.html` als einzelne Offline-Datei verwenden.
 - Erstes Tutorial ist neutral, optional und überspringbar, per `? HILFE` während der Bauphase wiederholbar.
 - Unten bleibt beim Bauen eine **kompakte Bauleiste ständig offen**, auch bei Werkzeugwechsel und wiederholter Platzierung; Tippen oder Rohrziehen. Bei Angriff verschwindet die Werkzeugleiste, nach der Welle erscheint sie wieder.
 - Standardtempo **2×** (umschaltbar: 1×, 1,5×, 2×). Nach dem manuellen Start erscheinen Gegner **2 Spielsekunden** später (bei 2× etwa 1 Sekunde Echtzeit).
