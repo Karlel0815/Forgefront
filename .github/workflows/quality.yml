@@ -1,0 +1,23 @@
+name: Forgefront Quality Gate
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: Game rules, regression and release parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Source syntax and bundled standalone
+        run: node tools/verify-release.cjs
+      - name: Gameplay and regression tests
+        run: node --test tests/forgefront.test.cjs

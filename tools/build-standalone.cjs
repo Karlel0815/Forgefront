@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const js=fs.readFileSync(path.join(root,'src/game.js'),'utf8').trim();
+const css=fs.readFileSync(path.join(root,'src/style.css'),'utf8').trim();
+const html=fs.readFileSync(path.join(root,'src/index.html'),'utf8');
+if(!html.includes('<script src="game.js"></script>')||!html.includes('<link rel="stylesheet" href="style.css">'))throw Error('Expected modular source tags are missing');
+new Function(js);
+const bundle=html.replace('<link rel="stylesheet" href="style.css">','<style>'+css+'</style>').replace('<script src="game.js"></script>','<script>'+js+'</script>');
+fs.writeFileSync(path.join(root,'index.html'),bundle);
+console.log('Standalone HTML rebuilt from src/index.html, src/style.css, src/game.js');
