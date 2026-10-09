@@ -1,85 +1,37 @@
-# Forgefront V0.3.4 – Balancekorrektur
+# Forgefront – Alpha 0.3.5 RC1
 
-Waffenrollen: MG Schussabstand 0,45s, Kanone unverändert als Panzerabwehr, Mörser behält 2,2s, 7 Flächenschaden und Spritzradius 1,45 gegen Schwärme, macht gegen Panzer aber nur 6 Grundschaden. Boss-Welle, Gegneranzahl, vier Schwierigkeitseinstellungen, Gold, Baumenü und Reichweitenanzeige bleiben erhalten. Wellen 1–5 erhalten etwas mehr Leben/engere Gruppen; erneute Strategie- und Smartphone-Tests erforderlich. Diese Version ist ein erster Balance-Durchgang, keine nachgewiesene perfekte Balance.
+**Produktions- und Verteidigungspuzzle für Browser und Smartphone.** Entwicklungsversion, noch nicht in GitHub `main` veröffentlicht. Unter `index.html` befindet sich eine eigenständig spielbare HTML-Datei ohne externe Bibliotheken. Alternativ `src/index.html` mit `src/style.css` und `src/game.js` über einen lokalen Webserver öffnen.
 
-# Forgefront V0.3.4 – Schwärme, Reichweite und Waffenbalance
+## Spielprinzip
 
-Deutlich dichtere und überlappende Angriffstrupps: 30/50/65/90/130/75 Gegner. Temporäre transparente Reichweitenkreise bei Platzierung und Inspektion, Mörser mit innerer Blindzone. Goldmangel-Popup mit Fehlbetrag und rote Baukosten. MG: 0.47s, Kanone: 1.9s und nur 4 Schaden gegen Scouts, Mörser: 7 Flächenschaden, Radius 1.45, 2.2s. Vier Schwierigkeitsgrade Leicht/Mittel/Schwer/Verrückt mit 75/112/132/152% Gegnerleben und Spawnfaktor 0.95/1/1.14/1.28. Diese Werte sind initiales Balancing, vollständige Strategie- und Handytests stehen aus.
+- Bauphase: **kein Zeitlimit und keine Produktion**. Jede Welle beginnt erst nach Klick auf **WELLE STARTEN**. Bauen und Abriss während der Angriffswelle gesperrt.
+- Erzminen werden ausschließlich auf Erzfeldern gebaut. Fabriken wandeln Metall in *eine gemeinsame Munition* für MG, Kanone und Mörser um. Rohre und Brücken verbinden Anlagen mit getrennten Metall- und Munitionsnetzen. Angrenzende Gebäude sind direkt verbunden.
+- Anzeigen: Die Versorgung in Prozent beschreibt die **nachhaltige Produktionsdeckung bei Dauerfeuer**. In der Kampfphase kann eine Waffe auch ohne Gegner in Reichweite Munition für **maximal einen vorbereiteten Schuss** laden. Eine solche Ladung benötigt echte Produktion; es gibt keine kostenlosen Sofortschüsse.
+- Nach einer Welle werden Goldprämien gutgeschrieben. Vor der ersten Benutzung abgerissene Gebäude erstatten 100 %; bereits eingesetzte Gebäude 50 %. Es gibt sechs Gegnerwellen in vier Schwierigkeitsstufen.
+- **Sieg nur, wenn das HQ überlebt UND der Boss getötet wurde.** Entkommt der Boss, ist das Level sofort verloren, unabhängig von den verbleibenden HQ-Leben. Durchbrüche normaler Gegner verursachen HQ-Schaden.
 
-# Forgefront V0.3.4 – Schwierigkeitswahl
+## Spielmechanik V0.3.5 RC1
 
-Vier Stufen vor Spielbeginn (unveränderlich innerhalb einer Runde): Leicht 220 Gold/30 HQ-Leben/80% Gegnerleben; Mittel 180/20/100%; Schwer 155/15/120%; Verrückt 135/10/140%. Die Gegneranzahlen, 2x Geschwindigkeit, gemeinsame Munition, Gold je Gegnertyp und Wellenzusammensetzung bleiben gleich. Auswahl über Startmenü, Reset kehrt zur Auswahl zurück. Die Zahlen sind Start-Balancing und benötigen vollständige Spieltests.
+| Waffe | Kosten | Dauerfeuerrate | Munition/s | Rolle |
+|---|---:|---:|---:|---|
+| MG | 24 | 0,45 s/Schuss | 0,60 | Schnelle Einzelziel-Abwehr |
+| Kanone | 38 | 1,90 s/Schuss | 0,60 | Panzerbrecher |
+| Mörser | 42 | 2,20 s/Schuss | 0,65 | Flächenschaden (Radius 1,45) |
 
-# Forgefront V0.3.4 – Handy-Bedienung und Angriffstrupps
+Mine: max. 1 Metall/s; Fabrik: 0,4 Metall/s zu max. 1,2 Munition/s. Waffen besitzen eine lokale Vorladung für einen Schuss, der nur während einer laufenden Welle durch aktive Produktion erworben werden kann. „2×“ ist die feste Geschwindigkeit. Die größere Karte ist 18 × 20 Felder.
 
-- HUD: nur Gold oben, HQ-Leben direkt am Hauptquartier. Wellenübersicht in Baupause, Gegner-Restzahl im Kampf.
-- Vier feste Baukategorien ohne horizontales Scrollen. Ein Klick auf Werkzeug schließt die Auswahl, lässt das Werkzeug aktiv.
-- Tempo fest 2x, Pause/Start bleiben.
-- Gegner: sechs Wellen mit 16/25/30/45/65/34 Begleitgegnern und einem Boss in der letzten Welle (Welle 6: 35 insgesamt). Kompakte Gruppen 4/5/6/9/13/7, Abstand der Trupps 2.4–3.3 Spielsekunden. Bedrohliches Gruppenspiel bei Smartphone-Performance prüfen.
-- Gold: Scout +1, Normal +2, Heavy +6, Boss +20, Wellenbonus +10. Bisherige Waffen-/Produktionsparameter unverändert.
+## Tests und Qualitätssicherung
 
-# Forgefront V0.3.4 – Testkarte mit drei Waffen
-
-Kanone: 38 Gold, Reichweite 4, Schaden 11, Schuss alle 1,7 Sekunden, 1,2 Munition/s, Panzerbrecher. Mörser: 42 Gold, Reichweite 1,5 bis 5, 6 Flächenschaden (Radius 1,1), Schuss alle 2,4 Sekunden, 2,4 Munition/s. MG unverändert (3 Schaden, 0,57 s, 1,75 Munition/s). Heavy Rüstung 2, Boss Phase 2 Rüstung 2. Nur eine Munitionsfabrik und ein universelles Munitionsnetz. Testkarte: veränderter Gegnerpfad mit zusätzlichem Knick im Mittelteil und neuen Erzvorkommen; 6 gemischte Wellen; alle Gegner vorab sichtbar. Neubau und Umbau zwischen Wellen: vor Wellenstart neu gesetzt 100 % Rückerstattung, nach Einsatz 50 %. Noch keine Kampagne/Speicherung.
-
-# Forgefront V0.3.4 – Produktions- und Optimierungspuzzle
-
-Spielbarer Browser-Prototyp für Handy und Desktop. Stand: 09.10.2026.
-
-## Leitidee
-
-**Primär ein knackiges Produktions-/Optimierungspuzzle mit Tower-Defense-Prüfung.** Die Spieler sollen begrenzte Ressourcen und räumliche Positionen optimieren, um die jeweilige Gegnerwelle beziehungsweise später ein dediziertes Level zu meistern. Jede Bauphase bleibt **zeitlich unbegrenzt**, ohne Produktionsfortschritt. Angriffswellen werden bewusst manuell gestartet; die Bauphase ist zum Analysieren und Umbauen gedacht. Die gut lesbare, farbige Prozentprognose der Gebäude ist ein zentrales Spielelement.
-
-## Neue Anzeige in V0.3.4
-
-- Während des Kampfs wird nur die **sichtbare Prozentzahl** ungefähr viermal pro Sekunde aktualisiert und über ca. 1,5 Sekunden sanft geglättet. Keine Änderung an Kampf-Ticks, Rohstoff-Berechnung, Schaden oder Baukosten.
-- Die **Bauphasen-Prognose** bleibt nach jeder Änderung unmittelbar und exakt; Details enthalten weiterhin reale Produktionsraten. Nach jedem Wellenstart beginnt die Darstellung mit der zuletzt geplanten Versorgung.
-- Keine Kanone / kein Mörser in diesem kleinen Qualitätsupdate. Für V0.3.4 vorgesehen: MG, Kanone und Mörser verwenden dieselbe Munition aus der einzigen Metall verarbeitenden Munitionsfabrik.
-
-## Spiel starten
-
-- `index.html` zusammen mit `style.css` und `game.js` öffnen, oder `Forgefront_V0.3.4.html` als einzelne Offline-Datei verwenden.
-- Erstes Tutorial ist neutral, optional und überspringbar, per `? HILFE` während der Bauphase wiederholbar.
-- Unten bleibt beim Bauen eine **kompakte Bauleiste ständig offen**, auch bei Werkzeugwechsel und wiederholter Platzierung; Tippen oder Rohrziehen. Bei Angriff verschwindet die Werkzeugleiste, nach der Welle erscheint sie wieder.
-- Standardtempo **2×** (umschaltbar: 1×, 1,5×, 2×). Nach dem manuellen Start erscheinen Gegner **2 Spielsekunden** später (bei 2× etwa 1 Sekunde Echtzeit).
-
-## KISS-Wirtschaft und automatische Rohrtypen
-
-- **Keine einzelnen Metall-/Munitionspakete**: Versorgung wird als kontinuierliche Produktions-/Verbrauchsrate je verbundenem Netz berechnet.
-- **Ein Rohrbauwerkzeug**, keine separaten Materialwerkzeuge: Metallleitungen werden automatisch **orange**, Munitionsleitungen **türkis**, noch unbestimmte Rohre **grau**.
-- Rohre werden durch Kontakt mit einer **Erzmine als Metall** und mit einem **MG als Munition** erkannt. Die **Fabrik trennt als Umwandler** den Metall-Eingang vom Munitions-Ausgang. Gebäude sind keine Transitknoten.
-- Das Spiel verhindert jede Bauaktion, durch die **Metall und Munition im selben zusammenhängenden Rohrnetz** lägen; der Spieler erhält einen Hinweis und verliert **kein Gold**. Eine direkte orthogonale Nachbarschaft Mine–Fabrik beziehungsweise Fabrik–MG braucht kein Rohr. Diagonalen zählen nicht.
-- Die Rohrtypen sind ein **erster automatischer Ansatz**, dessen Bedienbarkeit gezielt in Freundestests geprüft werden soll: Nähere Berührungen können bewusst blockiert werden, wenn die Materialerkennung sonst uneindeutig wäre.
-- Rohre haben keine eigene Durchsatzgrenze. Erzmine MAX 1 Metall/s; Fabrik benötigt bis 0,4 Metall/s und produziert bis 1,2 Munition/s; MG benötigt bis ca. 1,75 Munition/s bei vollem Dauerfeuer.
-- Bei Mangel werden gleichartige Verbraucher proportional gleich versorgt, überschüssige Kapazität gedrosselt. Ein MG ohne Gegner verbraucht im Kampf keine Munition.
-- Bauphase: sofortige **Prozent-Prognose** beim Bauen; Kampfphase: aktuell berechnete Versorgung. Mine mit Förderreserve ist nicht automatisch ein Problem; Gebäudedetails zeigen die genauen Zahlen.
-
-## Aktuelles Testlevel und Grenzen
-
-- Ein Testlevel mit **18 × 20 quadratischen Feldern**, fester Gegnerroute, fünf Standardwellen und einer Bosswelle mit zweiter Bossphase. 180 Startgold, 20 HQ-Leben, +5 Gold pro Kill, +10 Gold pro bestandener Welle.
-- Gebäude: Erzmine (22), Fabrik (18), MG (24), Rohr (4), Brücke (10), Radierer (Testmodus: volle Rückerstattung).
-- Noch **keine** zusätzlichen Türme, Forschung, weitere Rohstoffe, freie Wege oder Hexagonfelder. Diese Optionen werden erst diskutiert, nicht automatisch ergänzt.
-- Kein Speichern beim Neuladen; GitHub Pages als separate öffentliche URL noch nicht geprüft. Quellcode liegt auf GitHub `Karlel0815/Forgefront`, versionierte Kopien in Google Drive.
-
-## Offene längerfristige Konzepte – nicht implementiert
-
-1. Mehrere eigenständige, schwierigere **Puzzle-Level** mit lösbaren, gut lesbaren Versorgungsengpässen; Gegnerwelle als Erfolgstest. Die Baupause muss dauerhaft unbegrenzt bleiben.
-2. Zweiter Turm mit klar anderer Funktion, beispielsweise Panzerbrecher, vor weiteren Rohstoffen.
-3. **Forschungslabor** nutzt überschüssige Metallleistung (nach Priorität Verteidigung) für ansteigenden Forschungsfortschritt, Level-Upgrades/Turmfreischaltungen; Balance noch offen.
-4. Mehr Karten- und Erz-/Gegnerweg-Layouts auf dem quadratischen Raster; Hexfelder und freie Gegnerwege oder Mauerlabyrinthe später eigenständig prototypisieren, nicht voreilig in den Hauptspielmodus aufnehmen.
-5. Publikationsstrategie: GitHub ist vorerst **public** für Tests mit Freunden, Google-Drive-Master privat; Browser-Quellcode kann bei einer öffentlichen Spielversion ohnehin eingesehen werden.
-
-**Arbeitsregel:** Immer zuerst das Konzept diskutieren, erst nach ausdrücklichem Wunsch die nächste Version programmieren. GitHub main und Google Drive nach getesteten Veröffentlichungen synchron halten.
-
-## Tests
+Node.js 22 (ohne Installation externer NPM-Pakete):
 
 ```sh
-node test.cjs
-node pipe_test.cjs
-node onboarding_test.cjs
-node strategies.cjs
-node display_test.cjs
-python browser_test.py
+node tools/build-standalone.cjs
+node tools/verify-release.cjs
+node --test tests/forgefront.test.cjs
 ```
 
-Die Browsertests verwenden Playwright und einen lokalen Chromium. Zusätzlich wird die gebündelte, eigenständig spielbare HTML-Datei im Browser geprüft.
+Der Spielcode ist nur in `src/game.js` zu bearbeiten. Das generierte Root-`index.html` muss nach Änderungen **neu gebaut** und exakt gegen die Modulquellen geprüft werden. Bei Push und Pull Requests führt `.github/workflows/quality.yml` dieselben Prüfungen über GitHub Actions aus.
+
+Der Testkatalog umfasst Boss-Sieg-/Niederlagenbedingungen, Munition und Schussladung, Ressourcennetz, Bauregeln, 15/30/60-FPS-Simulation, eine Flächenziel-Referenzprüfung und komplette Durchläufe auf Leicht, Mittel, Schwer und Verrückt. Eine zusätzliche alternative „Verrückt“-Strategie verwendet Mörser und MG gemeinsam.
+
+**Veröffentlichungsdisziplin:** Änderungen zuerst in einem Entwicklungszweig testen; GitHub `main`/Pages erst nach bestandenen Qualitätstests und expliziter Freigabe aktualisieren. Ein erfolgreicher synthetischer Test ersetzt nicht die abschließende Bedienprüfung auf einem echten Smartphone.

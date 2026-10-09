@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const js=fs.readFileSync(path.join(root,'src/game.js'),'utf8');
+const css=fs.readFileSync(path.join(root,'src/style.css'),'utf8');
+const html=fs.readFileSync(path.join(root,'src/index.html'),'utf8');
+const standalone=fs.readFileSync(path.join(root,'index.html'),'utf8');
+new Function(js);
+assert.match(html,/ALPHA 0\.3\.5/);
+assert.match(js,/BUILD_ID='0\.3\.5-rc1'/);
+assert.ok(standalone.includes(js.trim()),'Standalone HTML must contain exact modular JS');
+assert.ok(standalone.includes(css.trim()),'Standalone HTML must contain exact modular CSS');
+assert.ok(!standalone.includes('href="style.css"')&&!standalone.includes('src="game.js"'));
+console.log('Standalone parity, game syntax and build marker: OK');
