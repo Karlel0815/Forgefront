@@ -5,20 +5,22 @@ const ECONOMY={startGold:180,goldPerKill:5,goldPerWave:10,refundByDifficulty:{ea
 const HQ={x:16,y:18};
 const PATH=[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[6,4],[6,5],[7,5],[8,5],[9,5],[10,5],[10,6],[10,7],[10,8],[11,8],[12,8],[13,8],[13,9],[13,10],[12,10],[11,10],[11,11],[11,12],[12,12],[13,12],[14,12],[15,12],[15,13],[15,14],[15,15],[16,15],[16,16],[16,17],[16,18]];
 const ORE=new Set(['7,14','6,14','7,15','6,15','4,13','3,13','3,12','4,12','2,9','3,9','5,9','9,17','10,17','12,16','13,16','14,5','15,5','15,6','2,5','3,5','15,18','14,18']);
-const COST={turret:24,mine:22,factory:18,pipe:4,bridge:10};
+const COST={turret:24,cannon:38,mortar:42,mine:22,factory:18,pipe:4,bridge:10};
+const WEAPONS={turret:{range:3.3,interval:.57,damage:3,demand:1/.57},cannon:{range:4,interval:1.7,damage:11,demand:1.2},mortar:{range:5,minRange:1.5,interval:2.4,damage:6,radius:1.1,demand:2.4}};
+const isWeapon=b=>!!b&&WEAPONS[b.type]!==undefined,weaponDemand=b=>WEAPONS[b.type]?.demand||0;
 const WAVES=[
- {label:'ERSTE PROBE',count:5,hp:12,speed:1.35,interval:1.55,pattern:['normal']},
- {label:'SCHNELLE FEINDE',count:8,hp:15,speed:1.62,interval:1.3,pattern:['normal','normal','scout']},
- {label:'PANZER',count:10,hp:19,speed:1.7,interval:1.18,pattern:['normal','scout','normal','heavy']},
- {label:'GEMISCHTER ANGRIFF',count:12,hp:23,speed:1.8,interval:1.1,pattern:['scout','normal','heavy','normal']},
- {label:'GROSSER SCHWARM',count:15,hp:24,speed:1.92,interval:1.04,pattern:['normal','scout','scout','heavy','normal']},
+ {label:'ERSTE PROBE',count:6,hp:14,speed:1.35,interval:1.50,pattern:['normal','scout','normal']},
+ {label:'SCOUT-VORSTOSS',count:9,hp:16,speed:1.62,interval:1.18,pattern:['scout','normal','scout']},
+ {label:'PANZERKOLONNE',count:10,hp:21,speed:1.65,interval:1.25,pattern:['heavy','normal','heavy','scout']},
+ {label:'GEMISCHTER ANGRIFF',count:12,hp:23,speed:1.8,interval:1.12,pattern:['heavy','scout','normal','scout']},
+ {label:'GROSSER SCHWARM',count:18,hp:25,speed:1.92,interval:.72,pattern:['normal','scout','scout','normal','heavy','scout']},
  {label:'BOSS: EISENBRECHER',count:9,hp:27,speed:1.85,interval:1.7,pattern:['scout','heavy','normal','scout','heavy','scout','heavy','scout','normal'],boss:true}
 ];
 const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d'),boardbox=$('boardbox'),mini=$('minimap'),mc=mini.getContext('2d');
 const buildButtons=[...document.querySelectorAll('.build')],speedValues=[1,1.5,2],minZoom=.35,maxZoom=3;
 const key=(x,y)=>x+','+y,adj=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1;
 let g,previous=performance.now(),acc=0,speedIndex=2,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null,pipeTypeCache=null,displayRatios=new Map(),lastDisplayAt=null;
-function building(type,x,y){return {id:nextId++,type,x,y,cool:0,fireCharge:0,waveAmount:0,lastWaveRate:null,lastIssue:'Noch nicht getestet'};}
+function building(type,x,y){return {id:nextId++,type,x,y,cool:0,fireCharge:0,waveAmount:0,lastWaveRate:null,lastIssue:'Noch nicht getestet',committed:false};}
 function inform(msg){$('hint').textContent=msg;$('status').textContent=msg;}
 function overlay(icon,title,description,action){$('o-icon').textContent=icon;$('o-title').textContent=title;$('o-text').textContent=description;$('start').textContent=action;$('overlay').classList.remove('hidden');}
 function at(x,y){return g.buildings.find(b=>b.x===x&&b.y===y);}
@@ -37,7 +39,7 @@ function scanPipeTypes(){
    for(const n of nearby(b)){
     if(isPipe(n)&&!visited.has(n.id)){visited.add(n.id);stack.push(n);}
     else if(n.type==='mine')terminals.add('metal');
-    else if(n.type==='turret')terminals.add('ammo');
+    else if(isWeapon(n))terminals.add('ammo');
    }
   }
   const mixed=terminals.size>1,material=mixed?'conflict':terminals.size===1?[...terminals][0]:null;
@@ -77,12 +79,12 @@ function erase(x,y,silent=false){
  if(g.mode!=='playing'||g.phase!=='build'){if(!silent)inform('Abriss ist während einer Angriffswelle gesperrt.');return false;}
  const b=at(x,y);if(!b){if(!silent)inform('Hier steht kein Gebäude.');return false;}
  g.buildings.splice(g.buildings.indexOf(b),1);networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;if(g.selectedBuildingId===b.id)hideDetails();
- const refund=Math.floor(COST[b.type]*refundRate());g.gold+=refund;g.goldRefunded+=refund;
+ const refund=Math.floor(COST[b.type]*(b.committed?.5:1));g.gold+=refund;g.goldRefunded+=refund;
  if(!silent)inform('Abgebaut: '+refund+' Gold zurück.');update();return true;
 }
 function select(type){if(g.mode!=='playing'||g.phase!=='build')return;
  g.selected=g.selected===type?null:type;
- inform(g.selected==='pipe'?'Rohr aktiv: mit Finger über die Karte ziehen.':g.selected==='eraser'?'Radierer aktiv: Zum Entfernen auf Gebäude oder Rohr tippen.':g.selected?'Feld wählen: '+({mine:'Erzmine: fördert Metall (MAX 1,0/s) auf Erzfeldern.',factory:'Fabrik frei platzieren.',turret:'MG frei platzieren.',bridge:'Brücke auf Gegnerweg bauen.'}[g.selected]||''):'Karte verschieben; mit zwei Fingern zoomen.');
+ inform(g.selected==='pipe'?'Rohr aktiv: mit Finger über die Karte ziehen.':g.selected==='eraser'?'Radierer aktiv: Zum Entfernen auf Gebäude oder Rohr tippen.':g.selected?'Feld wählen: '+({mine:'Erzmine: fördert Metall (MAX 1,0/s) auf Erzfeldern.',factory:'Fabrik frei platzieren.',turret:'MG frei platzieren.',cannon:'Kanone gegen Panzer.',mortar:'Mörser für Gruppen.',bridge:'Brücke auf Gegnerweg bauen.'}[g.selected]||''):'Karte verschieben; mit zwei Fingern zoomen.');
  update();
 }
 function place(type,x,y,silent=false){
@@ -99,7 +101,7 @@ function place(type,x,y,silent=false){
 function startWave(){
  if(g.mode!=='playing'||g.phase!=='build'||g.wave>=MAX_WAVES)return false;
  primeDisplayRatios();g.wave++;g.phase='combat';g.paused=false;g.selected=null;g.enemyDelay=FIRST_DELAY;g.spawner=null;g.waveStart=g.time;for(const b of g.buildings){b.waveAmount=0;b.cool=0;b.fireCharge=0;}
- g.waves[g.wave-1].started=true;syncTutorial();
+ g.waves[g.wave-1].started=true;for(const b of g.buildings)b.committed=true;syncTutorial();
  showBuildTray(false);
  inform((g.wave===MAX_WAVES?'BOSSWELLE':'WELLE '+g.wave)+' startet! Die Versorgungsbilanz gilt sofort, Gegner erscheinen in '+FIRST_DELAY+' Sekunden.');update();return true;
 }
@@ -117,7 +119,7 @@ function finish(win){if(!win&&g.phase==='combat')captureWaveMetrics();g.mode=win
  inform(win?'Sieg: Erzfront gehalten!':'Niederlage – Beim nächsten Versuch cleverer planen.');update();}
 // KISS: Connections are pipes/bridges (buildings are endpoints, never relay nodes).
 function nextToTarget(source,target){if(!source||!target)return null;
-  const required=source.type==='mine'&&target.type==='factory'?'metal':source.type==='factory'&&target.type==='turret'?'ammo':null;
+  const required=source.type==='mine'&&target.type==='factory'?'metal':source.type==='factory'&&isWeapon(target)?'ammo':null;
   if(!required)return null;
   const types=pipeTypes();
   const visited=new Set([source.id]),q=[{b:source,first:null}];
@@ -127,8 +129,8 @@ function nextToTarget(source,target){if(!source||!target)return null;
  }}return null;
 }
 function netReachable(source,target){const id=source.id+','+target.id;if(!networkConnectionCache.has(id))networkConnectionCache.set(id,!!nextToTarget(source,target));return networkConnectionCache.get(id);}
-const METAL_PER_FACTORY=.4,AMMO_PER_FACTORY=1.2,AMMO_PER_MG=1/.57;
-function maxRate(b){return b.type==='mine'?1:b.type==='factory'?AMMO_PER_FACTORY:b.type==='turret'?AMMO_PER_MG:0;}
+const METAL_PER_FACTORY=.4,AMMO_PER_FACTORY=1.2,AMMO_PER_MG=WEAPONS.turret.demand;
+function maxRate(b){return b.type==='mine'?1:b.type==='factory'?AMMO_PER_FACTORY:isWeapon(b)?weaponDemand(b):0;}
 function clamp(n){return Math.max(0,Math.min(1,n));}
 // Allocation has no pipe throughput limit. A source can serve only a reachable sink.
 // Uniform %-coverage is computed before any spare capacity is redistributed.
@@ -187,12 +189,12 @@ function allocate(sources,sinks,capacity,demand){
  return result;
 }
 function calculateFlow(activeOnly=false){
- const mines=g.buildings.filter(b=>b.type==='mine'),factories=g.buildings.filter(b=>b.type==='factory'),turrets=g.buildings.filter(b=>b.type==='turret');
+ const mines=g.buildings.filter(b=>b.type==='mine'),factories=g.buildings.filter(b=>b.type==='factory'),turrets=g.buildings.filter(isWeapon);
  const usableTurrets=activeOnly?turrets.filter(t=>makeTarget(t)!==null):turrets;
  const demandedFactories=factories.filter(f=>usableTurrets.some(t=>netReachable(f,t)));
  const metalCapacity=allocate(mines,demandedFactories,()=>1,()=>METAL_PER_FACTORY);
  const factoryCapacity=new Map(factories.map(f=>[f.id,(metalCapacity.get(f.id)||0)*3]));
- const ammo=allocate(factories,usableTurrets,f=>factoryCapacity.get(f.id)||0,()=>AMMO_PER_MG);
+ const ammo=allocate(factories,usableTurrets,f=>factoryCapacity.get(f.id)||0,t=>weaponDemand(t));
  // Unneeded output is not manufactured or stored: throttle upstream production
  // to actual downstream consumption, then balance mines over that real demand.
  const metalUsed=allocate(mines,demandedFactories,()=>1,f=>(ammo.sourceUsed.get(f.id)||0)/3);
@@ -207,14 +209,14 @@ function calculateFlow(activeOnly=false){
   const metalShort=hasMine&&hasMG&&(factoryCapacity.get(f.id)||0)<AMMO_PER_FACTORY-.01;
   infos.set(f.id,{rate,max:AMMO_PER_FACTORY,ratio,kind:!hasMine||!hasMG?'danger':!activeDemand?'idle':metalShort?'warn':'ok',issue:!hasMine?'Keine Erzmine angeschlossen':!hasMG?'Kein MG angeschlossen':!activeDemand?'Bereit – gerade kein Gegner in Reichweite':metalShort?'Metallmangel: weitere Erzmine anschließen':ratio<.995?'Ausreichend versorgt – Produktionsreserve':'Metallversorgung ausreichend',demand:METAL_PER_FACTORY});
  }
- for(const t of turrets){const supplied=ammo.get(t.id)||0,ratio=clamp(supplied/AMMO_PER_MG),hasFactory=factories.some(f=>netReachable(f,t)),isActive=usableTurrets.includes(t);
-  infos.set(t.id,{rate:supplied,max:AMMO_PER_MG,ratio:activeOnly&&!isActive&&hasFactory?1:ratio,kind:!hasFactory?'danger':activeOnly&&!isActive?'idle':ratio>=.995?'ok':'warn',issue:!hasFactory?'Keine Fabrik angeschlossen':activeOnly&&!isActive?'Bereit – kein Gegner in Reichweite':ratio>=.995?'Munition vollständig gedeckt':'Zu wenig Munition aus angeschlossenen Fabriken',demand:AMMO_PER_MG});
+ for(const t of turrets){const supplied=ammo.get(t.id)||0,ratio=clamp(supplied/weaponDemand(t)),hasFactory=factories.some(f=>netReachable(f,t)),isActive=usableTurrets.includes(t);
+  infos.set(t.id,{rate:supplied,max:weaponDemand(t),ratio:activeOnly&&!isActive&&hasFactory?1:ratio,kind:!hasFactory?'danger':activeOnly&&!isActive?'idle':ratio>=.995?'ok':'warn',issue:!hasFactory?'Keine Fabrik angeschlossen':activeOnly&&!isActive?'Bereit – kein Gegner in Reichweite':ratio>=.995?'Munition vollständig gedeckt':'Zu wenig Munition aus angeschlossenen Fabriken',demand:weaponDemand(t)});
  }
  return {infos,metalRate:[...mines].reduce((a,m)=>a+(infos.get(m.id)?.rate||0),0),ammoRate:[...factories].reduce((a,f)=>a+(infos.get(f.id)?.rate||0),0)};
 }
 function flow(active=false){
  if(!active&&flowCache&&flowCache.version===topologyVersion)return flowCache.data;
- if(active){const key=g.buildings.filter(b=>b.type==='turret'&&makeTarget(b)!==null).map(b=>b.id).join(',');
+ if(active){const key=g.buildings.filter(b=>isWeapon(b)&&makeTarget(b)!==null).map(b=>b.id).join(',');
   if(activeFlowCache&&activeFlowCache.version===topologyVersion&&activeFlowCache.key===key)return activeFlowCache.data;
   const data=calculateFlow(true);activeFlowCache={version:topologyVersion,key,data};return data;
  }
@@ -248,17 +250,36 @@ function captureWaveMetrics(){for(const b of g.buildings)if(!isPipe(b)){b.lastWa
 function makePlan(def){const list=[];
  if(def.boss){
   for(let i=0;i<def.count;i++){if(i===4)list.push({kind:'boss',hp:110,speed:.98,armor:0});
-   const kind=def.pattern[i]||'normal';list.push({kind,hp:kind==='heavy'?42:kind==='scout'?15:28,speed:kind==='heavy'?1.13:kind==='scout'?2.55:1.8,armor:kind==='heavy'?1:0});}
+   const kind=def.pattern[i]||'normal';list.push({kind,hp:kind==='heavy'?42:kind==='scout'?15:28,speed:kind==='heavy'?1.13:kind==='scout'?2.55:1.8,armor:kind==='heavy'?2:0});}
  }else for(let i=0;i<def.count;i++){
-  const kind=def.pattern[i%def.pattern.length];list.push({kind,hp:kind==='heavy'?def.hp*1.4:kind==='scout'?def.hp*.68:def.hp,speed:kind==='heavy'?def.speed*.65:kind==='scout'?def.speed*1.36:def.speed,armor:kind==='heavy'?1:0});}
+  const kind=def.pattern[i%def.pattern.length];list.push({kind,hp:kind==='heavy'?def.hp*1.4:kind==='scout'?def.hp*.68:def.hp,speed:kind==='heavy'?def.speed*.65:kind==='scout'?def.speed*1.36:def.speed,armor:kind==='heavy'?2:0});}
  return list;
 }
-function makeTarget(turret){let target=null;for(const e of g.enemies){const p=enemyPos(e);if(Math.hypot(p.x-turret.x,p.y-turret.y)<=3.3&&(!target||e.hp<target.hp||(e.hp===target.hp&&e.pos>target.pos)))target=e;}return target;}
+function splashCount(enemy,radius){
+ const p=enemyPos(enemy);return g.enemies.filter(e=>{const q=enemyPos(e);return Math.hypot(q.x-p.x,q.y-p.y)<=radius;}).length;
+}
+function makeTarget(turret){
+ const spec=WEAPONS[turret.type],targets=g.enemies.filter(e=>{const p=enemyPos(e),d=Math.hypot(p.x-turret.x,p.y-turret.y);return d<=spec.range&&d>=(spec.minRange||0);});
+ if(turret.type==='cannon')targets.sort((a,b)=>(b.armor||0)-(a.armor||0)||b.pos-a.pos);
+ else if(turret.type==='mortar')targets.sort((a,b)=>splashCount(b,spec.radius)-splashCount(a,spec.radius)||b.pos-a.pos);
+ else targets.sort((a,b)=>a.hp-b.hp||b.pos-a.pos);
+ return targets[0]||null;
+}
+function killEnemy(e){
+ const i=g.enemies.indexOf(e);if(i<0)return;
+ g.enemies.splice(i,1);g.waves[e.wave-1].alive--;g.kills++;g.gold+=ECONOMY.goldPerKill;g.goldEarned+=ECONOMY.goldPerKill;
+ if(e.kind==='boss')inform('BOSS GESTOPPT! Besiege die letzten Begleitgegner.');
+}
+function hitEnemy(e,raw,pierce){
+ e.hp-=Math.max(1,raw-Math.max(0,(e.armor||0)-pierce));
+ if(e.kind==='boss'&&e.hp<=e.max*.5&&!e.enraged){e.enraged=true;e.speed*=1.38;e.armor=2;inform('⚠ BOSS-PHASE 2: Eisenbrecher wird schneller und stärker gepanzert!');}
+ if(e.hp<=0)killEnemy(e);
+}
 function shoot(turret,target){
- const point=enemyPos(target),damage=Math.max(1,3-(target.armor||0));target.hp-=damage;
- turret.cool=.57;g.shotsFired++;g.shots.push({x:turret.x,y:turret.y,tx:point.x,ty:point.y,life:.15});
- if(target.kind==='boss'&&target.hp<=target.max*.5&&!target.enraged){target.enraged=true;target.speed*=1.38;target.armor=1;inform('⚠ BOSS-PHASE 2: Eisenbrecher wird schneller und stärker gepanzert!');}
- if(target.hp<=0){g.enemies.splice(g.enemies.indexOf(target),1);g.waves[target.wave-1].alive--;g.kills++;g.gold+=ECONOMY.goldPerKill;g.goldEarned+=ECONOMY.goldPerKill;if(target.kind==='boss')inform('BOSS GESTOPPT! Besiege die letzten Begleitgegner.');}
+ const spec=WEAPONS[turret.type],pos=enemyPos(target);
+ const victims=turret.type==='mortar'?g.enemies.filter(e=>{const q=enemyPos(e);return Math.hypot(q.x-pos.x,q.y-pos.y)<=spec.radius;}):[target];
+ for(const e of victims)hitEnemy(e,spec.damage,turret.type==='cannon'?3:0);
+ turret.cool=spec.interval;g.shotsFired++;g.shots.push({x:turret.x,y:turret.y,tx:pos.x,ty:pos.y,life:.15,mortar:turret.type==='mortar'});
  return true;
 }
 function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')return;
@@ -274,7 +295,7 @@ function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')re
  const live=flow(true);g.metal=live.metalRate;g.ammo=live.ammoRate;
  g.producedMetal+=live.metalRate*dt;g.producedAmmo+=live.ammoRate*dt;
  for(const b of g.buildings){if(isPipe(b))continue;const info=live.infos.get(b.id);if(info)b.waveAmount+=info.rate*dt;}
- for(const turret of g.buildings){if(turret.type!=='turret')continue;
+ for(const turret of g.buildings){if(!isWeapon(turret))continue;
   const target=makeTarget(turret);if(!target){turret.cool=0;continue;}
   const supply=live.infos.get(turret.id)?.ratio||0;if(supply<1e-8){turret.cool=0;continue;}
   // Throttled MG fires more slowly. There are no individual ammunition packets.
@@ -282,6 +303,16 @@ function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')re
  }
  for(const q of g.shots)q.life-=dt;g.shots=g.shots.filter(q=>q.life>0);
  checkWaveComplete();
+}
+function wavePreview(i){
+ const counts={normal:0,scout:0,heavy:0,boss:0};for(const e of makePlan(WAVES[i]))counts[e.kind]++;
+ return Object.entries(counts).filter(([k,n])=>n).map(([k,n])=>n+'× '+({normal:'Normal',scout:'Scout',heavy:'Panzer',boss:'Boss'}[k])).join(' · ');
+}
+function updateWavePreview(){
+ const i=Math.min(g.wave,MAX_WAVES-1);
+ $('next-wave').textContent='NÄCHSTE WELLE '+(i+1)+' · '+WAVES[i].label+' · '+wavePreview(i);
+ $('wave-preview').hidden=g.mode==='won'||g.mode==='lost';
+ $('wave-list').innerHTML=WAVES.map((w,k)=>'<div><b>'+(k+1)+'. '+w.label+'</b><span>'+wavePreview(k)+'</span></div>').join('');
 }
 const GUIDE=[
  {title:'Erzmine bauen',text:'Wähle unten die Erzmine und setze sie auf ein braunes Erzfeld. Sie liefert bis zu 1 Metall pro Sekunde.',tool:'mine'},
@@ -291,7 +322,7 @@ const GUIDE=[
  {title:'MG mit Munition versorgen',text:'Verbinde die Fabrik mit dem MG über blaue Munitionsrohre. Metall und Munition bleiben getrennt. Die Prozentzahl am MG zeigt, wie viel seines maximalen Bedarfs gedeckt ist.',tool:'pipe'},
  {title:'Welle starten',text:'Prüfe zuerst die Prozentwerte. Während der Bauphase siehst du die Prognose, im Kampf läuft das System und Bauen ist gesperrt.',tool:'pause'}
 ];
-function completeStage(step){const mines=g.buildings.filter(b=>b.type==='mine'),factories=g.buildings.filter(b=>b.type==='factory'),turrets=g.buildings.filter(b=>b.type==='turret');
+function completeStage(step){const mines=g.buildings.filter(b=>b.type==='mine'),factories=g.buildings.filter(b=>b.type==='factory'),turrets=g.buildings.filter(isWeapon);
  if(step===0)return mines.length>0;
  if(step===1)return factories.length>0;
  if(step===2)return mines.some(m=>factories.some(f=>netReachable(m,f)));
@@ -314,7 +345,7 @@ function hideDetails(){if(!g)return;g.selectedBuildingId=null;$('details').hidde
 function inspect(x,y){const b=at(x,y);if(!b||isPipe(b)){hideDetails();return false;}g.selectedBuildingId=b.id;$('tutorial').hidden=true;renderDetails();return true;}
 function renderDetails(){if(!g?.selectedBuildingId)return;const b=g.buildings.find(x=>x.id===g.selectedBuildingId);
  if(!b){hideDetails();return;}const info=productionInfo(b),percent=visibleRatio(b,info);
- $('details').hidden=false;$('details-title').textContent=({mine:'Erzmine',factory:'Munitionsfabrik',turret:'MG-Turm'})[b.type]+' · VERSORGUNG';
+ $('details').hidden=false;$('details-title').textContent=({mine:'Erzmine',factory:'Munitionsfabrik',turret:'MG-Turm',cannon:'Panzerbrecher',mortar:'Mörser'})[b.type]+' · VERSORGUNG';
  $('details-max').textContent=info.max.toFixed(2)+' /s';$('details-actual').textContent=(info.severity==='idle'?info.planned:info.actual).toFixed(2)+' /s';
  $('details-actual-label').textContent=g.phase==='combat'?(info.severity==='idle'?'BEREIT · PROGNOSE':'VERFÜGBAR · JETZT'):'VERFÜGBAR · PROGNOSE';
  $('details-meter').style.width=percent+'%';$('details-meter').style.background=info.severity==='danger'?'#f78383':info.severity==='warn'?'#ffbe77':info.severity==='ok'?'#80d9a4':'#9faebd';
@@ -325,7 +356,7 @@ function update(){if(!g)return;
  $('ammo').textContent=(g.phase==='build'?flow(false):flow(true)).ammoRate.toFixed(1);
  if(g.phase==='build'){g.metal=flow(false).metalRate;g.ammo=flow(false).ammoRate;}
  $('hp').textContent=g.hp;$('wave').textContent=g.wave+'/'+MAX_WAVES;
- syncTutorial();renderDetails();const build=g.phase==='build';$('phase-label').textContent=build?'BAUPHASE':'KAMPFPHASE';$('phase-label').classList.toggle('combat',!build);
+ syncTutorial();renderDetails();updateWavePreview();$('refund-short').textContent='Neu 100% · Alt 50%';const build=g.phase==='build';$('phase-label').textContent=build?'BAUPHASE':'KAMPFPHASE';$('phase-label').classList.toggle('combat',!build);
  $('indicator').textContent=g.mode!=='playing'?'Bereit':build?'PROGNOSE · Industrie pausiert':g.paused?'Ⅱ PAUSE':g.enemyDelay!==null?'Gegner in '+Math.max(0,Math.ceil(g.enemyDelay))+'s':'VERSORGUNG · Kampf läuft';
  $('threat').textContent=g.wave===MAX_WAVES?'⚠ BOSS':g.wave===MAX_WAVES-1?'BOSS ALS NÄCHSTES':'5 WELLEN + BOSS';
  $('pause').disabled=g.mode!=='playing';$('pause').textContent=build?'▶ '+(g.wave===MAX_WAVES-1?'BOSS STARTEN':'WELLE '+(g.wave+1)+' STARTEN'):g.paused?'▶ FORTSETZEN':'Ⅱ PAUSE';
@@ -350,15 +381,17 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
   for(const d of DIRS){const n=at(b.x+d[0],b.y+d[1]);if(!n)continue;
    // Factories accept either material, but different pipe networks cannot mix.
    if(isPipe(n)&&types.get(n.id)!==medium)continue;
-   if(n.type==='mine'&&medium!=='metal'||n.type==='turret'&&medium!=='ammo')continue;
+   if(n.type==='mine'&&medium!=='metal'||isWeapon(n)&&medium!=='ammo')continue;
    c.beginPath();c.moveTo(x,y);c.lineTo(x+d[0]*S/2,y+d[1]*S/2);c.stroke();}
   c.fillStyle=color;c.beginPath();c.arc(x,y,7,0,7);c.fill();
   if(b.type==='bridge'){c.strokeStyle='#e8b16d';c.lineWidth=2;c.strokeRect(b.x*S+8,b.y*S+8,44,44);}
  }
- for(const b of g.buildings){if(isPipe(b))continue;const x=b.x*S,y=b.y*S,color=b.type==='mine'?'#f3bf75':b.type==='factory'?'#b6b0f5':'#79e6dc';
+ for(const b of g.buildings){if(isPipe(b))continue;const x=b.x*S,y=b.y*S,color=b.type==='mine'?'#f3bf75':b.type==='factory'?'#b6b0f5':b.type==='cannon'?'#ff9a86':b.type==='mortar'?'#e1b5f5':'#79e6dc';
   c.fillStyle='#091e2e';rounded(x+7,y+7,46,46,8);c.fill();c.strokeStyle=color;c.lineWidth=3;c.stroke();c.fillStyle=color;c.textAlign='center';c.font='bold 29px sans-serif';
   if(b.type==='mine')c.fillText('◆',x+30,y+39);
   else if(b.type==='factory')c.fillText('⚙',x+30,y+39);
+  else if(b.type==='cannon')c.fillText('✹',x+30,y+39);
+  else if(b.type==='mortar')c.fillText('◉',x+30,y+39);
   else{c.beginPath();c.arc(x+30,y+29,12,0,7);c.fill();c.strokeStyle='#d6fff5';c.lineWidth=6;c.beginPath();c.moveTo(x+30,y+29);c.lineTo(x+30,y+12);c.stroke();}
   const info=productionInfo(b),rateColor=info.severity==='danger'?'#ff8181':info.severity==='warn'?'#ffc36e':info.severity==='ok'?'#83ebb0':'#bed3df';
   // One clear KISS signal, predicted in building phase and live in combat.
@@ -373,12 +406,12 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
   if(boss){c.lineWidth=3;c.strokeStyle=e.enraged?'#ffbd72':'#ffdce2';c.stroke();c.font='bold 20px sans-serif';c.textAlign='center';c.fillStyle='#351b34';c.fillText('✦',x,y+7);}
   const bar=boss?56:34,offset=boss?35:26;c.fillStyle='#0c1d30';c.fillRect(x-bar/2,y-offset,bar,5);c.fillStyle=e.hp/e.max<.5?'#ff8a6d':'#b9f4aa';c.fillRect(x-bar/2,y-offset,bar*Math.max(0,e.hp/e.max),5);
  }
- for(const s of g.shots){c.strokeStyle='#ffe8ad';c.globalAlpha=s.life/.15;c.lineWidth=4;c.beginPath();c.moveTo((s.x+.5)*S,(s.y+.5)*S);c.lineTo((s.tx+.5)*S,(s.ty+.5)*S);c.stroke();}c.globalAlpha=1;
+ for(const s of g.shots){c.strokeStyle=s.mortar?'#e1b5f5':'#ffe8ad';c.globalAlpha=s.life/.15;c.lineWidth=4;c.beginPath();c.moveTo((s.x+.5)*S,(s.y+.5)*S);c.lineTo((s.tx+.5)*S,(s.ty+.5)*S);c.stroke();}c.globalAlpha=1;
  if(g.mode==='playing'&&g.phase==='build'&&g.selected&&g.selected!=='pipe'&&g.selected!=='eraser'){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(!buildError(g.selected,x,y)){c.strokeStyle='#f6c581';c.lineWidth=2;c.strokeRect(x*S+4,y*S+4,S-8,S-8);}}
  drawMini();
 }
 function drawMini(){const c=mc,wx=mini.width/W,hy=mini.height/H;c.clearRect(0,0,mini.width,mini.height);c.fillStyle='#0c2032';c.fillRect(0,0,mini.width,mini.height);
- for(const p of PATH){c.fillStyle='#3d748c';c.fillRect(p[0]*wx,p[1]*hy,wx,hy);}for(const b of g.buildings){c.fillStyle=isPipe(b)?(pipeTypes().get(b.id)==='metal'?'#dfa863':pipeTypes().get(b.id)==='ammo'?'#6dded4':'#879cae'):{mine:'#f2c281',factory:'#b4abed',turret:'#73ddd6'}[b.type];c.fillRect(b.x*wx,b.y*hy,Math.max(2,wx-1),Math.max(2,hy-1));}
+ for(const p of PATH){c.fillStyle='#3d748c';c.fillRect(p[0]*wx,p[1]*hy,wx,hy);}for(const b of g.buildings){c.fillStyle=isPipe(b)?(pipeTypes().get(b.id)==='metal'?'#dfa863':pipeTypes().get(b.id)==='ammo'?'#6dded4':'#879cae'):{mine:'#f2c281',factory:'#b4abed',turret:'#73ddd6',cannon:'#ff9a86',mortar:'#e1b5f5'}[b.type];c.fillRect(b.x*wx,b.y*hy,Math.max(2,wx-1),Math.max(2,hy-1));}
  for(const e of g.enemies){const p=enemyPos(e);c.fillStyle='#ff7873';c.fillRect(p.x*wx,p.y*hy,3,3);}
  const r=canvas.getBoundingClientRect(),b=boardbox.getBoundingClientRect(),scale=r.width/(W*S);
  c.strokeStyle='#fff5be';c.lineWidth=1.7;c.strokeRect(boardbox.scrollLeft/r.width*mini.width,boardbox.scrollTop/(H*S*scale)*mini.height,Math.min(1,b.width/r.width)*mini.width,Math.min(1,b.height/(H*S*scale))*mini.height);
@@ -465,11 +498,12 @@ $('start').addEventListener('click',()=>{if(g.mode==='intro')enterGame(true);els
 $('intro-skip').addEventListener('click',()=>{if(g.mode==='intro')enterGame(false);});
 $('tutorial-skip').addEventListener('click',()=>{g.tutorial.active=false;$('tutorial').hidden=true;clearGuideMarks();});
 $('details-close').addEventListener('click',hideDetails);
+$('waves-toggle').addEventListener('click',()=>{const l=$('wave-list');l.hidden=!l.hidden;$('waves-toggle').setAttribute('aria-expanded',String(!l.hidden));});
 $('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zuerst das Spiel.');return;}if(g.phase!=='build'){inform('Tutorial ab der nächsten Bauphase verfügbar. Während des Angriffs ist Bauen gesperrt.');return;}g.tutorial.active=true;g.tutorial.stage=0;hideDetails();syncTutorial();inform('Tutorial gestartet. Folge den Hinweisen auf der Karte.');});
 document.addEventListener('keydown',e=>{if(e.key==='1')select('turret');if(e.key==='2')select('mine');if(e.key==='3')select('factory');if(e.key==='4')select('pipe');if(e.key==='5')select('bridge');if(e.key==='6'||e.key==='Delete')select('eraser');if(e.key==='Escape'){g.selected=null;update();}if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();pause();}});
 document.addEventListener('visibilitychange',()=>{previous=performance.now();acc=0;});
 
-window.ForgefrontDebug={pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
+window.ForgefrontDebug={pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),waves:()=>WAVES.map((w,i)=>({label:w.label,composition:wavePreview(i)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
 function frame(now){
  const dt=Math.min(.1,(now-previous)/1000);previous=now;
  if(!document.hidden&&g?.mode==='playing'&&g.phase==='combat'&&!g.paused){
