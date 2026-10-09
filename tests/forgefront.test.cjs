@@ -28,11 +28,14 @@ const hook=`window.ForgefrontQA={
    if(splashCount(e,1.45)!==expected)correct=false;
   }
   return{correct,cached:splashCache.size,total:g.enemies.length};
- }
+ },
+ setLeaks(n){g.leaks=n;},
+ endWin(leaks=0){g.leaks=leaks;g.bossDefeated=true;g.bossEscaped=false;g.mode='playing';g.phase='combat';finish(true);},
+ endLoss(){g.bossDefeated=false;g.bossEscaped=true;g.mode='playing';g.phase='combat';finish(false);}
 };\nwindow.ForgefrontDebug={`;
 assert.ok(code.includes('window.ForgefrontDebug={'),'Debug hook missing');
 const instrumented=code.replace('window.ForgefrontDebug={',hook);
-function boot(difficulty='normal'){
+function boot(difficulty='normal',existingStorage){
  const noop=()=>{};
  const ctx=new Proxy({},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
  const E={};let requestNext=null,clock=0;
@@ -41,12 +44,12 @@ function boot(difficulty='normal'){
   addEventListener(t,fn){(this.events??={})[t]=fn},getContext(){return ctx},
   getBoundingClientRect(){return{width:864,height:960,left:0,top:0}},clientWidth:390,clientHeight:650};}
  const builds=['turret','cannon','mortar','mine','factory','pipe','bridge','eraser'].map(t=>{const v=elem(t);v.dataset.type=t;return v});
- const doc={hidden:false,getElementById(id){return E[id]??(E[id]=elem(id))},querySelectorAll(q){return q==='.build'?builds:[]},querySelector(q){return E[q]??(E[q]=elem(q))},addEventListener:noop};
- const win={innerWidth:390};const perf={now:()=>clock};
+ const doc={hidden:false,body:{dataset:{}},getElementById(id){return E[id]??(E[id]=elem(id))},querySelectorAll(q){return q==='.build'?builds:[]},querySelector(q){return E[q]??(E[q]=elem(q))},addEventListener:noop};
+ const storage=existingStorage??new Map();const win={innerWidth:390,localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v)}};const perf={now:()=>clock};
  vm.runInNewContext(instrumented,{window:win,document:doc,performance:perf,requestAnimationFrame(fn){requestNext=fn},console}, {timeout:12000});
  const dbg=win.ForgefrontDebug;
- assert.ok(dbg.setDifficulty(difficulty));E['intro-skip'].events.click();
- return{dbg,qa:win.ForgefrontQA,E,stepFrames(n,fps){for(let i=0;i<n;i++){clock+=1000/fps;requestNext(clock)}}};
+ assert.ok(dbg.setDifficulty(difficulty));assert.ok(dbg.startLevel('c1-l1'));
+ return{dbg,qa:win.ForgefrontQA,E,storage,stepFrames(n,fps){for(let i=0;i<n;i++){clock+=1000/fps;requestNext(clock)}}};
 }
 const classicStart=[['mine',15,6],['factory',14,6],['mortar',13,6],['mortar',14,7]];
 const mgStart=[['mine',15,6],['factory',14,6],['mortar',13,6],['turret',14,7]];
@@ -57,14 +60,14 @@ const standardSteps={
 };
 const mgSteps={...standardSteps,1:mgStart,3:[['mine',7,14],['factory',8,14],['mortar',9,14],['pipe',8,13],['mortar',9,13]]};
 function build(b,steps){for(const [type,x,y] of steps)assert.equal(b.dbg.place(type,x,y),true,`cannot build ${type}@${x},${y}`);}
-function runGame(mode,plan=standardSteps){const b=boot(mode),data=[];for(let w=1;w<=6;w++){
+function runGame(mode,plan=standardSteps,levelId='c1-l1'){const b=boot(mode),data=[];if(levelId!=='c1-l1'){b.qa.endWin(0);b.dbg.showCampaign();assert.equal(b.dbg.startLevel(levelId),true);} for(let w=1;w<=6;w++){
   build(b,plan[w]);assert.equal(b.dbg.startWave(),true,`wave ${w} must start`);b.dbg.advance(200);const state=b.dbg.snapshot();
   assert.equal(state.wave,w);data.push({wave:w,hp:state.hp,kills:state.kills,leaks:state.leaks,gold:state.gold,boss:state.bossDefeated,mode:state.mode});
   if(state.mode!=='playing')break;
  }return{b,history:data,state:b.dbg.snapshot()};}
 
-test('Unique RC build stamp, flags and zero starting ammo',()=>{
- const b=boot('crazy'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.3.5-rc1');
+test('Unique DEV build stamp, flags and zero starting ammo',()=>{
+ const b=boot('crazy'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.4.0-dev1');
  assert.equal(s.bossDefeated,false);assert.equal(s.bossEscaped,false);assert.equal(s.leaks,0);assert.equal(s.ammoSpent,0);
 });
 test('Boss escapes with remaining HQ: instant loss, boss-specific message',()=>{
@@ -151,4 +154,86 @@ test('Alternative CRAZY mixed weapon start (mortar + MG) can defeat the boss',()
  const {history,state}=runGame('crazy',mgSteps);assert.equal(history.length,6);
  assert.equal(state.mode,'won');assert.equal(state.bossDefeated,true);assert.equal(state.bossEscaped,false);
  assert.ok(state.hp>0);assert.equal(state.kills+state.leaks,440);
+});
+
+
+test('Campaign entry is a locked level selection, not an intro dialogue',()=>{
+ const b=boot('normal');assert.equal(b.dbg.snapshot().mode,'playing');
+ assert.equal(b.dbg.snapshot().phase,'build');assert.equal(b.dbg.snapshot().wave,0);
+ assert.equal(b.dbg.snapshot().levelId,'c1-l1');
+ assert.equal(b.dbg.levels()[0].unlocked,true);
+ assert.equal(b.dbg.levels()[1].unlocked,false);
+ assert.equal(b.dbg.startLevel('c1-l2'),false);
+ assert.equal(b.dbg.startLevel('c1-l3'),false);
+ assert.equal(b.dbg.startLevel('unknown-level'),false);
+ assert.equal(b.dbg.score(0),3);assert.equal(b.dbg.score(1),2);
+ assert.equal(b.dbg.score(4),2);assert.equal(b.dbg.score(5),1);
+});
+
+test('First tutorial is automatic once, then only when help is requested',()=>{
+ const b=boot('normal');assert.equal(b.dbg.snapshot().tutorial.active,true);
+ assert.equal(b.dbg.save().tutorialSeen,true);
+ b.dbg.showCampaign();assert.equal(b.dbg.startLevel('c1-l1'),true);
+ assert.equal(b.dbg.snapshot().tutorial.active,false);
+ b.E['help'].events.click();assert.equal(b.dbg.snapshot().tutorial.active,true);
+ b.E['tutorial-skip'].events.click();assert.equal(b.dbg.snapshot().tutorial.active,false);
+});
+
+test('A boss escape cannot grant stars or unlock the next level',()=>{
+ const b=boot('normal');b.qa.endLoss();
+ assert.equal(b.dbg.snapshot().mode,'lost');
+ assert.equal(b.E['result-rating'].hidden,true);
+ assert.equal(b.E['result-next'].hidden,true);
+ assert.equal(b.dbg.levels()[1].unlocked,false);
+ assert.deepEqual(Object.keys(b.dbg.save().results),[]);
+});
+
+test('Boss kill awards difficulty-specific stars and unlocks next ready level',()=>{
+ const b=boot('normal');b.qa.endWin(3);
+ assert.equal(b.dbg.snapshot().mode,'won');assert.equal(b.E['result-rating'].textContent,'★★☆  ·  Mittel');
+ assert.equal(b.dbg.save().results['c1-l1'].normal.stars,2);
+ assert.equal(b.dbg.levels()[1].unlocked,true);
+ assert.equal(b.E['result-next'].hidden,false);
+ b.dbg.showCampaign();assert.equal(b.dbg.setDifficulty('crazy'),true);
+ assert.equal(b.dbg.save().results['c1-l1'].crazy,undefined);
+ assert.equal(b.dbg.startLevel('c1-l2'),true);
+ assert.equal(b.dbg.snapshot().difficulty,'crazy');
+ assert.equal(b.dbg.snapshot().wave,0);
+});
+
+test('Repeated wins never overwrite a better rating and are persisted across browser boots',()=>{
+ const b=boot('easy');b.qa.endWin(0);
+ assert.equal(b.dbg.save().results['c1-l1'].easy.stars,3);
+ b.dbg.startLevel('c1-l1');b.qa.endWin(6);
+ assert.equal(b.dbg.save().results['c1-l1'].easy.stars,3);
+ const saved=b.storage.get('forgefront.progress.v1');assert.ok(saved);
+ const second=boot('hard',b.storage);
+ assert.equal(second.dbg.save().results['c1-l1'].easy.stars,3);
+ assert.equal(second.dbg.levels()[1].unlocked,true);
+ assert.equal(second.dbg.snapshot().tutorial.active,false);
+ assert.equal(second.dbg.save().difficulty,'hard');
+});
+
+test('Second map really mirrors the original enemy road, ore locations and HQ',()=>{
+ const b=boot('normal');const original=b.dbg.map();
+ b.qa.endWin();b.dbg.showCampaign();
+ assert.equal(b.dbg.startLevel('c1-l2'),true);
+ const mirror=b.dbg.map();
+ assert.equal(original.hq.x+mirror.hq.x,17);
+ assert.equal(original.hq.y,mirror.hq.y);
+ assert.equal(original.path.length,mirror.path.length);
+ for(let i=0;i<original.path.length;i++){
+  assert.equal(original.path[i][0]+mirror.path[i][0],17);
+  assert.equal(original.path[i][1],mirror.path[i][1]);
+ }
+ for(const ore of original.ore){const [x,y]=ore.split(',').map(Number);assert.ok(mirror.ore.includes(`${17-x},${y}`));}
+});
+
+test('Second playable map survives all six waves on Crazy with mirrored factory plan',()=>{
+ const mirrorPlan=Object.fromEntries(Object.entries(standardSteps).map(([w,steps])=>[w,steps.map(([type,x,y])=>[type,17-x,y])]));
+ const {history,state}=runGame('crazy',mirrorPlan,'c1-l2');
+ assert.equal(history.length,6);assert.equal(state.mode,'won');
+ assert.equal(state.bossDefeated,true);assert.equal(state.bossEscaped,false);
+ assert.ok(state.hp>0);
+ assert.equal(state.leaks+state.kills,440);
 });

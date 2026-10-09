@@ -1,3 +1,20 @@
+# Forgefront V0.4.0 DEV1 – Kampagnenprototyp
+
+Entwicklungsstand, NICHT die auf GitHub Pages veröffentlichte Version. V0.3.5 bleibt live.
+
+## V0.4.0 DEV1 (Testumfang)
+- Neue Levelauswahl ohne Gold-/Kampf-HUD; Kapitelstruktur für vier Kapitel mit je fünf Karten vorgesehen.
+- Kapitel 1: **Die Versorgung** (Originalkarte) und **Gegenstrom** (echte horizontal gespiegelte Weg-/Erzkarte) spielbar, Level 3–5 sichtbar aber klar als "in Vorbereitung" deaktiviert. Kapitel 2–4 sind noch nicht verfügbar.
+- Schwierigkeit unten in der Levelauswahl; Kartensterne pro Schwierigkeit separat. Erste erfolgreiche Bossverteidigung auf beliebiger Schwierigkeit schaltet das nächste **fertige** Level frei.
+- Nur nach tatsächlichem Bosskill Sterne: 0 Durchbrüche = 3, 1–4 = 2, ab 5 = 1. Boss entkommen = Niederlage, unabhängig von HQ-Leben.
+- Tippen auf Karte öffnet direkt Bauphase. Welle 1 bleibt manuell.
+- Tutorial erscheint einmalig und lässt sich später mit ? HILFE erneut öffnen; Sieg/Niederlage erlauben Retry/Levelauswahl und optional Nächstes Level.
+- Einstellungen im Auswahlmenü: dunkles/helles **Menüdesign**, keine vollständige Spielfeld-Neueinfärbung.
+- Lokale Speicherstruktur unter `forgefront.progress.v1`; anonyme/ungültige Daten und deaktivierte localStorage dürfen das Spiel nicht blockieren.
+
+## Release-/Testhinweis
+Vor Veröffentlichung alle Tests ausführen: `node tools/verify-release.cjs && node --test tests/*.test.cjs`.
+
 # Forgefront – Alpha 0.3.5 RC1
 
 **Produktions- und Verteidigungspuzzle für Browser und Smartphone.** Entwicklungsversion, noch nicht in GitHub `main` veröffentlicht. Unter `index.html` befindet sich eine eigenständig spielbare HTML-Datei ohne externe Bibliotheken. Alternativ `src/index.html` mit `src/style.css` und `src/game.js` über einen lokalen Webserver öffnen.
