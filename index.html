@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.1.9 – Logistik-Puzzle</title><style>
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.2.0 – Logistik-Puzzle</title><style>
 :root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#ecf4ff;background:#0b1627;font-synthesis:none}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% -10%,#263c51,#0b1627 68%);min-height:100vh}button{font:inherit;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.42;cursor:default}.app{max-width:1000px;margin:auto;padding:8px 10px 155px}.brand{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 4px 5px}.brand h1{font-size:clamp(20px,4vw,28px);letter-spacing:.055em;margin:0}.brand h1 span{color:#f5c383}.brand small{color:#89abbc;letter-spacing:.08em;font-size:9px}.version{color:#f6c384;border:1px solid #47677a;border-radius:6px;padding:5px 7px;font-size:10px;white-space:nowrap}
 .stats{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:#0b1726f4;backdrop-filter:blur(9px);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:5px 0 7px}.stat{border:1px solid #35536b;background:#193048;border-radius:6px;text-align:center;padding:7px 1px}.stat label{display:block;font-size:clamp(8px,2vw,11px);color:#b4c8db;white-space:nowrap}.stat strong{display:block;font-size:clamp(14px,4vw,23px);font-variant-numeric:tabular-nums}
 .maptop{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:5px 2px;font-size:10px;font-weight:750;color:#b7c8d8;min-height:26px}.maptop #phase-label{background:#315a50;color:#bdf7d6;border-radius:4px;padding:4px 6px;white-space:nowrap}.maptop #phase-label.combat{background:#5e3940;color:#ffe0d0}.maptop #indicator{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.maptop #threat{color:#f9c68e;white-space:nowrap}.map-frame{position:relative}.boardbox{position:relative;height:clamp(340px,72dvh,780px);overflow:auto;border:1px solid #49667d;border-radius:10px;background:#112238;overscroll-behavior:contain;touch-action:pan-x pan-y}#board{display:block;width:864px;height:auto;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}.minimap-wrap{position:absolute;right:8px;top:8px;pointer-events:none;opacity:.9}#minimap{width:61px;height:68px;background:#112438;border:1px solid #6e92a4;border-radius:6px;pointer-events:auto;cursor:crosshair;box-shadow:0 2px 8px #06121ca8}.game-hint{font-size:11px;line-height:1.35;color:#b2cbd8;min-height:32px;margin:8px 2px}
@@ -21,18 +21,18 @@
 
 </style></head>
 <body><div class="app">
-<header class="brand"><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.1.9</span></div></header>
-<section class="stats" aria-label="Spielstatus"><div class="stat"><label>● GOLD</label><strong id="gold">180</strong></div><div class="stat"><label>▣ METALL</label><strong id="metal">0</strong></div><div class="stat"><label>◆ MUNITION</label><strong id="ammo">0</strong></div><div class="stat"><label>♥ HQ</label><strong id="hp">20</strong></div><div class="stat"><label>≋ WELLE</label><strong id="wave">0/6</strong></div></section>
+<header class="brand"><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.2.0</span></div></header>
+<section class="stats" aria-label="Spielstatus"><div class="stat"><label>● GOLD</label><strong id="gold">180</strong></div><div class="stat"><label>▣ METALL/s</label><strong id="metal">0</strong></div><div class="stat"><label>◆ MUN./s</label><strong id="ammo">0</strong></div><div class="stat"><label>♥ HQ</label><strong id="hp">20</strong></div><div class="stat"><label>≋ WELLE</label><strong id="wave">0/6</strong></div></section>
 <main><div class="maptop"><span id="phase-label">BAUPHASE</span><span id="indicator">Industrie pausiert</span><span id="threat">5 WELLEN + BOSS</span></div>
 <div class="map-frame"><section id="tutorial" class="tutorial" hidden aria-live="polite">
   <div class="tutorial-head"><strong id="tutorial-step">TUTORIAL 1/6</strong><button type="button" id="tutorial-skip">Überspringen ×</button></div>
   <b id="tutorial-title">Erzmine bauen</b><p id="tutorial-text">Baue eine Erzmine auf einem braunen Erzfeld.</p></section>
   <section id="details" class="details" hidden aria-live="polite"><div class="details-head"><strong id="details-title">Gebäude</strong><button type="button" id="details-close" aria-label="Details schließen">×</button></div>
-  <div class="details-grid"><div><small id="details-max-label">MAX</small><b id="details-max">0,0/s</b></div><div><small id="details-actual-label">IST</small><b id="details-actual">0,0/s</b></div></div>
+  <div class="details-grid"><div><small id="details-max-label">MAX. RATE</small><b id="details-max">0,0/s</b></div><div><small id="details-actual-label">VERFÜGBAR</small><b id="details-actual">0,0/s</b></div></div>
   <div class="meter"><span id="details-meter"></span></div><p id="details-state">Status</p><small id="details-explain">Werte beziehen sich auf die aktuelle Kampfphase.</small></section><div id="boardbox" class="boardbox"><canvas id="board" width="1080" height="1200" aria-label="Spielfeld – ziehen zum Verschieben, zwei Finger für Zoom"></canvas>
 <div id="overlay"><div class="intro"><div class="o-icon" id="o-icon">⬡</div><h2 id="o-title">ERZFRONT</h2><p id="o-text">Baue eine Mine, eine Fabrik, Rohre und MGs. Zwischen den Wellen darfst du umbauen – während des Angriffs muss alles funktionieren.</p><button id="start" class="primary">TUTORIAL STARTEN →</button><button id="intro-skip" class="intro-skip" type="button">Ohne Tutorial spielen</button></div></div></div>
 <div class="minimap-wrap"><canvas id="minimap" width="180" height="200" title="Kartenübersicht" aria-label="Minikarte"></canvas></div></div>
-<div class="game-hint" id="hint" aria-live="polite">In der Bauphase steht die gesamte Industrie still. Plane in Ruhe.</div>
+<div class="game-hint" id="hint" aria-live="polite">Die Prozentzahlen zeigen die prognostizierte Versorgung. Produktion pausiert.</div>
 </main></div>
 <div class="bottom-dock" id="dock" aria-label="Baumenü"><button type="button" id="dock-toggle" class="dock-toggle" aria-expanded="false" aria-controls="build-tray"><span id="dock-chevron">⌃</span><span id="dock-label">BAUEN</span><span id="selection-label">Werkzeug wählen</span></button>
 <div id="build-tray" class="tray" hidden><div class="builds">
@@ -44,11 +44,11 @@
 <button class="build" data-type="eraser"><span class="glyph">⌫</span><b>Radierer</b><small id="refund-short">100 %</small></button>
 </div><div class="tray-help">Baue mit Tippen. Für Rohre oder Radierer: Finger ziehen. Zum Verschieben Werkzeug abwählen.</div></div>
 <div class="dock-actions"><button type="button" class="primary" id="pause">▶ WELLE 1 STARTEN</button><button type="button" id="speed" class="smallbtn">1×</button><button type="button" id="reset" class="reset" title="Neue Runde">↻</button></div>
-<div id="status" class="dock-status" role="status">V0.1.9: Produktionswerte & Tutorial · 5 Wellen + Boss</div>
+<div id="status" class="dock-status" role="status">V0.2.0: Produktionswerte & Tutorial · 5 Wellen + Boss</div>
 </div><script>
 (() => {
 'use strict';
-const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=10,TRAVEL=.34,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
+const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=10,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
 const ECONOMY={startGold:180,goldPerKill:5,goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
 const HQ={x:16,y:18};
 const PATH=[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[6,4],[6,5],[7,5],[8,5],[9,5],[10,5],[10,6],[10,7],[10,8],[11,8],[12,8],[13,8],[13,9],[13,10],[12,10],[11,10],[11,11],[11,12],[12,12],[13,12],[14,12],[15,12],[15,13],[15,14],[15,15],[16,15],[16,16],[16,17],[16,18]];
@@ -65,8 +65,8 @@ const WAVES=[
 const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d'),boardbox=$('boardbox'),mini=$('minimap'),mc=mini.getContext('2d');
 const buildButtons=[...document.querySelectorAll('.build')],speedValues=[1,1.5,2],minZoom=.35,maxZoom=3;
 const key=(x,y)=>x+','+y,adj=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1;
-let g,previous=performance.now(),acc=0,speedIndex=0,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map();
-function building(type,x,y){return {id:nextId++,type,x,y,clock:0,cool:0,input:0,output:0,events:[],blocked:false,lacking:false,waveAmount:0,lastWaveRate:null,lastIssue:'Noch nicht getestet'};}
+let g,previous=performance.now(),acc=0,speedIndex=0,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null;
+function building(type,x,y){return {id:nextId++,type,x,y,cool:0,fireCharge:0,waveAmount:0,lastWaveRate:null,lastIssue:'Noch nicht getestet'};}
 function inform(msg){$('hint').textContent=msg;$('status').textContent=msg;}
 function overlay(icon,title,description,action){$('o-icon').textContent=icon;$('o-title').textContent=title;$('o-text').textContent=description;$('start').textContent=action;$('overlay').classList.remove('hidden');}
 function at(x,y){return g.buildings.find(b=>b.x===x&&b.y===y);}
@@ -74,14 +74,14 @@ function isRoad(x,y){return PATH.some(p=>p[0]===x&&p[1]===y);}
 function isPipe(b){return !!b&&(b.type==='pipe'||b.type==='bridge');}
 function nearby(b){return DIRS.map(d=>at(b.x+d[0],b.y+d[1])).filter(Boolean);}
 function reset(){
- nextId=1;speedIndex=0;networkConnectionCache.clear();
+ nextId=1;speedIndex=0;networkConnectionCache.clear();topologyVersion++;flowCache=null;
  g={mode:'intro',phase:'build',wave:0,paused:false,time:0,enemyDelay:null,gold:ECONOMY.startGold,metal:0,ammo:0,hp:20,kills:0,
   selected:null,buildings:[],packets:[],enemies:[],shots:[],spawner:null,deliveredMetal:0,deliveredAmmo:0,producedMetal:0,producedAmmo:0,shotsFired:0,
   waves:Array.from({length:MAX_WAVES},()=>({started:false,doneSpawning:false,alive:0,paid:false})),goldEarned:0,goldRefunded:0,waveStart:0,tutorial:{active:false,stage:0,completed:false},selectedBuildingId:null};
  acc=0;pointerPositions.clear();gesture=null;
  $('overlay').classList.remove('hidden');
  $('dock').classList.remove('open');$('build-tray').hidden=true;$('dock-toggle').setAttribute('aria-expanded','false');
- overlay('👋','Hallo Asphaltgeschoss 😜','Willkommen bei Forgefront! Keine Sorge: Erzminen explodieren nicht – sie fördern Metall. Baue mit mir eine Fabrik, Rohre und ein MG. Die Produktion beginnt erst, wenn du eine Welle startest.','TUTORIAL STARTEN →');$('intro-skip').hidden=false;$('tutorial').hidden=true;$('details').hidden=true;
+ overlay('⚙','Willkommen bei Forgefront','Baue eine Erzmine auf Erz, verbinde sie mit einer Munitionsfabrik und einem MG. Die Prozentzahlen zeigen bereits in der Bauphase die voraussichtliche Versorgung. Rohre verbinden Gebäude – einzelne Patronen musst du nicht transportieren.','TUTORIAL STARTEN →');$('intro-skip').hidden=false;$('tutorial').hidden=true;$('details').hidden=true;
  inform('BAUPHASE: Mine, Fabrik, Rohre und MG verbinden. Erst mit Welle starten beginnen Produktion und Angriff.');update();draw();
 }
 function buildError(type,x,y){
@@ -100,9 +100,7 @@ function refundRate(){return ECONOMY.refundByDifficulty[ECONOMY.difficulty];}
 function erase(x,y,silent=false){
  if(g.mode!=='playing'||g.phase!=='build'){if(!silent)inform('Abriss ist während einer Angriffswelle gesperrt.');return false;}
  const b=at(x,y);if(!b){if(!silent)inform('Hier steht kein Gebäude.');return false;}
- const occupied=g.packets.some(p=>p.at.id===b.id||p.to?.id===b.id||p.targetId===b.id);
- if(occupied||b.input||b.output){if(!silent)inform('In diesem Bauteil befinden sich noch Rohstoffe oder Pakete. Erst nach dem Abtransport löschen.');return false;}
- g.buildings.splice(g.buildings.indexOf(b),1);networkConnectionCache.clear();if(g.selectedBuildingId===b.id)hideDetails();
+ g.buildings.splice(g.buildings.indexOf(b),1);networkConnectionCache.clear();topologyVersion++;flowCache=null;if(g.selectedBuildingId===b.id)hideDetails();
  const refund=Math.floor(COST[b.type]*refundRate());g.gold+=refund;g.goldRefunded+=refund;
  if(!silent)inform('Abgebaut: '+refund+' Gold zurück.');update();return true;
 }
@@ -116,15 +114,15 @@ function place(type,x,y,silent=false){
  let desired=type;if(type==='pipe'&&isRoad(x,y))desired='bridge';
  const err=buildError(desired,x,y);if(err){if(!silent)inform(err);return false;}
  if(!payGold(COST[desired]))return false;
- g.buildings.push(building(desired,x,y));networkConnectionCache.clear();if(!silent)inform(desired==='bridge'?'Brücke verbunden.':desired==='pipe'?'Rohr gebaut – automatisch verbunden.':desired==='mine'?'Erzmine: MAX 1 Metall/s. Über Rohre mit einer Fabrik verbinden.':'Gebäude steht – Versorgung über Rohre anschließen.');
+ g.buildings.push(building(desired,x,y));networkConnectionCache.clear();topologyVersion++;flowCache=null;if(!silent)inform(desired==='bridge'?'Brücke verbunden.':desired==='pipe'?'Rohr gebaut – automatisch verbunden.':desired==='mine'?'Erzmine: MAX 1 Metall/s. Über Rohre mit einer Fabrik verbinden.':'Gebäude steht – Versorgung über Rohre anschließen.');
  update();return true;
 }
 function startWave(){
  if(g.mode!=='playing'||g.phase!=='build'||g.wave>=MAX_WAVES)return false;
- g.wave++;g.phase='combat';g.paused=false;g.selected=null;g.enemyDelay=FIRST_DELAY;g.spawner=null;g.waveStart=g.time;for(const b of g.buildings){b.waveAmount=0;b.events=[];b.blocked=false;b.lacking=false;}
+ g.wave++;g.phase='combat';g.paused=false;g.selected=null;g.enemyDelay=FIRST_DELAY;g.spawner=null;g.waveStart=g.time;for(const b of g.buildings){b.waveAmount=0;b.cool=0;b.fireCharge=0;}
  g.waves[g.wave-1].started=true;syncTutorial();
  $('dock').classList.remove('open');$('build-tray').hidden=true;$('dock-toggle').setAttribute('aria-expanded','false');
- inform((g.wave===MAX_WAVES?'BOSSWELLE':'WELLE '+g.wave)+' läuft an! Produktion startet sofort; erster Gegner in '+FIRST_DELAY+' Sekunden.');update();return true;
+ inform((g.wave===MAX_WAVES?'BOSSWELLE':'WELLE '+g.wave)+' startet! Die Versorgungsbilanz gilt sofort, Gegner erscheinen in '+FIRST_DELAY+' Sekunden.');update();return true;
 }
 function checkWaveComplete(){
  const r=g.waves[g.wave-1];if(!r||!r.doneSpawning||r.alive!==0||g.spawner||g.enemyDelay!==null||g.phase!=='combat')return;
@@ -136,97 +134,116 @@ function checkWaveComplete(){
 }
 function enemyPos(e){const i=Math.min(Math.floor(e.pos),PATH.length-2),a=PATH[i],b=PATH[i+1],t=Math.min(1,e.pos-i);return{x:a[0]+(b[0]-a[0])*t,y:a[1]+(b[1]-a[1])*t};}
 function finish(win){if(!win&&g.phase==='combat')captureWaveMetrics();g.mode=win?'won':'lost';g.paused=false;
- overlay(win?'★':'⚠',win?'BOSS BESIEGT!':'BASIS VERLOREN',win?'Fünf Wellen und den Boss überstanden! '+g.kills+' Kills · HQ: '+g.hp+' Leben.':'Die Logistikkette hat nicht gehalten. '+g.kills+' Gegner besiegt. Optimier deine Rohrführung und Produktionsraten.','NEUE RUNDE STARTEN');
+ overlay(win?'★':'⚠',win?'BOSS BESIEGT!':'BASIS VERLOREN',win?'Fünf Wellen und den Boss überstanden! '+g.kills+' Kills · HQ: '+g.hp+' Leben.':'Die Versorgungsbilanz hat nicht gereicht. '+g.kills+' Gegner besiegt. Verbessere die Prozentversorgung und die MG-Positionen.','NEUE RUNDE STARTEN');
  inform(win?'Sieg: Erzfront gehalten!':'Niederlage – Beim nächsten Versuch cleverer planen.');update();}
-function accepts(b,kind){return b&&(kind==='metal'?b.type==='factory':b.type==='turret');}
-function incoming(target,kind){return g.packets.filter(p=>p.targetId===target.id&&p.kind===kind).length;}
-function sinkSpace(target,kind){if(kind==='metal')return target.input===0&&target.output===0&&incoming(target,kind)===0;
- return incoming(target,kind)<3;}
-// Only pipes and bridges relay materials. Buildings are endpoints, never shortcuts.
-function routesFrom(source,kind){
- if(!source)return [];let queue=[{b:source,dist:0,first:null}],head=0,seen=new Set([source.id]),found=[];
- while(head<queue.length){const {b,dist,first}=queue[head++];for(const n of nearby(b)){
-  if(accepts(n,kind)&&n.id!==source.id&&sinkSpace(n,kind))found.push({target:n,dist:dist+1,first:first||n});
-  else if(isPipe(n)&&!seen.has(n.id)){seen.add(n.id);queue.push({b:n,dist:dist+1,first:first||n});}
- }}return found;
-}
+// KISS: Connections are pipes/bridges (buildings are endpoints, never relay nodes).
 function nextToTarget(source,target){if(!source||!target)return null;
- let q=[{b:source,first:null}],head=0,seen=new Set([source.id]);
- while(head<q.length){const {b,first}=q[head++];for(const n of nearby(b)){
+ const visited=new Set([source.id]),q=[{b:source,first:null}];
+ for(let i=0;i<q.length;i++){const {b,first}=q[i];for(const n of nearby(b)){
   if(n.id===target.id)return first||n;
-  if(isPipe(n)&&!seen.has(n.id)){seen.add(n.id);q.push({b:n,first:first||n});}
+  if(isPipe(n)&&!visited.has(n.id)){visited.add(n.id);q.push({b:n,first:first||n});}
  }}return null;
 }
-function chooseRoute(source,kind){const paths=routesFrom(source,kind);if(!paths.length)return null;
- paths.sort((a,b)=>(a.dist+incoming(a.target,kind)*3)-(b.dist+incoming(b.target,kind)*3)||a.target.id-b.target.id);
- return paths[0];
-}
-function launch(source,kind,amount){if(g.packets.length>=130)return false;
- const route=chooseRoute(source,kind);if(!route)return false;
- // A package must physically leave the producer; never teleport inventory.
- g.packets.push({id:nextId++,sourceId:source.id,kind,amount,at:source,to:route.first,targetId:route.target.id,progress:0});return true;
-}
-function recordRate(b,amount){b.events.push({t:g.time,amount});b.waveAmount+=amount;if(b.events.length>150)b.events.shift();}
-function maxRate(b){return b.type==='mine'?1:b.type==='factory'?1.2:b.type==='turret'?1/.57:0;}
-// Measurement is in units/sec. Short window for combat, entire wave average for the planning phase.
-function rate(b){if(g.phase!=='combat')return b.lastWaveRate??0;return b.waveAmount/Math.max(.5,g.time-g.waveStart);}
 function netReachable(source,target){const id=source.id+','+target.id;if(!networkConnectionCache.has(id))networkConnectionCache.set(id,!!nextToTarget(source,target));return networkConnectionCache.get(id);}
-function netHasEndpoint(b,kind){return g.buildings.some(other=>other!==b&&accepts(other,kind)&&netReachable(b,other));}
-function inputConnected(b){return g.buildings.some(other=>other.type==='mine'&&netReachable(other,b));}
-function outputConnected(b){return g.buildings.some(other=>other.type==='turret'&&netReachable(b,other));}
-function diagnosis(b){
- if(b.type==='mine'){
-  if(!netHasEndpoint(b,'metal'))return {text:'Keine Fabrik über Rohre erreichbar',severity:'danger'};
-  if(b.blocked)return {text:'Rückstau: Fabriken ausgelastet / Transport belegt',severity:'warn'};
-  return {text:rate(b)>0?'Metall wird über Rohre gefördert':'Förderung läuft an',severity:'ok'};
- }
- if(b.type==='factory'){
-  if(!inputConnected(b))return {text:'Keine Erzmine angeschlossen',severity:'danger'};
-  if(!outputConnected(b))return {text:'Keine Verbindung zum MG',severity:'danger'};
-  if(b.output&&b.blocked)return {text:'Munitionsausgang blockiert / Empfänger voll',severity:'danger'};
-  if(b.input)return {text:'Metall wird zu Munition verarbeitet',severity:'ok'};
-  if(g.packets.some(p=>p.kind==='metal'&&p.targetId===b.id))return {text:'Metallpaket ist unterwegs',severity:'warn'};
-  return {text:'Wartet auf Metall von der Mine',severity:'warn'};
- }
- if(b.type==='turret'){
-  if(!outputConnectedTo(b))return {text:'Keine Fabrik über Rohre angeschlossen',severity:'danger'};
-  if(!makeTarget(b))return {text:'Bereit – gerade kein Gegner in Reichweite',severity:'idle'};
-  if(b.lacking)return {text:'Munitionsmangel: Lieferung fehlt oder ist unterwegs',severity:'danger'};
-  return {text:'MG hat Munition und schießt bei Bedarf',severity:'ok'};
- }
- return {text:'Transportleitung',severity:'idle'};
-}
-function outputConnectedTo(t){return g.buildings.some(f=>f.type==='factory'&&netReachable(f,t));}
-function captureWaveMetrics(){const duration=Math.max(.1,g.time-g.waveStart);for(const b of g.buildings){if(isPipe(b))continue;const diag=diagnosis(b);b.lastIssue=diag.text;b.lastWaveRate=b.waveAmount/duration;}}
-function productionInfo(b){const active=g.mode==='playing'&&g.phase==='combat';const max=maxRate(b),value=rate(b),actual=Number.isFinite(value)?value:0;
- const diag=active?diagnosis(b):{text:b.lastWaveRate===null?'Noch nicht gemessen – erste Welle starten':'Letzte Welle: '+b.lastIssue,severity:'idle'};
- const ratio=max?Math.min(100,Math.round(100*actual/max)):0;
- const severity=active?diag.severity:'idle';
- return {max,actual,ratio,severity,text:diag.text,period:active?'Aktuelle Kampfphase · Durchschnitt seit Wellenstart':'Letzte abgeschlossene Welle · Durchschnitt (nicht aktuelle Produktion)'};
-}
-function receive(p){const b=p.at;
- if(p.kind==='metal'&&b.type==='factory'&&b.input===0&&b.output===0){b.input=1;g.deliveredMetal+=p.amount;return true;}
- return false; // Ammo remains visible at end of pipe until a turret actually fires.
-}
-function movePackets(dt){
- for(let i=g.packets.length-1;i>=0;i--){const p=g.packets[i];
-  if(p.to){p.progress=Math.min(1,p.progress+dt/TRAVEL);if(p.progress>=1){
-   if(p.to.type==='turret'&&p.kind==='ammo')continue; // Wait at the pipe mouth, NOT inside a magazine.
-   // Pipes have independent virtual lanes. Output waits at a full destination, not in a junction deadlock.
-   if(p.to.type==='factory'&&p.kind==='metal'&&(p.to.input||p.to.output))continue;
-   p.at=p.to;p.to=null;p.progress=0;
-   if(receive(p)){g.packets.splice(i,1);continue;}
-  }}
-  if(!p.to){let target=g.buildings.find(b=>b.id===p.targetId);
-   if(!target||!accepts(target,p.kind)){
-    const path=chooseRoute(p.at,p.kind);if(path){target=path.target;p.targetId=target.id;}else continue;
+const METAL_PER_FACTORY=.4,AMMO_PER_FACTORY=1.2,AMMO_PER_MG=1/.57;
+function maxRate(b){return b.type==='mine'?1:b.type==='factory'?AMMO_PER_FACTORY:b.type==='turret'?AMMO_PER_MG:0;}
+function clamp(n){return Math.max(0,Math.min(1,n));}
+// Allocation has no pipe throughput limit. A source can serve only a reachable sink.
+// Uniform %-coverage is computed before any spare capacity is redistributed.
+function allocate(sources,sinks,capacity,demand){
+ const result=new Map(sinks.map(s=>[s.id,0]));result.sourceUsed=new Map(sources.map(s=>[s.id,0]));if(!sources.length||!sinks.length)return result;
+ const edges=sources.map(p=>sinks.map(c=>netReachable(p,c)));
+ const adjS=edges.map(row=>row.map((ok,j)=>ok?j:-1).filter(j=>j>=0));
+ const activeS=new Set(),activeT=new Set(),done=new Set();
+ for(let i=0;i<sources.length;i++)if(adjS[i].length){activeS.add(i);for(const j of adjS[i])activeT.add(j);}
+ // Independent bipartite components never share material.
+ for(const si of activeS){if(done.has(si))continue;
+  const from=[si],srcIds=new Set(),dstIds=new Set();
+  while(from.length){const i=from.pop();if(srcIds.has(i))continue;srcIds.add(i);done.add(i);
+   for(const j of adjS[i]){dstIds.add(j);for(let k=0;k<sources.length;k++)if(edges[k][j]&&!srcIds.has(k))from.push(k);}}
+  const src=[...srcIds],dst=[...dstIds];if(!dst.length)continue;
+  const flow=(quotas,needResult=false,sourceFraction=1)=>{
+   const n=2+src.length+dst.length,T=n-1,res=Array.from({length:n},()=>new Array(n).fill(0));
+   for(let a=0;a<src.length;a++){
+    res[0][1+a]=Math.max(0,capacity(sources[src[a]])*sourceFraction);
+    for(let b=0;b<dst.length;b++)if(edges[src[a]][dst[b]])res[1+a][1+src.length+b]=1e5;
    }
-   let next=nextToTarget(p.at,target);
-   if(!next){const reroute=chooseRoute(p.at,p.kind);if(reroute){p.targetId=reroute.target.id;next=reroute.first;}}
-   if(next){p.to=next;p.progress=0;}
+   let goal=0;for(let b=0;b<dst.length;b++){const want=Math.max(0,quotas[b]);res[1+src.length+b][T]=want;goal+=want;}
+   let sent=0;while(true){const parent=new Array(n).fill(-1),queue=[0];parent[0]=0;
+    for(let h=0;h<queue.length&&parent[T]<0;h++)for(let v=0;v<n;v++)if(parent[v]<0&&res[queue[h]][v]>1e-8){parent[v]=queue[h];queue.push(v);}
+    if(parent[T]<0)break;let push=1e9;for(let v=T;v!==0;v=parent[v])push=Math.min(push,res[parent[v]][v]);
+    for(let v=T;v!==0;v=parent[v]){res[parent[v]][v]-=push;res[v][parent[v]]+=push;}sent+=push;
+   }
+   if(!needResult)return sent>=goal-1e-6;
+   return {sent,delivered:dst.map((_,b)=>quotas[b]-res[1+src.length+b][T]),res};
+  };
+  // Max-min fair: every same-level consumer receives equal % of its own demand.
+  let lo=0,hi=1;for(let z=0;z<25;z++){const mid=(lo+hi)/2;if(flow(dst.map(j=>demand(sinks[j])*mid)))lo=mid;else hi=mid;}
+  const quotas=dst.map(j=>demand(sinks[j])*lo);let allocation=flow(quotas,true);
+  for(let b=0;b<dst.length;b++)result.set(sinks[dst[b]].id,allocation.delivered[b]);
+  // If a subset is constrained by its own pipes, use the other sources' surplus
+  // without taking away the common baseline. This honours physical reachability.
+  const n=2+src.length+dst.length,T=n-1,rr=allocation.res;
+  for(let b=0;b<dst.length;b++){
+   const node=1+src.length+b;
+   rr[node][T]=Math.max(0,demand(sinks[dst[b]])-allocation.delivered[b]);
+   rr[T][node]=0;
   }
+  while(true){const par=new Array(n).fill(-1),queue=[0];par[0]=0;
+   for(let h=0;h<queue.length&&par[T]<0;h++)for(let v=0;v<n;v++)if(par[v]<0&&rr[queue[h]][v]>1e-8){par[v]=queue[h];queue.push(v);}
+   if(par[T]<0)break;
+   let amount=1e9;for(let v=T;v!==0;v=par[v])amount=Math.min(amount,rr[par[v]][v]);
+   for(let v=T;v!==0;v=par[v]){rr[par[v]][v]-=amount;rr[v][par[v]]+=amount;}
+  }
+  for(let b=0;b<dst.length;b++)result.set(sinks[dst[b]].id,Math.min(demand(sinks[dst[b]]),demand(sinks[dst[b]])-rr[1+src.length+b][T]));
+  // Balance producers too: equal loading among interchangeable reachable mines.
+  const finalQuotas=dst.map(j=>result.get(sinks[j].id)||0);
+  let low=0,high=1;for(let k=0;k<25;k++){const mid=(low+high)/2;if(flow(finalQuotas,false,mid))high=mid;else low=mid;}
+  const fair=flow(finalQuotas,true,Math.min(1,high+1e-5));
+  for(let a=0;a<src.length;a++)result.sourceUsed.set(sources[src[a]].id,Math.max(0,capacity(sources[src[a]])*Math.min(1,high+1e-5)-fair.res[0][1+a]));
  }
+ return result;
 }
+function calculateFlow(activeOnly=false){
+ const mines=g.buildings.filter(b=>b.type==='mine'),factories=g.buildings.filter(b=>b.type==='factory'),turrets=g.buildings.filter(b=>b.type==='turret');
+ const usableTurrets=activeOnly?turrets.filter(t=>makeTarget(t)!==null):turrets;
+ const demandedFactories=factories.filter(f=>usableTurrets.some(t=>netReachable(f,t)));
+ const metalCapacity=allocate(mines,demandedFactories,()=>1,()=>METAL_PER_FACTORY);
+ const factoryCapacity=new Map(factories.map(f=>[f.id,(metalCapacity.get(f.id)||0)*3]));
+ const ammo=allocate(factories,usableTurrets,f=>factoryCapacity.get(f.id)||0,()=>AMMO_PER_MG);
+ // Unneeded output is not manufactured or stored: throttle upstream production
+ // to actual downstream consumption, then balance mines over that real demand.
+ const metalUsed=allocate(mines,demandedFactories,()=>1,f=>(ammo.sourceUsed.get(f.id)||0)/3);
+ const infos=new Map();
+ const sourceLoad=metalUsed.sourceUsed;
+ // Free-to-use capacity is healthy, not an error.
+ for(const m of mines){const reachable=factories.some(f=>netReachable(m,f));const required=(sourceLoad.get(m.id)||0);
+  infos.set(m.id,{rate:required,ratio:reachable?required:0,kind:!reachable?'danger':activeOnly&&!usableTurrets.length?'idle':'ok',issue:reachable?(required<.999?'Förderreserve verfügbar':'Volle Förderung für die Fabriken'):'Keine Fabrik verbunden',max:1,demand:required});
+ }
+ for(const f of factories){const supplied=metalUsed.get(f.id)||0,hasMine=mines.some(m=>netReachable(m,f)),hasMG=turrets.some(t=>netReachable(f,t)),activeDemand=usableTurrets.some(t=>netReachable(f,t));
+  const rate=ammo.sourceUsed.get(f.id)||0,ratio=hasMG?clamp(rate/AMMO_PER_FACTORY):0;
+  const metalShort=hasMine&&hasMG&&(factoryCapacity.get(f.id)||0)<AMMO_PER_FACTORY-.01;
+  infos.set(f.id,{rate,max:AMMO_PER_FACTORY,ratio,kind:!hasMine||!hasMG?'danger':!activeDemand?'idle':metalShort?'warn':'ok',issue:!hasMine?'Keine Erzmine angeschlossen':!hasMG?'Kein MG angeschlossen':!activeDemand?'Bereit – gerade kein Gegner in Reichweite':metalShort?'Metallmangel: weitere Erzmine anschließen':ratio<.995?'Ausreichend versorgt – Produktionsreserve':'Metallversorgung ausreichend',demand:METAL_PER_FACTORY});
+ }
+ for(const t of turrets){const supplied=ammo.get(t.id)||0,ratio=clamp(supplied/AMMO_PER_MG),hasFactory=factories.some(f=>netReachable(f,t)),isActive=usableTurrets.includes(t);
+  infos.set(t.id,{rate:supplied,max:AMMO_PER_MG,ratio:activeOnly&&!isActive&&hasFactory?1:ratio,kind:!hasFactory?'danger':activeOnly&&!isActive?'idle':ratio>=.995?'ok':'warn',issue:!hasFactory?'Keine Fabrik angeschlossen':activeOnly&&!isActive?'Bereit – kein Gegner in Reichweite':ratio>=.995?'Munition vollständig gedeckt':'Zu wenig Munition aus angeschlossenen Fabriken',demand:AMMO_PER_MG});
+ }
+ return {infos,metalRate:[...mines].reduce((a,m)=>a+(infos.get(m.id)?.rate||0),0),ammoRate:[...factories].reduce((a,f)=>a+(infos.get(f.id)?.rate||0),0)};
+}
+function flow(active=false){
+ if(!active&&flowCache&&flowCache.version===topologyVersion)return flowCache.data;
+ if(active){const key=g.buildings.filter(b=>b.type==='turret'&&makeTarget(b)!==null).map(b=>b.id).join(',');
+  if(activeFlowCache&&activeFlowCache.version===topologyVersion&&activeFlowCache.key===key)return activeFlowCache.data;
+  const data=calculateFlow(true);activeFlowCache={version:topologyVersion,key,data};return data;
+ }
+ const data=calculateFlow(false);flowCache={version:topologyVersion,data};return data;
+}
+function productionInfo(b){const combat=g.phase==='combat',base=flow(false).infos.get(b.id),live=combat?flow(true).infos.get(b.id):base;
+ const info=live||base||{rate:0,max:0,ratio:0,kind:'idle',issue:'Keine Daten'};
+ const idle=combat&&info.kind==='idle';const ratio=idle?(base?.ratio||0):info.ratio;
+ return {max:info.max||0,actual:info.rate||0,ratio:Math.round(100*ratio),severity:idle?'idle':info.kind,text:info.issue,period:combat?(idle?'Kampfphase: Bereitschaft für den nächsten Angriff':'Kampfphase: Versorgung nach aktuellem Bedarf'):'Bauphase: Prognose für maximale Auslastung',planned:base?.rate||0};
+}
+function captureWaveMetrics(){for(const b of g.buildings)if(!isPipe(b)){b.lastWaveRate=b.waveAmount/Math.max(.1,g.time-g.waveStart);}}
 function makePlan(def){const list=[];
  if(def.boss){
   for(let i=0;i<def.count;i++){if(i===4)list.push({kind:'boss',hp:110,speed:.98,armor:0});
@@ -236,29 +253,16 @@ function makePlan(def){const list=[];
  return list;
 }
 function makeTarget(turret){let target=null;for(const e of g.enemies){const p=enemyPos(e);if(Math.hypot(p.x-turret.x,p.y-turret.y)<=3.3&&(!target||e.hp<target.hp||(e.hp===target.hp&&e.pos>target.pos)))target=e;}return target;}
-function shoot(turret,target){const packet=g.packets.find(p=>p.kind==='ammo'&&p.targetId===turret.id&&p.to?.id===turret.id&&p.progress>=1&&p.amount>0);
- if(!packet)return false;
- packet.amount-=1;if(packet.amount===0)g.packets.splice(g.packets.indexOf(packet),1);
- const point=enemyPos(target);const damage=Math.max(1,3-(target.armor||0));target.hp-=damage;
- turret.cool=.57;turret.lacking=false;g.shotsFired++;recordRate(turret,1);g.shots.push({x:turret.x,y:turret.y,tx:point.x,ty:point.y,life:.15});
+function shoot(turret,target){
+ const point=enemyPos(target),damage=Math.max(1,3-(target.armor||0));target.hp-=damage;
+ turret.cool=.57;g.shotsFired++;g.shots.push({x:turret.x,y:turret.y,tx:point.x,ty:point.y,life:.15});
  if(target.kind==='boss'&&target.hp<=target.max*.5&&!target.enraged){target.enraged=true;target.speed*=1.38;target.armor=1;inform('⚠ BOSS-PHASE 2: Eisenbrecher wird schneller und stärker gepanzert!');}
  if(target.hp<=0){g.enemies.splice(g.enemies.indexOf(target),1);g.waves[target.wave-1].alive--;g.kills++;g.gold+=ECONOMY.goldPerKill;g.goldEarned+=ECONOMY.goldPerKill;if(target.kind==='boss')inform('BOSS GESTOPPT! Besiege die letzten Begleitgegner.');}
  return true;
 }
 function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')return;
  g.time+=dt;
- for(const b of g.buildings){
-  if(b.type==='mine'){b.clock=Math.min(1.02,b.clock+dt);if(b.clock>=1){
-   if(launch(b,'metal',1)){b.clock-=1;b.blocked=false;g.producedMetal++;recordRate(b,1);}else{b.clock=1;b.blocked=true;}
-  }}
-  if(b.type==='factory'){
-   if(b.output){if(launch(b,'ammo',b.output)){g.producedAmmo+=b.output;recordRate(b,b.output);b.output=0;b.blocked=false;}else b.blocked=true;}
-   if(b.input){b.clock+=dt;if(b.clock>=2.5){b.input=0;b.clock=0;b.output=3;}}
-   else if(!b.output){b.clock=0;b.blocked=false;}
-  }
- }
- movePackets(dt);
- if(g.enemyDelay!==null){g.enemyDelay-=dt;if(g.enemyDelay<=0){g.enemyDelay=null;const def=WAVES[g.wave-1];g.spawner={plan:makePlan(def),index:0,timer:0,interval:def.interval};inform((def.boss?'BOSSANGRIFF':'Welle '+g.wave)+' hat begonnen! Das Netz muss jetzt halten.');}}
+ if(g.enemyDelay!==null){g.enemyDelay-=dt;if(g.enemyDelay<=0){g.enemyDelay=null;const def=WAVES[g.wave-1];g.spawner={plan:makePlan(def),index:0,timer:0,interval:def.interval};inform((def.boss?'BOSSANGRIFF':'Welle '+g.wave)+' hat begonnen! Die Produktionsbilanz entscheidet.');}}
  if(g.spawner){const sp=g.spawner;sp.timer-=dt;
   if(sp.index<sp.plan.length&&sp.timer<=0){const unit=sp.plan[sp.index++];const e={id:nextId++,pos:0,hp:unit.hp,max:unit.hp,speed:unit.speed,armor:unit.armor,kind:unit.kind,wave:g.wave,enraged:false};g.enemies.push(e);g.waves[g.wave-1].alive++;sp.timer+=sp.interval;}
   if(sp.index===sp.plan.length){g.waves[g.wave-1].doneSpawning=true;g.spawner=null;}
@@ -266,19 +270,25 @@ function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')re
  for(let i=g.enemies.length-1;i>=0;i--){const e=g.enemies[i];e.pos+=e.speed*dt;
   if(e.pos>=PATH.length-1){g.enemies.splice(i,1);g.waves[e.wave-1].alive--;g.hp=Math.max(0,g.hp-(e.kind==='boss'?6:e.kind==='heavy'?2:1));}}
  if(g.hp<=0){finish(false);return;}
- for(const b of g.buildings){if(b.type!=='turret')continue;b.cool=Math.max(0,b.cool-dt);const target=makeTarget(b);b.lacking=false;
-  if(b.cool<=0&&target){if(!shoot(b,target))b.lacking=true;}
+ const live=flow(true);g.metal=live.metalRate;g.ammo=live.ammoRate;
+ g.producedMetal+=live.metalRate*dt;g.producedAmmo+=live.ammoRate*dt;
+ for(const b of g.buildings){if(isPipe(b))continue;const info=live.infos.get(b.id);if(info)b.waveAmount+=info.rate*dt;}
+ for(const turret of g.buildings){if(turret.type!=='turret')continue;
+  const target=makeTarget(turret);if(!target){turret.cool=0;continue;}
+  const supply=live.infos.get(turret.id)?.ratio||0;if(supply<1e-8){turret.cool=0;continue;}
+  // Throttled MG fires more slowly. There are no individual ammunition packets.
+  turret.cool-=dt*clamp(supply);if(turret.cool<=0){shoot(turret,target);}
  }
  for(const q of g.shots)q.life-=dt;g.shots=g.shots.filter(q=>q.life>0);
  checkWaveComplete();
 }
 const GUIDE=[
- {title:'Erzmine bauen',text:'Hallo Asphaltgeschoss 😜! Erzminen explodieren nicht. Tippe unten auf BAUEN und setze eine Erzmine auf ein braunes Erzfeld. MAX 1 Metall/s.',tool:'mine'},
+ {title:'Erzmine bauen',text:'Tippe unten auf BAUEN und setze eine Erzmine auf ein braunes Erzfeld. Sie liefert bis zu 1 Metall pro Sekunde.',tool:'mine'},
  {title:'Fabrik platzieren',text:'Die Fabrik verwandelt 1 Metall alle 2,5 Sekunden in 3 Munition. Baue eine Fabrik nahe deiner Erzmine.',tool:'factory'},
- {title:'Metallverbindung herstellen',text:'Mit dem Rohr-Werkzeug verbindest du die Erzmine und die Fabrik. Ziehe über Felder; direkt benachbarte Gebäude sind auch verbunden.',tool:'pipe'},
+ {title:'Metallverbindung herstellen',text:'Verbinde Erzmine und Fabrik per Rohr. Deine Versorgungsprozente werden schon beim Bauen sofort aktualisiert.',tool:'pipe'},
  {title:'MG am Gegnerweg platzieren',text:'Baue ein MG nahe der hellblauen Gegnerroute. Es verbraucht bei Dauerfeuer bis zu 1,75 Munition/s.',tool:'turret'},
- {title:'MG mit Munition versorgen',text:'Verbinde die Fabrik mit dem MG durch Rohre. 1 Mine kann rechnerisch 2,5 Fabriken versorgen; für ein dauerfeuerndes MG sind 2 Fabriken sinnvoll.',tool:'pipe'},
- {title:'Welle starten',text:'Alles verbunden? Drücke WELLE STARTEN. Während der Bauphase steht die gesamte Produktion still. Im Kampf läuft sie, aber Bauen ist gesperrt.',tool:'pause'}
+ {title:'MG mit Munition versorgen',text:'Verbinde die Fabrik mit dem MG. Die Prozentzahl am MG zeigt, wie viel seines maximalen Bedarfs gedeckt ist.',tool:'pipe'},
+ {title:'Welle starten',text:'Prüfe zuerst die Prozentwerte. Während der Bauphase siehst du die Prognose, im Kampf läuft das System und Bauen ist gesperrt.',tool:'pause'}
 ];
 function completeStage(step){const mines=g.buildings.filter(b=>b.type==='mine'),factories=g.buildings.filter(b=>b.type==='factory'),turrets=g.buildings.filter(b=>b.type==='turret');
  if(step===0)return mines.length>0;
@@ -291,7 +301,7 @@ function completeStage(step){const mines=g.buildings.filter(b=>b.type==='mine'),
 function clearGuideMarks(){for(const b of buildButtons)b.classList.remove('guide-focus');$('dock-toggle').classList.remove('guide-focus');$('pause').classList.remove('guide-focus');}
 function syncTutorial(){if(!g?.tutorial?.active)return;clearGuideMarks();
  while(g.tutorial.stage<GUIDE.length&&completeStage(g.tutorial.stage))g.tutorial.stage++;
- if(g.tutorial.stage>=GUIDE.length){g.tutorial.active=false;g.tutorial.completed=true;$('tutorial').hidden=true;inform('Tutorial geschafft, Asphaltgeschoss! 💪 Jetzt beginnt die eigentliche Logistik-Knobelei.');return;}
+ if(g.tutorial.stage>=GUIDE.length){g.tutorial.active=false;g.tutorial.completed=true;$('tutorial').hidden=true;inform('Tutorial abgeschlossen. Baue ein effizientes Netz und verteidige das HQ!');return;}
  if(g.mode!=='playing'||g.phase!=='build'||g.selectedBuildingId){$('tutorial').hidden=true;return;}
  const t=GUIDE[g.tutorial.stage];$('tutorial-step').textContent='TUTORIAL '+(g.tutorial.stage+1)+' / '+GUIDE.length;
  $('tutorial-title').textContent=t.title;$('tutorial-text').textContent=t.text;$('tutorial').hidden=false;
@@ -303,19 +313,19 @@ function hideDetails(){if(!g)return;g.selectedBuildingId=null;$('details').hidde
 function inspect(x,y){const b=at(x,y);if(!b||isPipe(b)){hideDetails();return false;}g.selectedBuildingId=b.id;$('tutorial').hidden=true;renderDetails();return true;}
 function renderDetails(){if(!g?.selectedBuildingId)return;const b=g.buildings.find(x=>x.id===g.selectedBuildingId);
  if(!b){hideDetails();return;}const info=productionInfo(b);
- $('details').hidden=false;$('details-title').textContent=({mine:'Erzmine',factory:'Munitionsfabrik',turret:'MG-Turm'})[b.type]+' · MAX / IST';
- $('details-max').textContent=info.max.toFixed(2)+' /s';$('details-actual').textContent=(b.lastWaveRate===null&&g.phase==='build'?'–':info.actual.toFixed(2)+' /s');
- $('details-actual-label').textContent=g.phase==='combat'?'IST · DIESE WELLE':'IST · LETZTE WELLE';
+ $('details').hidden=false;$('details-title').textContent=({mine:'Erzmine',factory:'Munitionsfabrik',turret:'MG-Turm'})[b.type]+' · VERSORGUNG';
+ $('details-max').textContent=info.max.toFixed(2)+' /s';$('details-actual').textContent=(info.severity==='idle'?info.planned:info.actual).toFixed(2)+' /s';
+ $('details-actual-label').textContent=g.phase==='combat'?(info.severity==='idle'?'BEREIT · PROGNOSE':'VERFÜGBAR · JETZT'):'VERFÜGBAR · PROGNOSE';
  $('details-meter').style.width=info.ratio+'%';$('details-meter').style.background=info.severity==='danger'?'#f78383':info.severity==='warn'?'#ffbe77':info.severity==='ok'?'#80d9a4':'#9faebd';
- $('details-state').textContent=info.text;$('details-explain').textContent=info.period+' · '+info.ratio+' % von MAX';
+ $('details-state').textContent=info.text;$('details-explain').textContent=info.period+' · '+info.ratio+' %'+(b.type==='mine'?' der möglichen Förderung':' des maximalen Bedarfs');
 }
 function update(){if(!g)return;
- $('gold').textContent=g.gold;$('metal').textContent=g.packets.filter(p=>p.kind==='metal').reduce((n,p)=>n+p.amount,0)+g.buildings.reduce((n,b)=>n+b.input,0);
- $('ammo').textContent=g.packets.filter(p=>p.kind==='ammo').reduce((n,p)=>n+p.amount,0)+g.buildings.reduce((n,b)=>n+b.output,0);
- g.metal=Number($('metal').textContent);g.ammo=Number($('ammo').textContent);
+ $('gold').textContent=g.gold;$('metal').textContent=(g.phase==='build'?flow(false):flow(true)).metalRate.toFixed(1);
+ $('ammo').textContent=(g.phase==='build'?flow(false):flow(true)).ammoRate.toFixed(1);
+ if(g.phase==='build'){g.metal=flow(false).metalRate;g.ammo=flow(false).ammoRate;}
  $('hp').textContent=g.hp;$('wave').textContent=g.wave+'/'+MAX_WAVES;
  syncTutorial();renderDetails();const build=g.phase==='build';$('phase-label').textContent=build?'BAUPHASE':'KAMPFPHASE';$('phase-label').classList.toggle('combat',!build);
- $('indicator').textContent=g.mode!=='playing'?'Bereit':build?'Produktion pausiert':g.paused?'Ⅱ PAUSE':g.enemyDelay!==null?'Gegner in '+Math.max(0,Math.ceil(g.enemyDelay))+'s':'Verteidigung läuft';
+ $('indicator').textContent=g.mode!=='playing'?'Bereit':build?'PROGNOSE · Industrie pausiert':g.paused?'Ⅱ PAUSE':g.enemyDelay!==null?'Gegner in '+Math.max(0,Math.ceil(g.enemyDelay))+'s':'VERSORGUNG · Kampf läuft';
  $('threat').textContent=g.wave===MAX_WAVES?'⚠ BOSS':g.wave===MAX_WAVES-1?'BOSS ALS NÄCHSTES':'5 WELLEN + BOSS';
  $('pause').disabled=g.mode!=='playing';$('pause').textContent=build?'▶ '+(g.wave===MAX_WAVES-1?'BOSS STARTEN':'WELLE '+(g.wave+1)+' STARTEN'):g.paused?'▶ FORTSETZEN':'Ⅱ PAUSE';
  $('speed').textContent=speedValues[speedIndex]+'×';
@@ -344,16 +354,12 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
   else if(b.type==='factory')c.fillText('⚙',x+30,y+39);
   else{c.beginPath();c.arc(x+30,y+29,12,0,7);c.fill();c.strokeStyle='#d6fff5';c.lineWidth=6;c.beginPath();c.moveTo(x+30,y+29);c.lineTo(x+30,y+12);c.stroke();}
   const info=productionInfo(b),rateColor=info.severity==='danger'?'#ff8181':info.severity==='warn'?'#ffc36e':info.severity==='ok'?'#83ebb0':'#bed3df';
-  // Both MAX and measured IST are always visible, even in the planning phase.
-  c.fillStyle='#091727';rounded(x+1,y+38,58,23,4);c.fill();c.strokeStyle=rateColor;c.lineWidth=1.4;c.stroke();
-  c.textAlign='center';c.font='bold 13px system-ui,sans-serif';c.fillStyle=rateColor;c.fillText(info.actual.toFixed(1)+'/'+info.max.toFixed(1),x+30,y+50);
-  c.font='bold 9.5px system-ui,sans-serif';c.fillStyle='#d0dee8';c.fillText('IST      MAX',x+30,y+59);
-  c.fillStyle='#294250';c.fillRect(x+5,y+60,50,2);c.fillStyle=rateColor;c.fillRect(x+5,y+60,50*info.ratio/100,2);
+  // One clear KISS signal, predicted in building phase and live in combat.
+  c.fillStyle='#091727';rounded(x+1,y+38,58,22,5);c.fill();c.strokeStyle=rateColor;c.lineWidth=1.5;c.stroke();
+  c.textAlign='center';c.font='bold 19px system-ui,sans-serif';c.fillStyle=rateColor;c.fillText(info.ratio+'%',x+30,y+55);
   if(g.selectedBuildingId===b.id){c.strokeStyle='#f5d394';c.lineWidth=3;c.strokeRect(x+1,y+1,S-2,S-2);}
  }
  const hq=[HQ.x,HQ.y];c.fillStyle='#195768';rounded(hq[0]*S+5,hq[1]*S+5,50,50,8);c.fill();c.strokeStyle='#a4e9df';c.lineWidth=3;c.stroke();c.textAlign='center';c.fillStyle='#f0ffff';c.font='bold 15px sans-serif';c.fillText('HQ',hq[0]*S+30,hq[1]*S+36);
- for(const p of g.packets){const a=p.at,b=p.to||p.at,t=p.to?p.progress:0,x=(a.x+(b.x-a.x)*t+.5)*S,y=(a.y+(b.y-a.y)*t+.5)*S;
-  if(p.kind==='metal'){c.fillStyle='#ffd18a';rounded(x-6,y-6,12,12,2);c.fill();}else{c.fillStyle='#80f2ed';c.beginPath();c.moveTo(x,y-8);c.lineTo(x+8,y);c.lineTo(x,y+8);c.lineTo(x-8,y);c.closePath();c.fill();}}
  for(const e of g.enemies){const p=enemyPos(e),x=(p.x+.5)*S,y=(p.y+.5)*S;
   const boss=e.kind==='boss',heavy=e.kind==='heavy',scout=e.kind==='scout',r=boss?23:heavy?18:scout?11:14;
   c.fillStyle=boss?'#ef6f85':heavy?'#ab91dc':scout?'#ffcd72':'#fb8e84';c.beginPath();c.moveTo(x,y-r);c.lineTo(x+r,y);c.lineTo(x,y+r);c.lineTo(x-r,y);c.closePath();c.fill();
@@ -447,17 +453,17 @@ function goto(x,y){const scale=canvas.getBoundingClientRect().width/(W*S);boardb
 mini.addEventListener('click',e=>{const r=mini.getBoundingClientRect();goto(Math.floor((e.clientX-r.left)/r.width*W),Math.floor((e.clientY-r.top)/r.height*H));});
 $('reset').addEventListener('click',()=>{reset();goto(8,10);});
 function enterGame(withTutorial){g.mode='playing';$('overlay').classList.add('hidden');g.tutorial={active:!!withTutorial,stage:0,completed:false};
- inform(withTutorial?'Hallo Asphaltgeschoss! Baue deine erste Erzmine auf einem braunen Erzfeld.':'BAUPHASE: 180 Gold Startkapital, keine Produktion bis du Welle 1 startest.');
+ inform(withTutorial?'Baue zuerst eine Erzmine auf einem braunen Erzfeld.':'BAUPHASE: Die Prozentwerte zeigen die geplante Versorgung. Startkapital: 180 Gold.');
  update();goto(8,10);}
 $('start').addEventListener('click',()=>{if(g.mode==='intro')enterGame(true);else reset();});
 $('intro-skip').addEventListener('click',()=>{if(g.mode==='intro')enterGame(false);});
 $('tutorial-skip').addEventListener('click',()=>{g.tutorial.active=false;$('tutorial').hidden=true;clearGuideMarks();});
 $('details-close').addEventListener('click',hideDetails);
-$('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zuerst das Spiel.');return;}if(g.phase!=='build'){inform('Tutorial ab der nächsten Bauphase verfügbar. Während des Angriffs ist Bauen gesperrt.');return;}g.tutorial.active=true;g.tutorial.stage=0;hideDetails();syncTutorial();inform('Tutorial gestartet – Hallo Asphaltgeschoss!');});
+$('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zuerst das Spiel.');return;}if(g.phase!=='build'){inform('Tutorial ab der nächsten Bauphase verfügbar. Während des Angriffs ist Bauen gesperrt.');return;}g.tutorial.active=true;g.tutorial.stage=0;hideDetails();syncTutorial();inform('Tutorial gestartet. Folge den Hinweisen auf der Karte.');});
 document.addEventListener('keydown',e=>{if(e.key==='1')select('turret');if(e.key==='2')select('mine');if(e.key==='3')select('factory');if(e.key==='4')select('pipe');if(e.key==='5')select('bridge');if(e.key==='6'||e.key==='Delete')select('eraser');if(e.key==='Escape'){g.selected=null;update();}if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();pause();}});
 document.addEventListener('visibilitychange',()=>{previous=performance.now();acc=0;});
 
-window.ForgefrontDebug={snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>routesFrom(g.buildings.find(b=>b.id===id),kind).map(p=>({id:p.target.id,distance:p.dist})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.map(b=>({id:b.id,type:b.type,rate:rate(b),...productionInfo(b)})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect};
+window.ForgefrontDebug={snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect};
 function frame(now){const dt=Math.min(.1,(now-previous)/1000);previous=now;if(!document.hidden&&g?.mode==='playing'&&g.phase==='combat'&&!g.paused){acc+=dt*speedValues[speedIndex];while(acc>=1/30){simulate(1/30);acc-=1/30;}}else acc=0;update();draw();requestAnimationFrame(frame);}
 
 reset();setZoom((window.innerWidth||900)<700?.7:.82);requestAnimationFrame(frame);

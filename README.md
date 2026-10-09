@@ -1,39 +1,34 @@
-# Forgefront V0.1.9 – Tutorial & MAX/IST-Industriediagnose
+# Forgefront V0.2.0 – KISS-Logistik-Puzzle
 
-**Stand:** 09.10.2026 · Spielbarer, eigenständig lauffähiger Browser-Prototyp (Smartphone/PC). **V0.1.8 bleibt als Vorversion erhalten.**
+Spielbarer Browser-Prototyp (Smartphone und Desktop). Stand: 09.10.2026.
 
-## Spielen
+## Start
 
-- `index.html` im Repo-Root ist eine **vollständige Einzeldatei** (HTML, CSS, JS). Im Ordner `src/` sind die gleichen Quellen als `index.html` + `style.css` + `game.js` bearbeitbar. Das Google-Drive-ZIP enthaelt ausserdem die automatisierten Tests.
-- Beim ersten Start erscheint die Begrüßung **„Hallo Asphaltgeschoss 😜“**, gefolgt vom kurzen Scherz, dass Erzminen Metall fördern und nicht explodieren.
-- **Tutorial starten** führt durch 6 Aktionen: Erzmine auf Erz, Fabrik, Metallverbindung, MG, Munitionsverbindung und Welle starten. Der Fortschritt wird an tatsächlichen Gebäuden und Rohrverbindungen geprüft. Direkt benachbarte Gebäude gelten als verbunden.
-- Das Tutorial kann **übersprungen** und während jeder Bauphase über **? HILFE** wiederholt werden. Während einer Kampfphase ist Bauen gesperrt und das Tutorial kann erst wieder in einer Bauphase geöffnet werden.
-- **Erzmine** statt „Mine“ im Baumenü, mit der Angabe **„Metall 1/s“**.
-- Karte mit einem Finger verschieben und mit zwei Fingern zoomen. Unten BAUEN aufklappen, Werkzeug wählen, setzen beziehungsweise Rohre ziehen.
+- `index.html` im Ordner mit `style.css` und `game.js` öffnen.
+- Die herunterladbare `Forgefront_V0.2.0.html` enthält alles in einer Datei.
+- Optional interaktives, neutrales Tutorial (sechs Schritte, überspringbar und über `? HILFE` wiederholbar).
+- Zum Bauen unten **BAUEN** öffnen. Das Rohrwerkzeug kann mit dem Finger gezogen werden. Zwei Finger zoomen.
 
-## Produktionsoptimierung: MAX / IST
+## KISS-Wirtschaft (neu)
 
-- Über jeder Erzmine, Fabrik und jedem MG steht eine zweizeilige Leistungsanzeige: **IST / MAX** (Einheiten pro Sekunde), farbig nach Betriebszustand und mit kleinem Auslastungsbalken.
-- **Antippen eines Gebäudes ohne aktives Bauwerkzeug** zeigt eine große Detailkarte mit MAX, IST, Auslastung und lesbarer Engpassdiagnose. Bei ausgewähltem Bauwerkzeug lassen sich vorhandene Gebäude ebenfalls antippen (außer mit Radierer).
-- **MAX ist die dauerhaft erreichbare Nennleistung**, **IST ist die durchschnittlich tatsächlich abgegebene Menge seit Beginn der laufenden Welle**. Während der Bauphase zeigt IST den **Durchschnitt der letzten abgeschlossenen Welle**, explizit als Vergangenheitswert gekennzeichnet. Vor der ersten Welle steht „Noch nicht gemessen“.
-- Sollwerte: Erzmine **1 Metall/s**, Fabrik **1,2 Munition/s**, MG **bis zu ca. 1,75 Schuss/s** bei ständigem Ziel und genügender Versorgung.
-- Erklärungen bei fehlenden Verbindungen, Materialmangel, bereits unterwegs befindlichen Paketen, vollem Empfänger und Produktionsrückstau. Ein MG ohne Gegner wird nicht irrtümlich als defekt markiert.
-- **Wichtig zur Testbeobachtung „Produktion hängt manchmal“:** Bei bis zu drei ausstehenden Munitionspaketen für dasselbe MG stoppt eine Fabrik ihre Auslieferung, wenn noch nicht geschossen wird; dann können auch die Mine und andere Vorstufen warten. Das ist ein geplanter Rückstau und wird als solcher kenntlich gemacht. Ein separat gemeldeter Softwarefehler ist dadurch nicht ausgeschlossen; weitere echte Gerätetests sind sinnvoll.
+- Rohre und Brücken verbinden Gebäude, kosten Gold, haben **keine Transportkapazitätsgrenze**.
+- Es werden **keine Metallpakete oder Einzelpatronen** durch Leitungen verschoben. Einheiten werden als kontinuierliche Rate/s je Netz bilanziert.
+- Erzmine liefert bis zu 1 Metall/s; Fabrik benötigt 0,4 Metall/s und erzeugt bis zu 1,2 Munition/s; MG braucht für volles Dauerfeuer bis ca. 1,75 Munition/s.
+- Metall wird gleichmäßig nach Bedarfsprozent auf erreichbare Fabriken verteilt; die daraus resultierende Munition ebenso auf versorgte MGs. Die Netze werden nur bei tatsächlicher Rohrverbindung geteilt, weder Verbindung noch Produktivität teleportieren.
+- In der **Bauphase** zeigt jedes Gebäude sofort eine **Prognose als Prozentzahl** in Signalfarbe, auch ohne laufende Produktion. Nach jeder Bau-/Rohr-/Abriss-Aktion wird die Bilanz aktualisiert. Eine Mine unter 100 % Auslastung hat eventuell einfach Reserve – kein Fehler.
+- In der **Kampfphase** zeigt ein MG den realen Versorgungsgrad unter Berücksichtigung derzeit schießender MGs. Untätige MGs reservieren keine Munition. MG-Feuerrate wird bei Mangel entsprechend gedrosselt.
+- Gebäude antippen: Details zu bereitgestellter Rate, Maximum und zur Ursache eines Engpasses.
+- Der 10-Sekunden-Vorlauf pro Kampfphase wurde vorerst beibehalten; er ist ein Gegner-Countdown und kein Pakettransport mehr.
+- Ressourcenleisten METALL/s und MUN./s sind **Raten, keine Vorräte**.
 
-## Weiterhin gültige V0.1.8-Regeln
+## Bekannte Grenzen
 
-- 18 × 20 Felder, Start mit 180 Gold, 20 HQ-Leben. Mine 22 Gold, Fabrik 18, MG 24, Rohr 4, Brücke 10. +5 Gold pro Kill und +10 Gold pro abgeschlossener Welle.
-- Die Bauphase ist unbegrenzt und **sämtliche Produktion sowie der Pakettransport sind vollständig pausiert**. Nach manuellem Start läuft die Industrie an, Gegner erscheinen nach 10 s. Während des Kampfes ist Bauen, Abriss und Rohrändern gesperrt.
-- Keine Zwischenlager in Mine/MG: Metall und Munition werden in realen Paketen über das automatische Rohrnetz geschickt. Eine Fabrik hält höchstens einen laufenden Auftrag und eine wartende Charge.
-- 5 Wellen mit steigender Gegnervielfalt, dann 1 Bosswelle mit Phase 2. Optional 1×/1,5×/2× Spieltempo, Pause und Neustart.
-- Der Radierer erstattet im aktuellen Testmodus 100 %; spätere Schwierigkeitsgrade sollen andere Faktoren erhalten.
+- Prototyp-Balancing: 180 Startgold, 20 HQ-Leben, Mine 22 Gold, Fabrik 18, MG 24, Rohr 4, Brücke 10. +5 Gold pro Kill und +10 pro Welle.
+- 18×20-Felder-Karte, fünf Gegnerwellen + ein Boss mit zweiter Phase. Bauphasen ohne Produktion und ohne Zeitlimit; Kämpfe mit gesperrtem Bauen.
+- Keine Speicherung zwischen Seiten-Neuladungen; noch keine zweite Karte und keine Schwierigkeitsauswahl.
+- Das Tutorial ist wieder **neutral** und ohne persönliche Spitznamen.
+- Die Prozentwerte in der Bauphase sind **Kapazitätsprognosen**, keine gemessenen Vergangenheitswerte.
 
-## Tests
+## Validierung
 
-- `node test.cjs`: Kernlogik und Transport, striktes Phasenmodell, Gold und Sieger-/Verliererzustände.
-- `node onboarding_test.cjs`: Tutorial-Fortschritt, reale Verbindungskontrolle, ?-Hilfe, Überspringen, MAX/IST und Messwerte während der Bauphase.
-- `node strategies.cjs`: sechs Wellen und Boss mit unterschiedlichem Verteidigungsaufbau.
-- `python browser_test.py`: Basis-UI mit Playwright/Chromium auf 390px/360px/1280px.
-- `python browser_intro_test.py`: personalisierte Begrüßung, interaktives Tutorial, Hilfefunktionen und Gebäudeauswertung auf denselben Viewports.
-
-**Quellstand:** Google Drive `KI TEAM – ARBEITSSPEICHER / 01_ACTIVE / FORGEFRONT` und GitHub `Karlel0815/Forgefront`. Frühere Versionen bleiben im Drive bestehen. **Ein echter ungeführter V0.1.9-Test auf Alessandros Smartphone ist noch offen.**
+`node test.cjs`, `node strategies.cjs`, `node onboarding_test.cjs` sowie `python browser_test.py` (mit Playwright/Chromium).
