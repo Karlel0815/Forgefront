@@ -355,9 +355,9 @@ function captureWaveMetrics(){for(const b of g.buildings)if(!isPipe(b)){b.lastWa
 function makePlan(def){const list=[];
  for(let i=0;i<def.count;i++){
   const kind=def.pattern[i]||'normal';
-  list.push({kind,hp:Math.max(1,Math.round((kind==='heavy'?Math.round(def.hp*1.5):kind==='scout'?Math.round(def.hp*.64):def.hp)*DIFFICULTIES[g.difficulty].enemyHp)),speed:kind==='heavy'?def.speed*.72:kind==='scout'?def.speed*1.35:def.speed,armor:kind==='heavy'?2:0});
+  list.push({kind,hp:Math.max(1,Math.round((kind==='heavy'?Math.round(def.hp*1.5):kind==='scout'?Math.round(def.hp*.64):def.hp)*DIFFICULTIES[g?.difficulty||selectedDifficulty].enemyHp)),speed:kind==='heavy'?def.speed*.72:kind==='scout'?def.speed*1.35:def.speed,armor:kind==='heavy'?2:0});
  }
- if(def.boss)list.splice(17,0,{kind:'boss',hp:Math.round(110*DIFFICULTIES[g.difficulty].enemyHp),speed:.98,armor:0});
+ if(def.boss)list.splice(17,0,{kind:'boss',hp:Math.round(110*DIFFICULTIES[g?.difficulty||selectedDifficulty].enemyHp),speed:.98,armor:0});
  return list;
 }
 function splashCount(enemy,radius){
