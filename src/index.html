@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.3.1 – Logistik-Puzzle</title><link rel="stylesheet" href="style.css"></head>
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.3.2 – Logistik-Puzzle</title><link rel="stylesheet" href="style.css"></head>
 <body><div class="app">
-<header class="brand"><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.3.1</span></div></header>
+<header class="brand"><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.3.2</span></div></header>
 <section class="stats" aria-label="Gold"><div class="stat"><label>● GOLD</label><strong id="gold">180</strong></div></section>
 <main><div class="maptop"><span id="phase-label">BAUPHASE</span><span id="indicator">Industrie pausiert</span><span id="threat">5 WELLEN + BOSS</span></div>
 <section id="wave-preview" class="wave-preview"><div class="wave-preview-head"><b id="next-wave">NÄCHSTE WELLE</b><button type="button" id="waves-toggle" aria-controls="wave-list" aria-expanded="false">Alle Wellen ▾</button></div><div id="wave-list" class="wave-list" hidden></div></section>
@@ -11,7 +11,14 @@
   <section id="details" class="details" hidden aria-live="polite"><div class="details-head"><strong id="details-title">Gebäude</strong><button type="button" id="details-close" aria-label="Details schließen">×</button></div>
   <div class="details-grid"><div><small id="details-max-label">MAX. RATE</small><b id="details-max">0,0/s</b></div><div><small id="details-actual-label">VERFÜGBAR</small><b id="details-actual">0,0/s</b></div></div>
   <div class="meter"><span id="details-meter"></span></div><p id="details-state">Status</p><small id="details-explain">Werte beziehen sich auf die aktuelle Kampfphase.</small></section><div id="boardbox" class="boardbox"><canvas id="board" width="1080" height="1200" aria-label="Spielfeld – ziehen zum Verschieben, zwei Finger für Zoom"></canvas>
-<div id="overlay"><div class="intro"><div class="o-icon" id="o-icon">⬡</div><h2 id="o-title">ERZFRONT</h2><p id="o-text">Baue eine Mine, eine Fabrik, Rohre und MGs. Zwischen den Wellen darfst du umbauen – während des Angriffs muss alles funktionieren.</p><button id="start" class="primary">TUTORIAL STARTEN →</button><button id="intro-skip" class="intro-skip" type="button">Ohne Tutorial spielen</button></div></div></div>
+<div id="overlay"><div class="intro"><div class="o-icon" id="o-icon">⬡</div><h2 id="o-title">ERZFRONT</h2><p id="o-text">Baue eine Mine, eine Fabrik, Rohre und MGs. Zwischen den Wellen darfst du umbauen – während des Angriffs muss alles funktionieren.</p><div class="difficulty-picker"><label for="difficulty">SCHWIERIGKEIT</label>
+<select id="difficulty" aria-label="Schwierigkeitsgrad">
+<option value="easy">🌱 Leicht · 220 Gold · 30 ♥ · Gegner 80 % HP</option>
+<option value="normal" selected>🛡 Mittel · 180 Gold · 20 ♥ · Gegner 100 % HP</option>
+<option value="hard">⚔ Schwer · 155 Gold · 15 ♥ · Gegner 120 % HP</option>
+<option value="crazy">💀 Verrückt · 135 Gold · 10 ♥ · Gegner 140 % HP</option>
+</select><small>Wähle vor dem Bau. Der Modus bleibt über alle Wellen erhalten.</small></div>
+<button id="start" class="primary">TUTORIAL STARTEN →</button><button id="intro-skip" class="intro-skip" type="button">Ohne Tutorial spielen</button></div></div></div>
 <div class="minimap-wrap"><canvas id="minimap" width="180" height="200" title="Kartenübersicht" aria-label="Minikarte"></canvas></div></div>
 <div class="game-hint" id="hint" aria-live="polite">Die Prozentzahlen zeigen die prognostizierte Versorgung. Produktion pausiert.</div>
 </main></div>
@@ -33,4 +40,4 @@
 <button class="build" data-category="pipes" data-type="eraser"><span class="glyph">⌫</span><b>Abriss</b><small id="refund-short">50/100%</small></button>
 </div></div>
 <div class="dock-actions"><button type="button" class="primary" id="pause">▶ WELLE 1 STARTEN</button><button type="button" id="reset" class="reset" title="Neue Runde">↻</button></div>
-<div id="status" class="dock-status" role="status">V0.3.1 · Produktions-Puzzle · Massenschwärme</div></div><script src="game.js"></script></body></html>
+<div id="status" class="dock-status" role="status">V0.3.2 · Produktions-Puzzle · Massenschwärme</div></div><script src="game.js"></script></body></html>
