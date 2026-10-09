@@ -29,3 +29,6 @@
 .tray-help{display:none}.primary{min-height:38px}
 .bottom-dock.combat .dock-toggle,.bottom-dock.combat .tray{display:none!important}
 @media(max-width:390px){.bottom-dock{padding-left:6px;padding-right:6px}.build{flex:0 0 58px}.dock-toggle #selection-label{font-size:9px}}
+
+/* V0.3.0 mobile wave disclosure */
+.wave-preview{padding:8px 10px;background:#183346;border:1px solid #476c7d;border-radius:8px;margin:8px 0;color:#eaf8ff}.wave-preview-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.wave-preview-head b{font-size:11px;line-height:1.4}.wave-preview-head button{flex-shrink:0;border:1px solid #638499;background:#264a5e;color:#fff;border-radius:6px;padding:6px;font-size:10px}.wave-list{max-height:190px;overflow:auto;margin-top:8px}.wave-list[hidden]{display:none}.wave-list>div{display:flex;justify-content:space-between;gap:12px;padding:6px 2px;border-top:1px solid #466477;font-size:11px}.wave-list span{color:#c6dce8;text-align:right}.build{flex:0 0 61px}@media(max-width:390px){.wave-preview-head b{font-size:10px}.build{flex:0 0 58px}}
