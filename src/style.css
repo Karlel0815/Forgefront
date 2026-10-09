@@ -16,3 +16,16 @@
 .details{z-index:6;top:8px;width:min(310px,calc(100% - 25px));background:#142f44fa}.details-head strong{font-size:14px}.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:4px 0 8px}.details-grid>div{background:#223e53;border:1px solid #4a7289;border-radius:8px;padding:8px}.details-grid small{display:block;color:#b3d0df;font-size:10px;letter-spacing:.06em}.details-grid b{display:block;color:#f8e1b0;font-size:19px;font-variant-numeric:tabular-nums;margin-top:3px}.details-grid>div:last-child b{color:#a3e8c9}.meter{height:9px;background:#304b5b;border-radius:7px;overflow:hidden}.meter span{display:block;width:0;height:100%;background:#76dbac;border-radius:7px;transition:width .1s}.details p{margin:8px 0 5px;font-size:12px;font-weight:750}.details>small{font-size:10px;color:#a9c2d0;line-height:1.4;display:block}
 .build.guide-focus,#dock-toggle.guide-focus,#pause.guide-focus{border:2px solid #ffd48b!important;box-shadow:0 0 0 2px #9d7b3d!important}
 @media(max-width:375px){#help{padding:6px;font-size:10px}.version{font-size:9px;padding:4px}.tutorial{width:min(265px,calc(100% - 78px));padding:8px}.tutorial p{font-size:11px}.details{width:calc(100% - 17px)}}
+
+/* V0.2.1: compact always-open build phase toolbar, no reopening between actions */
+.app{padding-bottom:162px}
+.dock-toggle{height:23px;justify-content:space-between;padding:0 4px;font-size:10px;letter-spacing:.03em}
+.dock-toggle #dock-chevron{font-size:16px}
+.dock-toggle #selection-label{font-size:10px}
+.tray{padding:2px 0 5px}
+.builds{display:flex;gap:5px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding-bottom:2px}
+.build{flex:1 0 55px;min-width:55px;min-height:55px;padding:3px 2px;border-radius:7px}
+.build b{font-size:10px}.build small{font-size:8px}.glyph{font-size:19px;line-height:1.1}
+.tray-help{display:none}.primary{min-height:38px}
+.bottom-dock.combat .dock-toggle,.bottom-dock.combat .tray{display:none!important}
+@media(max-width:390px){.bottom-dock{padding-left:6px;padding-right:6px}.build{flex:0 0 58px}.dock-toggle #selection-label{font-size:9px}}

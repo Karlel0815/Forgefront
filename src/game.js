@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=10,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
+const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
 const ECONOMY={startGold:180,goldPerKill:5,goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
 const HQ={x:16,y:18};
 const PATH=[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[6,4],[6,5],[7,5],[8,5],[9,5],[10,5],[10,6],[10,7],[10,8],[11,8],[12,8],[13,8],[13,9],[13,10],[12,10],[11,10],[11,11],[11,12],[12,12],[13,12],[14,12],[15,12],[15,13],[15,14],[15,15],[16,15],[16,16],[16,17],[16,18]];
@@ -17,7 +17,7 @@ const WAVES=[
 const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d'),boardbox=$('boardbox'),mini=$('minimap'),mc=mini.getContext('2d');
 const buildButtons=[...document.querySelectorAll('.build')],speedValues=[1,1.5,2],minZoom=.35,maxZoom=3;
 const key=(x,y)=>x+','+y,adj=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1;
-let g,previous=performance.now(),acc=0,speedIndex=0,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null;
+let g,previous=performance.now(),acc=0,speedIndex=2,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null,pipeTypeCache=null;
 function building(type,x,y){return {id:nextId++,type,x,y,cool:0,fireCharge:0,waveAmount:0,lastWaveRate:null,lastIssue:'Noch nicht getestet'};}
 function inform(msg){$('hint').textContent=msg;$('status').textContent=msg;}
 function overlay(icon,title,description,action){$('o-icon').textContent=icon;$('o-title').textContent=title;$('o-text').textContent=description;$('start').textContent=action;$('overlay').classList.remove('hidden');}
@@ -25,15 +25,39 @@ function at(x,y){return g.buildings.find(b=>b.x===x&&b.y===y);}
 function isRoad(x,y){return PATH.some(p=>p[0]===x&&p[1]===y);}
 function isPipe(b){return !!b&&(b.type==='pipe'||b.type==='bridge');}
 function nearby(b){return DIRS.map(d=>at(b.x+d[0],b.y+d[1])).filter(Boolean);}
+function showBuildTray(open){$('build-tray').hidden=!open;$('dock').classList.toggle('open',open);$('dock-toggle').setAttribute('aria-expanded',String(open));}
+// Auto-detect a pipe component's material from its terminal buildings.
+// Factories are converters/endpoints, NOT transit nodes for either medium.
+// A component with both mine and turret terminals is not constructible.
+function scanPipeTypes(){
+ const types=new Map(),conflicts=[],visited=new Set();
+ for(const start of g.buildings){if(!isPipe(start)||visited.has(start.id))continue;
+  const stack=[start],group=[],terminals=new Set();visited.add(start.id);
+  while(stack.length){const b=stack.pop();group.push(b);
+   for(const n of nearby(b)){
+    if(isPipe(n)&&!visited.has(n.id)){visited.add(n.id);stack.push(n);}
+    else if(n.type==='mine')terminals.add('metal');
+    else if(n.type==='turret')terminals.add('ammo');
+   }
+  }
+  const mixed=terminals.size>1,material=mixed?'conflict':terminals.size===1?[...terminals][0]:null;
+  for(const b of group)types.set(b.id,material);
+  if(mixed)conflicts.push(group.map(b=>b.id));
+ }
+ return {types,conflicts};
+}
+function pipeTypes(){if(pipeTypeCache&&pipeTypeCache.version===topologyVersion)return pipeTypeCache.types;
+ const scanned=scanPipeTypes();pipeTypeCache={version:topologyVersion,types:scanned.types};return scanned.types;
+}
 function reset(){
- nextId=1;speedIndex=0;networkConnectionCache.clear();topologyVersion++;flowCache=null;
+ nextId=1;speedIndex=2;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;
  g={mode:'intro',phase:'build',wave:0,paused:false,time:0,enemyDelay:null,gold:ECONOMY.startGold,metal:0,ammo:0,hp:20,kills:0,
   selected:null,buildings:[],packets:[],enemies:[],shots:[],spawner:null,deliveredMetal:0,deliveredAmmo:0,producedMetal:0,producedAmmo:0,shotsFired:0,
   waves:Array.from({length:MAX_WAVES},()=>({started:false,doneSpawning:false,alive:0,paid:false})),goldEarned:0,goldRefunded:0,waveStart:0,tutorial:{active:false,stage:0,completed:false},selectedBuildingId:null};
  acc=0;pointerPositions.clear();gesture=null;
  $('overlay').classList.remove('hidden');
- $('dock').classList.remove('open');$('build-tray').hidden=true;$('dock-toggle').setAttribute('aria-expanded','false');
- overlay('⚙','Willkommen bei Forgefront','Baue eine Erzmine auf Erz, verbinde sie mit einer Munitionsfabrik und einem MG. Die Prozentzahlen zeigen bereits in der Bauphase die voraussichtliche Versorgung. Rohre verbinden Gebäude – einzelne Patronen musst du nicht transportieren.','TUTORIAL STARTEN →');$('intro-skip').hidden=false;$('tutorial').hidden=true;$('details').hidden=true;
+ showBuildTray(false);
+ overlay('⚙','Willkommen bei Forgefront','Plane in Ruhe: Erzminen, Fabriken und MGs. Orange Leitungen führen Metall, blaue Munition; gemischte Rohre sind gesperrt. Die Prozentzahlen zeigen schon in der Bauphase die Versorgung. Wellen startest du selbst.','TUTORIAL STARTEN →');$('intro-skip').hidden=false;$('tutorial').hidden=true;$('details').hidden=true;
  inform('BAUPHASE: Mine, Fabrik, Rohre und MG verbinden. Erst mit Welle starten beginnen Produktion und Angriff.');update();draw();
 }
 function buildError(type,x,y){
@@ -52,35 +76,38 @@ function refundRate(){return ECONOMY.refundByDifficulty[ECONOMY.difficulty];}
 function erase(x,y,silent=false){
  if(g.mode!=='playing'||g.phase!=='build'){if(!silent)inform('Abriss ist während einer Angriffswelle gesperrt.');return false;}
  const b=at(x,y);if(!b){if(!silent)inform('Hier steht kein Gebäude.');return false;}
- g.buildings.splice(g.buildings.indexOf(b),1);networkConnectionCache.clear();topologyVersion++;flowCache=null;if(g.selectedBuildingId===b.id)hideDetails();
+ g.buildings.splice(g.buildings.indexOf(b),1);networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;if(g.selectedBuildingId===b.id)hideDetails();
  const refund=Math.floor(COST[b.type]*refundRate());g.gold+=refund;g.goldRefunded+=refund;
  if(!silent)inform('Abgebaut: '+refund+' Gold zurück.');update();return true;
 }
 function select(type){if(g.mode!=='playing'||g.phase!=='build')return;
  g.selected=g.selected===type?null:type;
  inform(g.selected==='pipe'?'Rohr aktiv: mit Finger über die Karte ziehen.':g.selected==='eraser'?'Radierer aktiv: Zum Entfernen auf Gebäude oder Rohr tippen.':g.selected?'Feld wählen: '+({mine:'Erzmine: fördert Metall (MAX 1,0/s) auf Erzfeldern.',factory:'Fabrik frei platzieren.',turret:'MG frei platzieren.',bridge:'Brücke auf Gegnerweg bauen.'}[g.selected]||''):'Karte verschieben; mit zwei Fingern zoomen.');
- $('dock').classList.remove('open');$('build-tray').hidden=true;$('dock-toggle').setAttribute('aria-expanded','false');update();
+ update();
 }
 function place(type,x,y,silent=false){
  if(g.mode!=='playing'||g.phase!=='build'){if(!silent)inform('Während der Angriffswelle ist Bauen gesperrt.');return false;}
  let desired=type;if(type==='pipe'&&isRoad(x,y))desired='bridge';
  const err=buildError(desired,x,y);if(err){if(!silent)inform(err);return false;}
- if(!payGold(COST[desired]))return false;
- g.buildings.push(building(desired,x,y));networkConnectionCache.clear();topologyVersion++;flowCache=null;if(!silent)inform(desired==='bridge'?'Brücke verbunden.':desired==='pipe'?'Rohr gebaut – automatisch verbunden.':desired==='mine'?'Erzmine: MAX 1 Metall/s. Über Rohre mit einer Fabrik verbinden.':'Gebäude steht – Versorgung über Rohre anschließen.');
+ // Validate entire topology before spending gold; abort mixed-medium networks.
+ const candidate=building(desired,x,y);g.buildings.push(candidate);
+ if(scanPipeTypes().conflicts.length){g.buildings.pop();inform('Rohrkonflikt: Metall und Munition dürfen nicht im selben Rohrnetz sein. Trenne die Leitungen an der Fabrik.');return false;}
+ if(!payGold(COST[desired])){g.buildings.pop();return false;}
+ networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;if(!silent)inform(desired==='bridge'?'Brücke verbunden.':desired==='pipe'?'Rohr gebaut – automatisch verbunden.':desired==='mine'?'Erzmine: MAX 1 Metall/s. Über Rohre mit einer Fabrik verbinden.':'Gebäude steht – Versorgung über Rohre anschließen.');
  update();return true;
 }
 function startWave(){
  if(g.mode!=='playing'||g.phase!=='build'||g.wave>=MAX_WAVES)return false;
  g.wave++;g.phase='combat';g.paused=false;g.selected=null;g.enemyDelay=FIRST_DELAY;g.spawner=null;g.waveStart=g.time;for(const b of g.buildings){b.waveAmount=0;b.cool=0;b.fireCharge=0;}
  g.waves[g.wave-1].started=true;syncTutorial();
- $('dock').classList.remove('open');$('build-tray').hidden=true;$('dock-toggle').setAttribute('aria-expanded','false');
+ showBuildTray(false);
  inform((g.wave===MAX_WAVES?'BOSSWELLE':'WELLE '+g.wave)+' startet! Die Versorgungsbilanz gilt sofort, Gegner erscheinen in '+FIRST_DELAY+' Sekunden.');update();return true;
 }
 function checkWaveComplete(){
  const r=g.waves[g.wave-1];if(!r||!r.doneSpawning||r.alive!==0||g.spawner||g.enemyDelay!==null||g.phase!=='combat')return;
  if(!r.paid){r.paid=true;g.gold+=ECONOMY.goldPerWave;g.goldEarned+=ECONOMY.goldPerWave;}
  captureWaveMetrics();if(g.wave===MAX_WAVES){finish(true);return;}
- g.phase='build';g.selected=null;g.paused=false;
+ g.phase='build';g.selected=null;g.paused=false;showBuildTray(true);
  inform('Welle '+g.wave+' überstanden! +'+ECONOMY.goldPerWave+' Gold. Industrie pausiert. In Ruhe umbauen, dann Welle '+(g.wave+1)+' starten.');
  update();
 }
@@ -90,10 +117,13 @@ function finish(win){if(!win&&g.phase==='combat')captureWaveMetrics();g.mode=win
  inform(win?'Sieg: Erzfront gehalten!':'Niederlage – Beim nächsten Versuch cleverer planen.');update();}
 // KISS: Connections are pipes/bridges (buildings are endpoints, never relay nodes).
 function nextToTarget(source,target){if(!source||!target)return null;
- const visited=new Set([source.id]),q=[{b:source,first:null}];
+  const required=source.type==='mine'&&target.type==='factory'?'metal':source.type==='factory'&&target.type==='turret'?'ammo':null;
+  if(!required)return null;
+  const types=pipeTypes();
+  const visited=new Set([source.id]),q=[{b:source,first:null}];
  for(let i=0;i<q.length;i++){const {b,first}=q[i];for(const n of nearby(b)){
   if(n.id===target.id)return first||n;
-  if(isPipe(n)&&!visited.has(n.id)){visited.add(n.id);q.push({b:n,first:first||n});}
+  if(isPipe(n)&&types.get(n.id)===required&&!visited.has(n.id)){visited.add(n.id);q.push({b:n,first:first||n});}
  }}return null;
 }
 function netReachable(source,target){const id=source.id+','+target.id;if(!networkConnectionCache.has(id))networkConnectionCache.set(id,!!nextToTarget(source,target));return networkConnectionCache.get(id);}
@@ -235,11 +265,11 @@ function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')re
  checkWaveComplete();
 }
 const GUIDE=[
- {title:'Erzmine bauen',text:'Tippe unten auf BAUEN und setze eine Erzmine auf ein braunes Erzfeld. Sie liefert bis zu 1 Metall pro Sekunde.',tool:'mine'},
+ {title:'Erzmine bauen',text:'Wähle unten die Erzmine und setze sie auf ein braunes Erzfeld. Sie liefert bis zu 1 Metall pro Sekunde.',tool:'mine'},
  {title:'Fabrik platzieren',text:'Die Fabrik verwandelt 1 Metall alle 2,5 Sekunden in 3 Munition. Baue eine Fabrik nahe deiner Erzmine.',tool:'factory'},
- {title:'Metallverbindung herstellen',text:'Verbinde Erzmine und Fabrik per Rohr. Deine Versorgungsprozente werden schon beim Bauen sofort aktualisiert.',tool:'pipe'},
+ {title:'Metallverbindung herstellen',text:'Verbinde Erzmine und Fabrik per orangefarbenem Metallrohr. Deine Versorgungsprozente werden schon beim Bauen sofort aktualisiert.',tool:'pipe'},
  {title:'MG am Gegnerweg platzieren',text:'Baue ein MG nahe der hellblauen Gegnerroute. Es verbraucht bei Dauerfeuer bis zu 1,75 Munition/s.',tool:'turret'},
- {title:'MG mit Munition versorgen',text:'Verbinde die Fabrik mit dem MG. Die Prozentzahl am MG zeigt, wie viel seines maximalen Bedarfs gedeckt ist.',tool:'pipe'},
+ {title:'MG mit Munition versorgen',text:'Verbinde die Fabrik mit dem MG über blaue Munitionsrohre. Metall und Munition bleiben getrennt. Die Prozentzahl am MG zeigt, wie viel seines maximalen Bedarfs gedeckt ist.',tool:'pipe'},
  {title:'Welle starten',text:'Prüfe zuerst die Prozentwerte. Während der Bauphase siehst du die Prognose, im Kampf läuft das System und Bauen ist gesperrt.',tool:'pause'}
 ];
 function completeStage(step){const mines=g.buildings.filter(b=>b.type==='mine'),factories=g.buildings.filter(b=>b.type==='factory'),turrets=g.buildings.filter(b=>b.type==='turret');
@@ -281,7 +311,7 @@ function update(){if(!g)return;
  $('threat').textContent=g.wave===MAX_WAVES?'⚠ BOSS':g.wave===MAX_WAVES-1?'BOSS ALS NÄCHSTES':'5 WELLEN + BOSS';
  $('pause').disabled=g.mode!=='playing';$('pause').textContent=build?'▶ '+(g.wave===MAX_WAVES-1?'BOSS STARTEN':'WELLE '+(g.wave+1)+' STARTEN'):g.paused?'▶ FORTSETZEN':'Ⅱ PAUSE';
  $('speed').textContent=speedValues[speedIndex]+'×';
- $('dock-label').textContent=build?'BAUEN':'BAUEN GESPERRT';$('selection-label').textContent=build?(g.selected?({turret:'MG',mine:'Erzmine',factory:'Fabrik',pipe:'Rohr',bridge:'Brücke',eraser:'Radierer'}[g.selected]+' gewählt'):'Menü öffnen'):'Angriff läuft';
+ $('dock').classList.toggle('combat',!build);$('dock-label').textContent=build?'BAUEN':'BAUEN GESPERRT';$('selection-label').textContent=build?(g.selected?({turret:'MG',mine:'Erzmine',factory:'Fabrik',pipe:'Rohr',bridge:'Brücke',eraser:'Radierer'}[g.selected]+' gewählt'):'Werkzeug wählen'):'Angriff läuft';
  $('dock-toggle').disabled=g.mode!=='playing'||!build;
  for(const b of buildButtons){b.disabled=g.mode!=='playing'||!build;b.classList.toggle('selected',g.selected===b.dataset.type);b.setAttribute('aria-pressed',String(g.selected===b.dataset.type));}
 }
@@ -293,11 +323,17 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
  }
  for(const p of PATH){c.fillStyle='#2c576d';c.fillRect(p[0]*S+1,p[1]*S+1,S-2,S-2);}
  c.strokeStyle='#9dcbd9';c.globalAlpha=.32;c.lineWidth=2;c.setLineDash([7,7]);c.beginPath();PATH.forEach((p,i)=>i?c.lineTo((p[0]+.5)*S,(p[1]+.5)*S):c.moveTo((p[0]+.5)*S,(p[1]+.5)*S));c.stroke();c.setLineDash([]);c.globalAlpha=1;
- // Connected pipes draw from their center toward each neighboring pipe or building: automatic elbows and junctions.
+ // Material-colored pipes: amber=metal, cyan=ammo, grey=not yet assigned.
+ const types=pipeTypes();
  for(const b of g.buildings){if(!isPipe(b))continue;const x=(b.x+.5)*S,y=(b.y+.5)*S;
-  c.strokeStyle=b.type==='bridge'?'#e6bd84':'#6dded4';c.lineWidth=12;c.lineCap='round';
-  for(const d of DIRS){const n=at(b.x+d[0],b.y+d[1]);if(!n)continue;c.beginPath();c.moveTo(x,y);c.lineTo(x+d[0]*S/2,y+d[1]*S/2);c.stroke();}
-  c.fillStyle=b.type==='bridge'?'#edca8e':'#83eae0';c.beginPath();c.arc(x,y,7,0,7);c.fill();
+  const medium=types.get(b.id),color=medium==='metal'?'#dfa863':medium==='ammo'?'#6dded4':'#879cae';
+  c.strokeStyle=color;c.lineWidth=12;c.lineCap='round';
+  for(const d of DIRS){const n=at(b.x+d[0],b.y+d[1]);if(!n)continue;
+   // Factories accept either material, but different pipe networks cannot mix.
+   if(isPipe(n)&&types.get(n.id)!==medium)continue;
+   if(n.type==='mine'&&medium!=='metal'||n.type==='turret'&&medium!=='ammo')continue;
+   c.beginPath();c.moveTo(x,y);c.lineTo(x+d[0]*S/2,y+d[1]*S/2);c.stroke();}
+  c.fillStyle=color;c.beginPath();c.arc(x,y,7,0,7);c.fill();
   if(b.type==='bridge'){c.strokeStyle='#e8b16d';c.lineWidth=2;c.strokeRect(b.x*S+8,b.y*S+8,44,44);}
  }
  for(const b of g.buildings){if(isPipe(b))continue;const x=b.x*S,y=b.y*S,color=b.type==='mine'?'#f3bf75':b.type==='factory'?'#b6b0f5':'#79e6dc';
@@ -323,14 +359,14 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
  drawMini();
 }
 function drawMini(){const c=mc,wx=mini.width/W,hy=mini.height/H;c.clearRect(0,0,mini.width,mini.height);c.fillStyle='#0c2032';c.fillRect(0,0,mini.width,mini.height);
- for(const p of PATH){c.fillStyle='#3d748c';c.fillRect(p[0]*wx,p[1]*hy,wx,hy);}for(const b of g.buildings){c.fillStyle={mine:'#f2c281',factory:'#b4abed',turret:'#73ddd6',pipe:'#6db4ad',bridge:'#ebc27f'}[b.type];c.fillRect(b.x*wx,b.y*hy,Math.max(2,wx-1),Math.max(2,hy-1));}
+ for(const p of PATH){c.fillStyle='#3d748c';c.fillRect(p[0]*wx,p[1]*hy,wx,hy);}for(const b of g.buildings){c.fillStyle=isPipe(b)?(pipeTypes().get(b.id)==='metal'?'#dfa863':pipeTypes().get(b.id)==='ammo'?'#6dded4':'#879cae'):{mine:'#f2c281',factory:'#b4abed',turret:'#73ddd6'}[b.type];c.fillRect(b.x*wx,b.y*hy,Math.max(2,wx-1),Math.max(2,hy-1));}
  for(const e of g.enemies){const p=enemyPos(e);c.fillStyle='#ff7873';c.fillRect(p.x*wx,p.y*hy,3,3);}
  const r=canvas.getBoundingClientRect(),b=boardbox.getBoundingClientRect(),scale=r.width/(W*S);
  c.strokeStyle='#fff5be';c.lineWidth=1.7;c.strokeRect(boardbox.scrollLeft/r.width*mini.width,boardbox.scrollTop/(H*S*scale)*mini.height,Math.min(1,b.width/r.width)*mini.width,Math.min(1,b.height/(H*S*scale))*mini.height);
 }
 function gridPos(event){const r=canvas.getBoundingClientRect();return{x:Math.floor((event.clientX-r.left)/r.width*W),y:Math.floor((event.clientY-r.top)/r.height*H)};}
 function drawAcross(a,b,tool){if(!a||!b)return;let x=a.x,y=a.y,limit=0;
- while(limit++<W+H+5){if(x!==a.x||y!==a.y){if(tool==='eraser')erase(x,y,true);else place('pipe',x,y,true);}
+ while(limit++<W+H+5){if(x!==a.x||y!==a.y){if(tool==='eraser')erase(x,y,true);else if(!at(x,y)&&!place('pipe',x,y,true)){inform('Rohr nicht gesetzt: Prüfe Leitungstyp, Baukosten und freie Felder.');break;}}
   if(x===b.x&&y===b.y)break;
   if(x!==b.x)x+=Math.sign(b.x-x);else y+=Math.sign(b.y-y);
  }
@@ -394,8 +430,7 @@ canvas.addEventListener('click',e=>{if(e.detail!==0||g.mode!=='playing')return;c
 buildButtons.forEach(b=>b.addEventListener('click',()=>select(b.dataset.type)));
 $('dock-toggle').addEventListener('click',()=>{
  if(g.mode!=='playing'||g.phase!=='build')return;
- const tray=$('build-tray'),open=tray.hidden;tray.hidden=!open;
- $('dock').classList.toggle('open',open);$('dock-toggle').setAttribute('aria-expanded',String(open));
+ showBuildTray($('build-tray').hidden);
 });
 function pause(){if(g.mode!=='playing')return;if(g.phase==='build'){startWave();return;}
  g.paused=!g.paused;inform(g.paused?'Pause: Kampf und Industrie stehen.':'Kampf und Materialfluss laufen weiter.');update();}
@@ -406,7 +441,7 @@ mini.addEventListener('click',e=>{const r=mini.getBoundingClientRect();goto(Math
 $('reset').addEventListener('click',()=>{reset();goto(8,10);});
 function enterGame(withTutorial){g.mode='playing';$('overlay').classList.add('hidden');g.tutorial={active:!!withTutorial,stage:0,completed:false};
  inform(withTutorial?'Baue zuerst eine Erzmine auf einem braunen Erzfeld.':'BAUPHASE: Die Prozentwerte zeigen die geplante Versorgung. Startkapital: 180 Gold.');
- update();goto(8,10);}
+ showBuildTray(true);update();goto(8,10);}
 $('start').addEventListener('click',()=>{if(g.mode==='intro')enterGame(true);else reset();});
 $('intro-skip').addEventListener('click',()=>{if(g.mode==='intro')enterGame(false);});
 $('tutorial-skip').addEventListener('click',()=>{g.tutorial.active=false;$('tutorial').hidden=true;clearGuideMarks();});
@@ -415,7 +450,7 @@ $('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zu
 document.addEventListener('keydown',e=>{if(e.key==='1')select('turret');if(e.key==='2')select('mine');if(e.key==='3')select('factory');if(e.key==='4')select('pipe');if(e.key==='5')select('bridge');if(e.key==='6'||e.key==='Delete')select('eraser');if(e.key==='Escape'){g.selected=null;update();}if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();pause();}});
 document.addEventListener('visibilitychange',()=>{previous=performance.now();acc=0;});
 
-window.ForgefrontDebug={snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect};
+window.ForgefrontDebug={pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect};
 function frame(now){const dt=Math.min(.1,(now-previous)/1000);previous=now;if(!document.hidden&&g?.mode==='playing'&&g.phase==='combat'&&!g.paused){acc+=dt*speedValues[speedIndex];while(acc>=1/30){simulate(1/30);acc-=1/30;}}else acc=0;update();draw();requestAnimationFrame(frame);}
 
 reset();setZoom((window.innerWidth||900)<700?.7:.82);requestAnimationFrame(frame);

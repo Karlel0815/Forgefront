@@ -1,34 +1,54 @@
-# Forgefront V0.2.0 – KISS-Logistik-Puzzle
+# Forgefront V0.2.1 – Produktions- und Optimierungspuzzle
 
-Spielbarer Browser-Prototyp (Smartphone und Desktop). Stand: 09.10.2026.
+Spielbarer Browser-Prototyp für Handy und Desktop. Stand: 09.10.2026.
 
-## Start
+## Leitidee
 
-- `index.html` im Ordner mit `style.css` und `game.js` öffnen.
-- Die herunterladbare `Forgefront_V0.2.0.html` enthält alles in einer Datei.
-- Optional interaktives, neutrales Tutorial (sechs Schritte, überspringbar und über `? HILFE` wiederholbar).
-- Zum Bauen unten **BAUEN** öffnen. Das Rohrwerkzeug kann mit dem Finger gezogen werden. Zwei Finger zoomen.
+**Primär ein knackiges Produktions-/Optimierungspuzzle mit Tower-Defense-Prüfung.** Die Spieler sollen begrenzte Ressourcen und räumliche Positionen optimieren, um die jeweilige Gegnerwelle beziehungsweise später ein dediziertes Level zu meistern. Jede Bauphase bleibt **zeitlich unbegrenzt**, ohne Produktionsfortschritt. Angriffswellen werden bewusst manuell gestartet; die Bauphase ist zum Analysieren und Umbauen gedacht. Die gut lesbare, farbige Prozentprognose der Gebäude ist ein zentrales Spielelement.
 
-## KISS-Wirtschaft (neu)
+## Spiel starten
 
-- Rohre und Brücken verbinden Gebäude, kosten Gold, haben **keine Transportkapazitätsgrenze**.
-- Es werden **keine Metallpakete oder Einzelpatronen** durch Leitungen verschoben. Einheiten werden als kontinuierliche Rate/s je Netz bilanziert.
-- Erzmine liefert bis zu 1 Metall/s; Fabrik benötigt 0,4 Metall/s und erzeugt bis zu 1,2 Munition/s; MG braucht für volles Dauerfeuer bis ca. 1,75 Munition/s.
-- Metall wird gleichmäßig nach Bedarfsprozent auf erreichbare Fabriken verteilt; die daraus resultierende Munition ebenso auf versorgte MGs. Die Netze werden nur bei tatsächlicher Rohrverbindung geteilt, weder Verbindung noch Produktivität teleportieren.
-- In der **Bauphase** zeigt jedes Gebäude sofort eine **Prognose als Prozentzahl** in Signalfarbe, auch ohne laufende Produktion. Nach jeder Bau-/Rohr-/Abriss-Aktion wird die Bilanz aktualisiert. Eine Mine unter 100 % Auslastung hat eventuell einfach Reserve – kein Fehler.
-- In der **Kampfphase** zeigt ein MG den realen Versorgungsgrad unter Berücksichtigung derzeit schießender MGs. Untätige MGs reservieren keine Munition. MG-Feuerrate wird bei Mangel entsprechend gedrosselt.
-- Gebäude antippen: Details zu bereitgestellter Rate, Maximum und zur Ursache eines Engpasses.
-- Der 10-Sekunden-Vorlauf pro Kampfphase wurde vorerst beibehalten; er ist ein Gegner-Countdown und kein Pakettransport mehr.
-- Ressourcenleisten METALL/s und MUN./s sind **Raten, keine Vorräte**.
+- `index.html` zusammen mit `style.css` und `game.js` öffnen, oder `Forgefront_V0.2.1.html` als einzelne Offline-Datei verwenden.
+- Erstes Tutorial ist neutral, optional und überspringbar, per `? HILFE` während der Bauphase wiederholbar.
+- Unten bleibt beim Bauen eine **kompakte Bauleiste ständig offen**, auch bei Werkzeugwechsel und wiederholter Platzierung; Tippen oder Rohrziehen. Bei Angriff verschwindet die Werkzeugleiste, nach der Welle erscheint sie wieder.
+- Standardtempo **2×** (umschaltbar: 1×, 1,5×, 2×). Nach dem manuellen Start erscheinen Gegner **2 Spielsekunden** später (bei 2× etwa 1 Sekunde Echtzeit).
 
-## Bekannte Grenzen
+## KISS-Wirtschaft und automatische Rohrtypen
 
-- Prototyp-Balancing: 180 Startgold, 20 HQ-Leben, Mine 22 Gold, Fabrik 18, MG 24, Rohr 4, Brücke 10. +5 Gold pro Kill und +10 pro Welle.
-- 18×20-Felder-Karte, fünf Gegnerwellen + ein Boss mit zweiter Phase. Bauphasen ohne Produktion und ohne Zeitlimit; Kämpfe mit gesperrtem Bauen.
-- Keine Speicherung zwischen Seiten-Neuladungen; noch keine zweite Karte und keine Schwierigkeitsauswahl.
-- Das Tutorial ist wieder **neutral** und ohne persönliche Spitznamen.
-- Die Prozentwerte in der Bauphase sind **Kapazitätsprognosen**, keine gemessenen Vergangenheitswerte.
+- **Keine einzelnen Metall-/Munitionspakete**: Versorgung wird als kontinuierliche Produktions-/Verbrauchsrate je verbundenem Netz berechnet.
+- **Ein Rohrbauwerkzeug**, keine separaten Materialwerkzeuge: Metallleitungen werden automatisch **orange**, Munitionsleitungen **türkis**, noch unbestimmte Rohre **grau**.
+- Rohre werden durch Kontakt mit einer **Erzmine als Metall** und mit einem **MG als Munition** erkannt. Die **Fabrik trennt als Umwandler** den Metall-Eingang vom Munitions-Ausgang. Gebäude sind keine Transitknoten.
+- Das Spiel verhindert jede Bauaktion, durch die **Metall und Munition im selben zusammenhängenden Rohrnetz** lägen; der Spieler erhält einen Hinweis und verliert **kein Gold**. Eine direkte orthogonale Nachbarschaft Mine–Fabrik beziehungsweise Fabrik–MG braucht kein Rohr. Diagonalen zählen nicht.
+- Die Rohrtypen sind ein **erster automatischer Ansatz**, dessen Bedienbarkeit gezielt in Freundestests geprüft werden soll: Nähere Berührungen können bewusst blockiert werden, wenn die Materialerkennung sonst uneindeutig wäre.
+- Rohre haben keine eigene Durchsatzgrenze. Erzmine MAX 1 Metall/s; Fabrik benötigt bis 0,4 Metall/s und produziert bis 1,2 Munition/s; MG benötigt bis ca. 1,75 Munition/s bei vollem Dauerfeuer.
+- Bei Mangel werden gleichartige Verbraucher proportional gleich versorgt, überschüssige Kapazität gedrosselt. Ein MG ohne Gegner verbraucht im Kampf keine Munition.
+- Bauphase: sofortige **Prozent-Prognose** beim Bauen; Kampfphase: aktuell berechnete Versorgung. Mine mit Förderreserve ist nicht automatisch ein Problem; Gebäudedetails zeigen die genauen Zahlen.
 
-## Validierung
+## Aktuelles Testlevel und Grenzen
 
-`node test.cjs`, `node strategies.cjs`, `node onboarding_test.cjs` sowie `python browser_test.py` (mit Playwright/Chromium).
+- Ein Testlevel mit **18 × 20 quadratischen Feldern**, fester Gegnerroute, fünf Standardwellen und einer Bosswelle mit zweiter Bossphase. 180 Startgold, 20 HQ-Leben, +5 Gold pro Kill, +10 Gold pro bestandener Welle.
+- Gebäude: Erzmine (22), Fabrik (18), MG (24), Rohr (4), Brücke (10), Radierer (Testmodus: volle Rückerstattung).
+- Noch **keine** zusätzlichen Türme, Forschung, weitere Rohstoffe, freie Wege oder Hexagonfelder. Diese Optionen werden erst diskutiert, nicht automatisch ergänzt.
+- Kein Speichern beim Neuladen; GitHub Pages als separate öffentliche URL noch nicht geprüft. Quellcode liegt auf GitHub `Karlel0815/Forgefront`, versionierte Kopien in Google Drive.
+
+## Offene längerfristige Konzepte – nicht implementiert
+
+1. Mehrere eigenständige, schwierigere **Puzzle-Level** mit lösbaren, gut lesbaren Versorgungsengpässen; Gegnerwelle als Erfolgstest. Die Baupause muss dauerhaft unbegrenzt bleiben.
+2. Zweiter Turm mit klar anderer Funktion, beispielsweise Panzerbrecher, vor weiteren Rohstoffen.
+3. **Forschungslabor** nutzt überschüssige Metallleistung (nach Priorität Verteidigung) für ansteigenden Forschungsfortschritt, Level-Upgrades/Turmfreischaltungen; Balance noch offen.
+4. Mehr Karten- und Erz-/Gegnerweg-Layouts auf dem quadratischen Raster; Hexfelder und freie Gegnerwege oder Mauerlabyrinthe später eigenständig prototypisieren, nicht voreilig in den Hauptspielmodus aufnehmen.
+5. Publikationsstrategie: GitHub ist vorerst **public** für Tests mit Freunden, Google-Drive-Master privat; Browser-Quellcode kann bei einer öffentlichen Spielversion ohnehin eingesehen werden.
+
+**Arbeitsregel:** Immer zuerst das Konzept diskutieren, erst nach ausdrücklichem Wunsch die nächste Version programmieren. GitHub main und Google Drive nach getesteten Veröffentlichungen synchron halten.
+
+## Tests
+
+```sh
+node test.cjs
+node pipe_test.cjs
+node onboarding_test.cjs
+node strategies.cjs
+python browser_test.py
+```
+
+Die Browsertests verwenden Playwright und einen lokalen Chromium. Zusätzlich wird die gebündelte, eigenständig spielbare HTML-Datei im Browser geprüft.
