@@ -1,6 +1,6 @@
 # Forgefront V0.3.0 – Testkarte mit drei Waffen
 
-Kanone: 38 Gold, Reichweite 4, Schaden 11, Schuss alle 1,7 Sekunden, 1,2 Munition/s, Panzerbrecher. Mörser: 42 Gold, Reichweite 1,5 bis 5, 6 Flächenschaden (Radius 1,1), Schuss alle 2,4 Sekunden, 2,4 Munition/s. MG unverändert (3 Schaden, 0,57 s, 1,75 Munition/s). Heavy Rüstung 2, Boss Phase 2 Rüstung 2. Nur eine Munitionsfabrik und ein universelles Munitionsnetz. Testkarte: 6 gemischte Wellen; alle Gegner vorab sichtbar. Neubau und Umbau zwischen Wellen: vor Wellenstart neu gesetzt 100 % Rückerstattung, nach Einsatz 50 %. Noch keine Kampagne/Speicherung.
+Kanone: 38 Gold, Reichweite 4, Schaden 11, Schuss alle 1,7 Sekunden, 1,2 Munition/s, Panzerbrecher. Mörser: 42 Gold, Reichweite 1,5 bis 5, 6 Flächenschaden (Radius 1,1), Schuss alle 2,4 Sekunden, 2,4 Munition/s. MG unverändert (3 Schaden, 0,57 s, 1,75 Munition/s). Heavy Rüstung 2, Boss Phase 2 Rüstung 2. Nur eine Munitionsfabrik und ein universelles Munitionsnetz. Testkarte: veränderter Gegnerpfad mit zusätzlichem Knick im Mittelteil und neuen Erzvorkommen; 6 gemischte Wellen; alle Gegner vorab sichtbar. Neubau und Umbau zwischen Wellen: vor Wellenstart neu gesetzt 100 % Rückerstattung, nach Einsatz 50 %. Noch keine Kampagne/Speicherung.
 
 # Forgefront V0.3.0 – Produktions- und Optimierungspuzzle
 
