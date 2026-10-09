@@ -6,3 +6,13 @@
 @media(min-width:700px){.app{padding:12px 16px 155px}.boardbox{height:clamp(440px,75dvh,900px)}.stat{padding:10px}.brand{padding:4px 0 8px}.dock-toggle{height:35px}.build{min-height:75px}}
 @media(max-width:375px){.stat{padding:6px 0}.build{padding:6px 0}.build b{font-size:10px}.build small{font-size:8px}.dock-actions{grid-template-columns:minmax(0,1fr) 56px 38px}}
 
+/* Forgefront 0.1.9 – readable throughput information and guided first-play tutorial */
+.top-tools{display:flex;align-items:center;gap:7px}#help{border:1px solid #63899c;background:#24455b;color:#d6f5ff;border-radius:7px;font-weight:800;font-size:11px;padding:7px 9px;white-space:nowrap}
+.intro-skip{border:none;background:transparent;color:#b2cfe1;margin-top:12px;display:block;width:100%;padding:10px 2px;text-decoration:underline;font-size:12px}
+.tutorial,.details{position:absolute;z-index:7;left:8px;top:8px;width:min(290px,calc(100% - 93px));box-shadow:0 5px 25px #071525bb;background:#1b344aeF;border:1px solid #7294ac;border-radius:12px;color:#e8f5ff;padding:10px 12px}
+.tutorial[hidden],.details[hidden]{display:none}.tutorial-head,.details-head{display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:7px}.tutorial-head strong{color:#f6ce91;font-size:11px;letter-spacing:.07em}
+.tutorial-head button,.details-head button{background:#2a5066;border:1px solid #61859c;color:#e2f4fb;border-radius:6px;font-size:11px;padding:5px 7px}
+.tutorial b{font-size:14px}.tutorial p{font-size:12px;line-height:1.38;margin:6px 0 1px;color:#d0e2ec}
+.details{z-index:6;top:8px;width:min(310px,calc(100% - 25px));background:#142f44fa}.details-head strong{font-size:14px}.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:4px 0 8px}.details-grid>div{background:#223e53;border:1px solid #4a7289;border-radius:8px;padding:8px}.details-grid small{display:block;color:#b3d0df;font-size:10px;letter-spacing:.06em}.details-grid b{display:block;color:#f8e1b0;font-size:19px;font-variant-numeric:tabular-nums;margin-top:3px}.details-grid>div:last-child b{color:#a3e8c9}.meter{height:9px;background:#304b5b;border-radius:7px;overflow:hidden}.meter span{display:block;width:0;height:100%;background:#76dbac;border-radius:7px;transition:width .1s}.details p{margin:8px 0 5px;font-size:12px;font-weight:750}.details>small{font-size:10px;color:#a9c2d0;line-height:1.4;display:block}
+.build.guide-focus,#dock-toggle.guide-focus,#pause.guide-focus{border:2px solid #ffd48b!important;box-shadow:0 0 0 2px #9d7b3d!important}
+@media(max-width:375px){#help{padding:6px;font-size:10px}.version{font-size:9px;padding:4px}.tutorial{width:min(265px,calc(100% - 78px));padding:8px}.tutorial p{font-size:11px}.details{width:calc(100% - 17px)}}
