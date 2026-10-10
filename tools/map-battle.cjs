@@ -27,7 +27,8 @@ function instrument(source,m){
    'MAP_BLUEPRINTS[0].hq={...__fixture.hq};',
    'MAP_BLUEPRINTS[0].challenge=0;',anchor].join('\n'));
 }
-function boot(m,source){
+function boot(m,source,opts={}){
+ if(![1,3].includes(opts.chapter??1))throw Error('Unsupported chapter profile');
  const noop=()=>{},ctx=new Proxy({},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
  const E={};
  function elem(id){return{id,value:'standard',hidden:false,textContent:'',innerHTML:'',dataset:{},style:{},
@@ -45,7 +46,9 @@ function boot(m,source){
  vm.runInNewContext(instrument(source,m),{__fixture:JSON.parse(JSON.stringify(m)),
    window,document,performance:{now:()=>0},requestAnimationFrame:noop,console},{timeout:12000});
  const dbg=window.ForgefrontDebug;
- if(!dbg||!dbg.setDifficulty('hard')||!dbg.startLevel('c1-l1'))
+ // Use the game's existing test-access UI event; no production source injection.
+ if(opts.chapter===3)E['dev-test-levels'].events.click();
+ if(!dbg||!dbg.setDifficulty('hard')||!dbg.startLevel('c'+(opts.chapter??1)+'-l1'))
    throw Error('Engine start failed');
  const actual=dbg.map();
  if(JSON.stringify(actual.path)!==JSON.stringify(m.path)||
