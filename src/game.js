@@ -122,6 +122,7 @@ function renderCampaign(){
   ''+'</button>';
  }).join('');
  $('campaign-note').textContent=saveWritable?'Verfügbare Waffen: '+chapter.weapon+'. Welle 1 startest du selbst.':'⚠ Spielstand beschädigt: Die alten Daten bleiben erhalten, neue Fortschritte werden nicht gespeichert. Bitte Speicherstand sichern.';
+ $('campaign-note').classList.toggle('save-error',!saveWritable);
   const chIndex=CHAPTERS.indexOf(chapter),chDone=chapterCompleted(chapter);
   $('chapter-reward').textContent=chDone?(chIndex===3?'★ Kampagne abgeschlossen':'★ Kapitel abgeschlossen · '+chapter.reward+' freigeschaltet'):'Belohnung für 3 Siege: '+chapter.reward+(chIndex===2?' · Labor folgt später':'');
   $('chapter-reward').classList.toggle('completed',chDone);
