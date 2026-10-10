@@ -58,19 +58,32 @@ const levelChapter=id=>CHAPTERS.findIndex(ch=>ch.levels.some(l=>l.id===id))+1;
 const buildingAvailable=type=>['turret','cannon','mortar','mine','factory','pipe','bridge','eraser'].includes(type)&&(!(type in BASE_WEAPON_UNLOCKS)||BASE_WEAPON_UNLOCKS[type]<=levelChapter(currentLevel?.id));
 const SAVE_KEY='forgefront.progress.v2';
 const EMPTY_SAVE=()=>({version:2,difficulty:'standard',theme:'dark',tutorialSeen:false,results:{}});
+const isRecord=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+let saveWritable=true;
 function loadSave(){
+ // A damaged optional V0.3 save must never invalidate a healthy V0.4/V0.5 save.
+ let raw;
+ try{raw=window.localStorage?.getItem(SAVE_KEY);}catch{return EMPTY_SAVE();}
+ if(raw!==null&&raw!==undefined){
+  try{
+   const data=JSON.parse(raw);
+   if(!isRecord(data)||data.version!==2||!isRecord(data.results))throw Error('Invalid v2 save format');
+   const results=Object.fromEntries(Object.entries(data.results).map(([id,entry])=>[id,isRecord(entry)?entry:{}]));
+   return {version:2,difficulty:data.difficulty==='hard'?'hard':'standard',theme:data.theme==='light'?'light':'dark',tutorialSeen:data.tutorialSeen===true,results};
+  }catch{
+   // Preserve unreadable v2 bytes rather than overwriting them on a later persist().
+   saveWritable=false;return EMPTY_SAVE();
+  }
+ }
  try{
   const old=JSON.parse(window.localStorage?.getItem('forgefront.progress.v1')||'null');
-  const data=JSON.parse(window.localStorage?.getItem(SAVE_KEY)||'null');
-  // DEV1 ratings were earned with all weapons on different layouts, so only
-  // migrate player preferences, never medals or unlocked levels.
-  if(!data&&old?.version===1){return {version:2,difficulty:old.difficulty==='hard'?'hard':'standard',theme:old.theme==='light'?'light':'dark',tutorialSeen:old.tutorialSeen===true,results:{}};}
-  if(!data||data.version!==2||typeof data.results!=='object'||!data.results||Array.isArray(data.results))return EMPTY_SAVE();
-  return {version:2,difficulty:data.difficulty==='hard'?'hard':'standard',theme:data.theme==='light'?'light':'dark',tutorialSeen:data.tutorialSeen===true,results:data.results};
- }catch{return EMPTY_SAVE();}
+  // DEV1 had different layouts: migrate only preferences, never medals/unlocks.
+  if(old?.version===1)return {version:2,difficulty:old.difficulty==='hard'?'hard':'standard',theme:old.theme==='light'?'light':'dark',tutorialSeen:old.tutorialSeen===true,results:{}};
+ }catch{/* A malformed legacy record has no effect on a fresh game. */}
+ return EMPTY_SAVE();
 }
 const save=loadSave();selectedDifficulty=save.difficulty;
-function persist(){try{window.localStorage?.setItem(SAVE_KEY,JSON.stringify(save));}catch{/* Game remains playable in private mode. */}}
+function persist(){if(!saveWritable)return;try{window.localStorage?.setItem(SAVE_KEY,JSON.stringify(save));}catch{/* Game remains playable in private mode. */}}
 function progressBest(levelId,key){const v=save.results[levelId]?.[key];return v&&Number.isInteger(v.stars)&&v.stars>=1&&v.stars<=3&&Number.isInteger(v.leaks)&&v.leaks>=0?v:null;}
 function best(levelId,difficulty){return progressBest(levelId,PROGRESS_KEYS[difficulty]);}
 function legacyBest(levelId){return LEGACY_PROGRESS.map(key=>progressBest(levelId,key)).filter(Boolean).sort((a,b)=>b.stars-a.stars||a.leaks-b.leaks)[0]||null;}
@@ -85,7 +98,7 @@ function storeVictory(){if(!currentLevel||!g?.bossDefeated||g.bossEscaped)return
  if(devTestAccess)return stars; // Test levels can be sampled without contaminating campaign records.
  const old=best(currentLevel.id,selectedDifficulty);
  if(!old||stars>old.stars||stars===old.stars&&g.leaks<old.leaks){
-  if(!save.results[currentLevel.id]||typeof save.results[currentLevel.id]!=='object')save.results[currentLevel.id]={};
+  if(!isRecord(save.results[currentLevel.id]))save.results[currentLevel.id]={};
   save.results[currentLevel.id][PROGRESS_KEYS[selectedDifficulty]]={stars,leaks:g.leaks};persist();
  }
  return stars;
@@ -108,7 +121,7 @@ function renderCampaign(){
   (l.ready?'<span class="level-stars" aria-label="'+(rating?rating.stars+' von 3 Sternen in '+DIFFICULTIES[selectedDifficulty].name:'Noch keine Sterne im neuen Modus')+'">'+stars+'</span>'+(legacy?'<span class="legacy-stars" aria-label="Frühere Version: '+legacy.stars+' von 3 Sternen">V0.4 ★'+legacy.stars+'</span>':''):'<span class="level-unavailable">IN VORBEREITUNG</span>')+
   ''+'</button>';
  }).join('');
- $('campaign-note').textContent='Verfügbare Waffen: '+chapter.weapon+'. Welle 1 startest du selbst.';
+ $('campaign-note').textContent=saveWritable?'Verfügbare Waffen: '+chapter.weapon+'. Welle 1 startest du selbst.':'⚠ Spielstand beschädigt: Die alten Daten bleiben erhalten, neue Fortschritte werden nicht gespeichert. Bitte Speicherstand sichern.';
   const chIndex=CHAPTERS.indexOf(chapter),chDone=chapterCompleted(chapter);
   $('chapter-reward').textContent=chDone?(chIndex===3?'★ Kampagne abgeschlossen':'★ Kapitel abgeschlossen · '+chapter.reward+' freigeschaltet'):'Belohnung für 3 Siege: '+chapter.reward+(chIndex===2?' · Labor folgt später':'');
   $('chapter-reward').classList.toggle('completed',chDone);
@@ -736,7 +749,9 @@ $('pause').addEventListener('click',pause);
 function setSpeed(value){
  const factor=Number(value);
  if(!g||g.mode!=='playing'||g.phase!=='combat'||!speedValues.includes(factor))return false;
- speedIndex=speedValues.indexOf(factor);acc=0;update();return true;
+ // Preserve the fractional simulation step when switching speeds.
+ const next=speedValues.indexOf(factor);if(next===speedIndex)return true;
+ speedIndex=next;update();return true;
 }
 $('speed-controls').addEventListener('click',e=>{
  const b=e.target.closest('button[data-speed]');if(b)setSpeed(b.dataset.speed);
