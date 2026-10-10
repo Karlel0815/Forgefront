@@ -166,6 +166,8 @@ function simulate(m,source,strategy){
        if(connected.length===1)appendMG(m,dbg,n,wave,actions);
      }
    }
+   if(typeof strategy.extraBuild==='function'&&!strategy.fixed)
+     strategy.extraBuild(dbg,m,wave,actions);
    if(!dbg.startWave()){error='Engine refused wave';break;}
    dbg.advance(200);
    const s=dbg.snapshot();
