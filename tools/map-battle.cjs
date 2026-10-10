@@ -132,7 +132,7 @@ function distinctPlans(plans,budget){
  return result;
 }
 function simulate(m,source,strategy){
- const {dbg,combatProfileHash}=boot(m,source);
+ const {dbg,combatProfileHash}=boot(m,source,{chapter:strategy.chapter??1});
  const history=[],actions=[],networks=[];
  let error=null;
  for(let wave=1;wave<=6;wave++){
@@ -147,15 +147,17 @@ function simulate(m,source,strategy){
    }else{
      const occupied=before.buildings;
      // Independent subnets only: no shared or touching pipe media.
-     const viable=strategy.pool.filter(p=>p.cost<=before.gold &&
+     const target=strategy.armory?.[wave]||'turret';
+     const extraCost=PRICE[target]-PRICE.turret;
+     const viable=strategy.pool.filter(p=>p.cost+extraCost<=before.gold &&
        p.buildings.every(b=>occupied.every(a=>dist(a,b)>1)));
      const preferred=viable.find(p=>networks.every(q=>
        Math.abs(q.gun[0]-p.gun[0])+Math.abs(q.gun[1]-p.gun[1])>=5))||viable[0];
-     if(preferred){next=preferred.buildings;networks.push(preferred);}
+     if(preferred){next=preferred.buildings.map(b=>b.type==='turret'?{...b,type:target}:b);networks.push(preferred);}
    }
    error=build(dbg,next,wave,actions);
    if(error)break;
-   if(!strategy.fixed){
+   if(!strategy.fixed&&!strategy.armory){
      // One additional MG per supply cell family; only the engine may approve it.
      for(const n of networks){
        if(dbg.snapshot().gold<24)break;
@@ -176,7 +178,7 @@ function simulate(m,source,strategy){
  const s=dbg.snapshot();
  const victory=!error&&history.length===6&&s.mode==='won'&&s.bossDefeated===true&&
    s.bossEscaped===false&&s.hp>0&&s.producedAmmo+1e-6>=s.ammoSpent;
- return {name:strategy.name,combatProfileHash,status:victory?'VERIFIED_HARD_BOSSKILL':
+ return {name:strategy.name,combatProfileHash,chapter:strategy.chapter??1,status:victory?'VERIFIED_HARD_BOSSKILL':
    error?'INVALID_STRATEGY_OR_TIMEOUT':'NO_WIN_IN_TESTED_STRATEGY',
    verifiedWin:victory,error,actions,history,
    final:{mode:s.mode,hp:s.hp,gold:s.gold,leaks:s.leaks,kills:s.kills,
