@@ -157,7 +157,7 @@ function simulate(m,source,strategy){
    }
    error=build(dbg,next,wave,actions);
    if(error)break;
-   if(!strategy.fixed&&!strategy.armory){
+   if(!strategy.fixed&&(!strategy.armory||wave===1)){
      // One additional MG per supply cell family; only the engine may approve it.
      for(const n of networks){
        if(dbg.snapshot().gold<24)break;
