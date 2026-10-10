@@ -93,3 +93,7 @@ body[data-menu-theme=light] .campaign-footer select,body[data-menu-theme=light] 
 body[data-menu-theme=light] .difficulty-buttons button{background:#e1ecf2;border-color:#b5ccda;color:#425e70}
 body[data-menu-theme=light] .difficulty-buttons button.selected{background:#f7e4bf;border-color:#b98937;color:#664817}
 @media(max-width:600px){.campaign-note{display:none}}
+
+.chapter-reward{text-align:center;margin:15px auto 2px;padding:11px 9px;max-width:440px;background:#223e55;border:1px solid #486d85;border-radius:9px;color:#efca8f;font-size:12px;font-weight:750}.chapter-reward.completed{border-color:#deb371;background:#384332;color:#ffe3b2}
+.result-unlock{background:#344d52;border:1px solid #ecbe73;color:#ffe0a4;padding:12px 7px;border-radius:10px;margin-top:13px;font-size:14px;font-weight:800;line-height:1.4}.result-unlock[hidden]{display:none!important}
+body[data-menu-theme=light] .chapter-reward{background:#eaf2f6;color:#795322;border-color:#c2d2dd}body[data-menu-theme=light] .chapter-reward.completed{background:#f8ecd2;border-color:#b98937}
