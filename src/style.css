@@ -102,7 +102,10 @@ body[data-menu-theme=light] .chapter-reward{background:#eaf2f6;color:#795322;bor
 .speed-controls{display:flex;align-items:center;justify-content:center;gap:7px;margin:5px 0 0}
 .speed-controls[hidden]{display:none!important}
 .speed-controls span{font-size:10px;letter-spacing:.06em;font-weight:800;color:#b6cfdc;margin-right:4px}
-.speed-controls button{flex:0 1 56px;min-height:34px;background:#224056;border:1px solid #59788b;border-radius:7px;color:#e6f5fb;font-weight:800;font-size:13px}
+.speed-controls button{flex:0 1 56px;min-height:44px;background:#224056;border:1px solid #59788b;border-radius:7px;color:#e6f5fb;font-weight:800;font-size:13px}
 .speed-controls button.selected{background:#706044;border-color:#f2c987;color:#fff2c9}
 .legacy-stars{display:block;font-size:10px;color:#a9becc;letter-spacing:.01em;padding-top:3px}
 body[data-menu-theme=light] .legacy-stars{color:#566d79}
+
+/* Always show data-integrity warnings even when menu hints are hidden on phones. */
+.campaign-note.save-error{display:block!important;color:#ffca99;font-weight:800}
