@@ -627,3 +627,91 @@ test('Temporary test access opens all chapter maps, but never saves medals',()=>
  b.qa.endWin();assert.deepEqual(Object.keys(b.dbg.save().results),[]);
  const fresh=boot('standard',b.storage);assert.equal(fresh.dbg.startLevel('c4-l3'),false);
 });
+
+
+/* Targeted balance experiments only; they do not replace the existing 12-map acceptance run.
+   All matches use identical actual levelWaves(), fixed Schwer, legal purchases, real
+   industrial supply and six simulated waves; no forceWin, damage/HP tweaks or cheats. */
+test('BALANCE_MATRIX_DEV2: legal weapon choices and late-game purchase opportunity on three maps',()=>{
+ const prices={mine:22,factory:18,turret:24,cannon:38,mortar:42,pipe:4,bridge:10};
+ const scenarios=[
+  {id:'c2-l3',choices:['mg','late','cannon','extraCannon']},
+  {id:'c3-l2',choices:['mg','cannon','mortar','mixed','extraNet']},
+  {id:'c4-l2',choices:['mg','cannon','mortar','mixed','extraNet']}
+ ];
+ const output=[];
+ for(const {id,choices} of scenarios){
+  const chapter=Number(id[1]),map=Number(id[id.length-1]);
+  for(const choice of choices){
+   const b=boot('hard');b.dbg.showCampaign();b.E['dev-test-levels'].events.click();
+   assert.equal(b.dbg.startLevel(id),true);
+   const original=PLANS[`c1-l${map}`],events=[];
+   let totalSpend=0,purchaseFailures=0;
+   for(let wave=1;wave<=6;wave++){
+    const before=b.dbg.snapshot();
+    if(before.mode!=='playing')break;
+    const stages=original[wave].map(([type,x,y])=>{
+     let weapon=type;
+     if(type==='turret'){
+      if(choice==='cannon'||choice==='extraNet'){
+       if(wave===2||wave===4||(chapter===4&&wave===5))weapon='cannon';
+      }else if(choice==='late'){
+       if(wave===4||wave>=5)weapon='cannon';
+      }else if(choice==='extraCannon'){
+       if(wave===2||wave===4||wave>=5)weapon='cannon';
+      }else if(choice==='mortar'){
+       if(wave===2||wave===4||(chapter===4&&wave===5))weapon='mortar';
+      }else if(choice==='mixed'){
+       if(wave===2||(chapter===4&&wave===5))weapon='cannon';
+       if(wave===4)weapon='mortar';
+      }
+     }
+     return [weapon,x,y];
+    });
+    // Spend some of the *actual* K3/K4-L2 W5 reserve on an independent, connected
+    // front-corridor mine -> factory -> cannon network before starting the boss wave.
+    if(choice==='extraNet'&&wave===6)stages.push(
+     ['mine',3,5],['factory',4,5],['cannon',4,4]
+    );
+    for(const [type,x,y] of stages){
+     if(b.dbg.snapshot().gold<prices[type]){purchaseFailures++;break;}
+     if(!b.dbg.place(type,x,y)){purchaseFailures++;break;}
+     totalSpend+=prices[type];
+    }
+    if(purchaseFailures)break;
+    const ready=b.dbg.snapshot();
+    const supplies=b.dbg.rates().filter(x=>['turret','cannon','mortar'].includes(x.type));
+    const sample={wave,goldBefore:before.gold,goldAfterBuild:ready.gold,
+     goldSpentThisWave:before.gold-ready.gold,
+     weaponCount:supplies.length,
+     supplyPctMin:supplies.length?Math.min(...supplies.map(x=>x.ratio)):null,
+     buildTypes:{mg:supplies.filter(x=>x.type==='turret').length,
+      cannon:supplies.filter(x=>x.type==='cannon').length,
+      mortar:supplies.filter(x=>x.type==='mortar').length}};
+    assert.equal(b.dbg.startWave(),true,id+' '+choice+' W'+wave+' refused start');
+    b.dbg.advance(250);
+    const after=b.dbg.snapshot();
+    events.push({...sample,mode:after.mode,phase:after.phase,
+     goldAfter:after.gold,hp:after.hp,leaks:after.leaks,
+     kills:after.kills,shots:after.shotsFired,
+     ammoSpent:+after.ammoSpent.toFixed(2),ammoProduced:+after.producedAmmo.toFixed(2),
+     bossKilled:after.bossDefeated,bossEscaped:after.bossEscaped});
+    if(after.mode!=='playing')break;
+   }
+   const last=b.dbg.snapshot(),success=last.mode==='won'&&last.bossDefeated&&!last.bossEscaped&&last.hp>0;
+   assert.ok(!success||events.length===6,id+' '+choice+' invalid short victory');
+   assert.ok(!last.bossEscaped||last.mode==='lost','escaped boss may never win');
+   assert.ok(last.gold>=0,'gold overdraw');
+   output.push({id,choice,success,mode:last.mode,waves:events.length,
+    hp:last.hp,leaks:last.leaks,kills:last.kills,finalGold:last.gold,
+    beforeBossGold:events.find(x=>x.wave===6)?.goldBefore??null,
+    spend:totalSpend,purchaseFailures,
+    ammoSpent:+last.ammoSpent.toFixed(2),ammoProduced:+last.producedAmmo.toFixed(2),
+    shots:last.shotsFired,events});
+  }
+ }
+ console.log('BALANCE_MATRIX_DEV2 '+JSON.stringify(output));
+ assert.equal(output.length,scenarios.reduce((n,x)=>n+x.choices.length,0));
+ assert.equal(output.filter(x=>x.purchaseFailures).length,0,
+  'Illegal or unaffordable study layouts require a corrected study plan');
+});
