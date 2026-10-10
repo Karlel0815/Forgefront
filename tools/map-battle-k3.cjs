@@ -4,7 +4,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const G=require('./map-generator.cjs'),B=require('./map-battle.cjs');
 const profile='K3_HARD_ALL_CURRENT_WEAPONS_AND_ENEMIES';
-const arsenal={2:'cannon',3:'mortar',4:'turret',5:'cannon',6:'mortar'};
+const arsenal={2:'mortar',3:'cannon',4:'turret',5:'mortar',6:'cannon'};
 function coverage(m,p,t){
  const r=t==='mortar'?5:t==='cannon'?4:3.3,min=t==='mortar'?1.5:0;
  return m.path.filter(q=>{
