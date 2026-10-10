@@ -1,15 +1,15 @@
 (() => {
 'use strict';
-const BUILD_ID='0.4.0-dev3';
+const BUILD_ID='0.5.0-dev1';
 const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DISPLAY_UPDATE_MS=250,DISPLAY_RESPONSE_S=1.5,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
 const ECONOMY={startGold:180,goldPerKill:5,goldPerType:{scout:1,normal:2,heavy:6,boss:20},goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
 const DIFFICULTIES={
- easy:{name:'Leicht',startGold:220,hq:30,enemyHp:.75,spawn:.95},
- normal:{name:'Mittel',startGold:180,hq:20,enemyHp:1.12,spawn:1},
- hard:{name:'Schwer',startGold:155,hq:15,enemyHp:1.32,spawn:1.14},
- crazy:{name:'Verrückt',startGold:135,hq:10,enemyHp:1.52,spawn:1.28}
+ standard:{name:'Standard',startGold:155,hq:15,enemyHp:1.32,spawn:1.14,damageBonus:.25},
+ hard:{name:'Schwer',startGold:155,hq:15,enemyHp:1.32,spawn:1.14,damageBonus:0}
 };
-let selectedDifficulty='normal';
+const PROGRESS_KEYS={standard:'v05_standard',hard:'v05_hard'};
+const LEGACY_PROGRESS=['easy','normal','hard','crazy'];
+let selectedDifficulty='standard';
 
 const BASE_PATH=[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[6,4],[6,5],[7,5],[8,5],[9,5],[10,5],[10,6],[10,7],[10,8],[10,9],[11,9],[12,9],[12,8],[13,8],[13,9],[13,10],[12,10],[11,10],[11,11],[11,12],[12,12],[13,12],[14,12],[15,12],[15,13],[15,14],[15,15],[16,15],[16,16],[16,17],[16,18]];
 const BASE_ORE=new Set(['7,14','6,14','7,15','6,15','4,13','3,13','3,12','4,12','2,9','3,9','5,9','9,17','10,17','12,16','13,16','14,5','15,5','15,6','2,5','3,5','15,18','14,18','11,4','10,14','7,17']);
@@ -57,22 +57,24 @@ const BASE_WEAPON_UNLOCKS={turret:1,cannon:2,mortar:3};
 const levelChapter=id=>CHAPTERS.findIndex(ch=>ch.levels.some(l=>l.id===id))+1;
 const buildingAvailable=type=>['turret','cannon','mortar','mine','factory','pipe','bridge','eraser'].includes(type)&&(!(type in BASE_WEAPON_UNLOCKS)||BASE_WEAPON_UNLOCKS[type]<=levelChapter(currentLevel?.id));
 const SAVE_KEY='forgefront.progress.v2';
-const EMPTY_SAVE=()=>({version:2,difficulty:'normal',theme:'dark',tutorialSeen:false,results:{}});
+const EMPTY_SAVE=()=>({version:2,difficulty:'standard',theme:'dark',tutorialSeen:false,results:{}});
 function loadSave(){
  try{
   const old=JSON.parse(window.localStorage?.getItem('forgefront.progress.v1')||'null');
   const data=JSON.parse(window.localStorage?.getItem(SAVE_KEY)||'null');
   // DEV1 ratings were earned with all weapons on different layouts, so only
   // migrate player preferences, never medals or unlocked levels.
-  if(!data&&old?.version===1){return {version:2,difficulty:DIFFICULTIES[old.difficulty]?old.difficulty:'normal',theme:old.theme==='light'?'light':'dark',tutorialSeen:old.tutorialSeen===true,results:{}};}
+  if(!data&&old?.version===1){return {version:2,difficulty:old.difficulty==='hard'?'hard':'standard',theme:old.theme==='light'?'light':'dark',tutorialSeen:old.tutorialSeen===true,results:{}};}
   if(!data||data.version!==2||typeof data.results!=='object'||!data.results||Array.isArray(data.results))return EMPTY_SAVE();
-  return {version:2,difficulty:DIFFICULTIES[data.difficulty]?data.difficulty:'normal',theme:data.theme==='light'?'light':'dark',tutorialSeen:data.tutorialSeen===true,results:data.results};
+  return {version:2,difficulty:data.difficulty==='hard'?'hard':'standard',theme:data.theme==='light'?'light':'dark',tutorialSeen:data.tutorialSeen===true,results:data.results};
  }catch{return EMPTY_SAVE();}
 }
 const save=loadSave();selectedDifficulty=save.difficulty;
 function persist(){try{window.localStorage?.setItem(SAVE_KEY,JSON.stringify(save));}catch{/* Game remains playable in private mode. */}}
-function best(levelId,difficulty){const v=save.results[levelId]?.[difficulty];return v&&Number.isInteger(v.stars)&&v.stars>=1&&v.stars<=3&&Number.isInteger(v.leaks)&&v.leaks>=0?v:null;}
-function completed(levelId){return Object.keys(DIFFICULTIES).some(d=>!!best(levelId,d));}
+function progressBest(levelId,key){const v=save.results[levelId]?.[key];return v&&Number.isInteger(v.stars)&&v.stars>=1&&v.stars<=3&&Number.isInteger(v.leaks)&&v.leaks>=0?v:null;}
+function best(levelId,difficulty){return progressBest(levelId,PROGRESS_KEYS[difficulty]);}
+function legacyBest(levelId){return LEGACY_PROGRESS.map(key=>progressBest(levelId,key)).filter(Boolean).sort((a,b)=>b.stars-a.stars||a.leaks-b.leaks)[0]||null;}
+function completed(levelId){return Object.keys(PROGRESS_KEYS).some(d=>!!best(levelId,d))||!!legacyBest(levelId);}
 function chapterCompleted(ch){return ch.levels.every(l=>completed(l.id));}
 function chapterUnlocked(i){return devTestAccess||i===0||chapterCompleted(CHAPTERS[i-1]);}
 function unlocked(levelId){const idx=ALL_LEVELS.findIndex(l=>l.id===levelId);return idx>=0&&(devTestAccess||idx===0||completed(ALL_LEVELS[idx-1].id));}
@@ -84,7 +86,7 @@ function storeVictory(){if(!currentLevel||!g?.bossDefeated||g.bossEscaped)return
  const old=best(currentLevel.id,selectedDifficulty);
  if(!old||stars>old.stars||stars===old.stars&&g.leaks<old.leaks){
   if(!save.results[currentLevel.id]||typeof save.results[currentLevel.id]!=='object')save.results[currentLevel.id]={};
-  save.results[currentLevel.id][selectedDifficulty]={stars,leaks:g.leaks};persist();
+  save.results[currentLevel.id][PROGRESS_KEYS[selectedDifficulty]]={stars,leaks:g.leaks};persist();
  }
  return stars;
 }
@@ -99,11 +101,11 @@ function renderCampaign(){
  $('chapter-title').textContent='Kapitel '+(CHAPTERS.indexOf(chapter)+1)+' · '+chapter.name;
  $('chapter-subtitle').textContent=chapter.levels.length+' Karten';
  $('level-grid').innerHTML=chapter.levels.map((l,i)=>{
-  const isOpen=l.ready&&unlocked(l.id),rating=best(l.id,selectedDifficulty);
+  const isOpen=l.ready&&unlocked(l.id),rating=best(l.id,selectedDifficulty),legacy=legacyBest(l.id);
   const stars=Array.from({length:3},(_,j)=>'<span class="'+(rating&&j<rating.stars?'earned':'')+'">'+(rating&&j<rating.stars?'★':'☆')+'</span>').join('');
   return '<button class="level-card'+(isOpen?' available':' locked')+'" type="button" data-level="'+l.id+'" '+(isOpen?'':'disabled')+' aria-label="Level '+(i+1)+': '+l.name+(isOpen?' öffnen':l.ready?' gesperrt':' noch in Entwicklung')+'">'+
   '<span class="level-number">LEVEL '+String(i+1).padStart(2,'0')+'</span><span class="level-glyph">'+(isOpen?(l.challenge===1?'⌁':l.challenge===2?'⚑':'⬡'):'🔒')+'</span><strong>'+l.name+'</strong>'+
-  (l.ready?'<span class="level-stars" aria-label="'+(rating?rating.stars+' von 3 Sternen':'Noch keine Sterne')+'">'+stars+'</span>':'<span class="level-unavailable">IN VORBEREITUNG</span>')+
+  (l.ready?'<span class="level-stars" aria-label="'+(rating?rating.stars+' von 3 Sternen in '+DIFFICULTIES[selectedDifficulty].name:'Noch keine Sterne im neuen Modus')+'">'+stars+'</span>'+(legacy?'<span class="legacy-stars" aria-label="Frühere Version: '+legacy.stars+' von 3 Sternen">V0.4 ★'+legacy.stars+'</span>':''):'<span class="level-unavailable">IN VORBEREITUNG</span>')+
   ''+'</button>';
  }).join('');
  $('campaign-note').textContent='Verfügbare Waffen: '+chapter.weapon+'. Welle 1 startest du selbst.';
@@ -168,9 +170,9 @@ function levelWaves(){
  }));
 }
 const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d'),boardbox=$('boardbox'),mini=$('minimap'),mc=mini.getContext('2d');
-const buildButtons=[...document.querySelectorAll('.build')],speedValues=[2],minZoom=.35,maxZoom=3;
+const buildButtons=[...document.querySelectorAll('.build')],speedValues=[1,2,3],minZoom=.35,maxZoom=3;
 const key=(x,y)=>x+','+y,adj=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1;
-let g,previous=performance.now(),acc=0,speedIndex=0,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null,pipeTypeCache=null,displayRatios=new Map(),lastDisplayAt=null;
+let g,previous=performance.now(),acc=0,speedIndex=1,zoom=1,nextId=1,pointerPositions=new Map(),gesture=null,networkConnectionCache=new Map(),topologyVersion=0,flowCache=null,activeFlowCache=null,pipeTypeCache=null,displayRatios=new Map(),lastDisplayAt=null;
 // Per-tick spatial index makes mortar targeting predictable under dense swarms.
 const enemyPositions=new Map(),enemyBuckets=new Map(),splashCache=new Map(),targetCache=new Map();
 function refreshEnemyGeometry(){
@@ -224,7 +226,7 @@ function pipeTypes(){if(pipeTypeCache&&pipeTypeCache.version===topologyVersion)r
 function reset(){
  warningExpires=0;warningText='';hoverCell=null;$('gold-warning').hidden=true;$('gold').classList.remove('low-gold');
  activeCategory=null;delete $('wave-list').dataset.ready;
- nextId=1;speedIndex=0;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;displayRatios.clear();lastDisplayAt=null;
+ nextId=1;speedIndex=1;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;displayRatios.clear();lastDisplayAt=null;
  const difficulty=DIFFICULTIES[selectedDifficulty];
  g={mode:'playing',levelId:currentLevel.id,phase:'build',wave:0,paused:false,time:0,enemyDelay:null,difficulty:selectedDifficulty,gold:difficulty.startGold,metal:0,ammo:0,hp:difficulty.hq,kills:0,leaks:0,bossDefeated:false,bossEscaped:false,
   selected:null,buildings:[],packets:[],enemies:[],shots:[],spawner:null,deliveredMetal:0,deliveredAmmo:0,producedMetal:0,producedAmmo:0,ammoSpent:0,shotsFired:0,
@@ -484,7 +486,9 @@ function killEnemy(e){
  if(e.kind==='boss')inform('BOSS GESTOPPT! Besiege die letzten Begleitgegner.');
 }
 function hitEnemy(e,raw,pierce){
- e.hp-=Math.max(1,raw-Math.max(0,(e.armor||0)-pierce));
+ // Standard changes only effective player-weapon damage, AFTER armor and minimum hit.
+ const effective=Math.max(1,raw-Math.max(0,(e.armor||0)-pierce));
+ e.hp-=effective*(1+DIFFICULTIES[g.difficulty].damageBonus);
  if(e.kind==='boss'&&e.hp<=e.max*.5&&!e.enraged){e.enraged=true;e.speed*=1.38;e.armor=currentLevel?.challenge!==undefined?0:2;inform('⚠ BOSS-PHASE 2: Der Boss beschleunigt!');}
  if(e.hp<=0)killEnemy(e);
 }
@@ -579,6 +583,11 @@ function renderDetails(){if(!g?.selectedBuildingId)return;const b=g.buildings.fi
  $('details-state').textContent=info.text;$('details-explain').textContent=info.period+' · '+percent+' %'+(b.type==='mine'?' der möglichen Förderung':' des maximalen Bedarfs');
 }
 function update(){if(!g)return;
+ $('speed-controls').hidden=g.mode!=='playing'||g.phase!=='combat';
+ document.querySelectorAll('[data-speed]').forEach(b=>{
+  const chosen=Number(b.dataset.speed)===speedValues[speedIndex];
+  b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));
+ });
  $('gold').textContent=g.gold;
  if(g.phase==='build'){g.metal=flow(false).metalRate;g.ammo=flow(false).ammoRate;}
 
@@ -724,6 +733,14 @@ $('dock-toggle').addEventListener('click',()=>{
 function pause(){if(g.mode!=='playing')return;if(g.phase==='build'){startWave();return;}
  g.paused=!g.paused;inform(g.paused?'Pause: Kampf und Industrie stehen.':'Kampf und Materialfluss laufen weiter.');update();}
 $('pause').addEventListener('click',pause);
+function setSpeed(value){
+ const factor=Number(value);
+ if(!g||g.mode!=='playing'||g.phase!=='combat'||!speedValues.includes(factor))return false;
+ speedIndex=speedValues.indexOf(factor);acc=0;update();return true;
+}
+$('speed-controls').addEventListener('click',e=>{
+ const b=e.target.closest('button[data-speed]');if(b)setSpeed(b.dataset.speed);
+});
 
 function goto(x,y){const scale=canvas.getBoundingClientRect().width/(W*S);boardbox.scrollLeft=Math.max(0,(x+.5)*S*scale-boardbox.clientWidth/2);boardbox.scrollTop=Math.max(0,(y+.5)*S*scale-boardbox.clientHeight/2);drawMini();}
 mini.addEventListener('click',e=>{const r=mini.getBoundingClientRect();goto(Math.floor((e.clientX-r.left)/r.width*W),Math.floor((e.clientY-r.top)/r.height*H));});
@@ -748,7 +765,7 @@ $('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zu
 document.addEventListener('keydown',e=>{if(e.key==='1')select('turret');if(e.key==='2')select('mine');if(e.key==='3')select('factory');if(e.key==='4')select('pipe');if(e.key==='5')select('bridge');if(e.key==='6'||e.key==='Delete')select('eraser');if(e.key==='Escape'&&g){g.selected=null;update();}if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();pause();}});
 document.addEventListener('visibilitychange',()=>{previous=performance.now();acc=0;});
 
-window.ForgefrontDebug={buildId:()=>BUILD_ID,setDifficulty:changeDifficulty,startLevel,showCampaign,levels:()=>ALL_LEVELS.map(l=>({id:l.id,ready:l.ready,unlocked:unlocked(l.id)})),chapters:()=>CHAPTERS.map((ch,i)=>({id:ch.id,unlocked:chapterUnlocked(i),completed:chapterCompleted(ch),reward:ch.reward})),map:()=>({hq:{...HQ},path:PATH.map(p=>[...p]),ore:[...ORE]}),save:()=>JSON.parse(JSON.stringify(save)),score,difficulties:()=>JSON.parse(JSON.stringify(DIFFICULTIES)),pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),allowedBuilding:buildingAvailable,testAccess:()=>devTestAccess,waves:()=>levelWaves().map((w,i)=>({label:w.label,composition:wavePreview(i),count:w.count,bossHp:w.bossHp||null})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
+window.ForgefrontDebug={buildId:()=>BUILD_ID,setDifficulty:changeDifficulty,setSpeed,speed:()=>speedValues[speedIndex],startLevel,showCampaign,levels:()=>ALL_LEVELS.map(l=>({id:l.id,ready:l.ready,unlocked:unlocked(l.id)})),chapters:()=>CHAPTERS.map((ch,i)=>({id:ch.id,unlocked:chapterUnlocked(i),completed:chapterCompleted(ch),reward:ch.reward})),map:()=>({hq:{...HQ},path:PATH.map(p=>[...p]),ore:[...ORE]}),save:()=>JSON.parse(JSON.stringify(save)),score,difficulties:()=>JSON.parse(JSON.stringify(DIFFICULTIES)),pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),allowedBuilding:buildingAvailable,testAccess:()=>devTestAccess,waves:()=>levelWaves().map((w,i)=>({label:w.label,composition:wavePreview(i),count:w.count,bossHp:w.bossHp||null})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
 function frame(now){
  if(warningExpires&&now>=warningExpires){warningExpires=0;$('gold-warning').hidden=true;$('gold').classList.remove('low-gold');}
  const dt=Math.min(.1,(now-previous)/1000);previous=now;
