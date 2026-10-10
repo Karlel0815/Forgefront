@@ -7,17 +7,17 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 const code=fs.readFileSync(path.join(__dirname,'../src/game.js'),'utf8');
-const hook=`// A/B only: wrap actual per-level wave definitions inside the test VM.
-// The published game code, stage data and all existing T0 runs remain unchanged.
+const hook=`// A/B regression: preserve T0 and T2 as historical controls while T3 is now
+// the real DEV3 level profile in src/game.js; the VM defaults to shipped T3.
 const __baseLevelWaves=levelWaves;
-let __balanceVariant='T0';
+let __balanceVariant='T3';
 levelWaves=function(){
  const original=__baseLevelWaves();
  const id=currentLevel?.id;
  return original.map((wave,i)=>{
   if(__balanceVariant==='T1'&&/^c1-l[23]$/.test(id)&&i>=4)return {...wave,hp:wave.hp+1};
-  if(__balanceVariant==='T2'&&id==='c3-l2'&&i>=3)return {...wave,heavyShare:wave.heavyShare+.06};
-  if(__balanceVariant==='T3'&&id==='c3-l2'&&i>=3)return {...wave,panicGroups:wave.panicGroups+1};
+  if(__balanceVariant==='T0'&&id==='c3-l2'&&i>=3)return {...wave,panicGroups:wave.panicGroups-1};
+  if(__balanceVariant==='T2'&&id==='c3-l2'&&i>=3)return {...wave,panicGroups:wave.panicGroups-1,heavyShare:wave.heavyShare+.06};
   return wave;
  });
 };
@@ -849,6 +849,12 @@ test('BALANCE_AB_11: T0/T1/T2/T3 full legal Schwer runs and unchanged control ma
   }
  }
  const baseline=by('c3-l2','T0','cannon');
+ // The shipped engine (no VM overrides) must be the approved DEV3 T3 layout.
+ const live=boot('hard');
+ assert.equal(live.qa.balanceVariant(),'T3');
+ live.dbg.showCampaign();live.E['dev-test-levels'].events.click();
+ assert.equal(live.dbg.startLevel('c3-l2'),true);
+ assert.deepEqual(live.qa.readPlans().slice(3).map(p=>p.units.filter(u=>u.kind==='panic').length),[12,16,12]);
  for(const variant of ['T2','T3']){
   const changed=by('c3-l2',variant,'cannon');
   for(let i=0;i<6;i++){
