@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 // Internal only. A VM-level test hook injects candidates without changing game code.
-const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
 const G=require('./map-generator.cjs');
 const src=path.join(__dirname,'..','src','game.js');
 const id=(x,y)=>x+','+y;
@@ -132,12 +132,15 @@ function nextNetwork(dbg,map,plans,family){
    guns.every(g=>distance(g,p.gun)>=3)&&
    p.buildings.every(b=>!taken.has(id(b.x,b.y))||taken.get(id(b.x,b.y))===b.type));
  for(const p of candidates.slice(0,24)){
+   const before=new Set(dbg.snapshot().buildings.map(b=>id(b.x,b.y)));
    if(!placeGroup(dbg,p.buildings))continue;
    const turret=dbg.snapshot().buildings.find(b=>b.type==='turret'&&
      b.x===p.gun[0]&&b.y===p.gun[1]);
    const rate=turret&&dbg.rates().find(b=>b.id===turret.id);
    if(rate?.ratio>=99)return true;
-   // Unexpected undersupply: keep legal build but never declare it successful.
+   // Roll back all uncommitted additions if this net provides no real supply.
+   const additions=dbg.snapshot().buildings.filter(b=>!before.has(id(b.x,b.y)));
+   for(const b of additions.reverse())dbg.erase(b.x,b.y,true);
  }
  return false;
 }
@@ -189,6 +192,34 @@ function scriptedReference(map,steps){
  return {status:isVerifiedVictory(st)?'WIN_VERIFIED':'NO_WIN_FOUND_WITHIN_SEARCH_BUDGET',
    history,bossDefeated:st.bossDefeated,bossEscaped:st.bossEscaped,hp:st.hp};
 }
+
+function renderReview(maps,results){
+ const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const cards=maps.map((m,i)=>{
+   const r=results[i],best=r.runs?.find(run=>run.status==='WIN_VERIFIED')||r.runs?.[0];
+   const svg='<svg viewBox="0 0 288 320" role="img" aria-label="Karte">'+
+     '<rect width="288" height="320" fill="#132630"/>'+
+     '<polyline points="'+m.path.map(([x,y])=>(x*16+8)+','+(y*16+8)).join(' ')+
+     '" fill="none" stroke="#9aa9b0" stroke-width="12" stroke-linejoin="round"/>'+
+     m.ore.map(([x,y])=>'<rect x="'+(x*16+2)+'" y="'+(y*16+2)+
+       '" width="12" height="12" rx="2" fill="#e3a74c"/>').join('')+
+     '<circle cx="'+(m.hq.x*16+8)+'" cy="'+(m.hq.y*16+8)+'" r="8" fill="#ee7286"/></svg>';
+   const trail=best?.history?.map(w=>'W'+w.wave+': '+w.mode+', HQ '+w.hp+
+     ', Leaks '+w.leaks).join(' · ')||'Kein vollständiger Bauplan gefunden';
+   return '<article>'+svg+'<h2>'+escape(m.candidateId)+'</h2>'+
+     '<p>Seed '+m.seed+' · Motiv '+escape(m.motif)+' · Route '+m.routeId+'</p>'+
+     '<strong>'+escape(r.status)+'</strong>'+
+     '<p>Getestete Bauplanfamilien: '+(r.runs?.length||0)+
+     ' · bestätigte Sieger: '+(r.winningFamilies?.length||0)+'</p>'+
+     '<p>'+escape(trail)+'</p><small>Map-Hash '+escape(m.mapHash.slice(0,16))+'</small></article>';
+ }).join('');
+ return '<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width">'+
+   '<title>Forgefront – echte Engine-Maptests</title>'+
+   '<style>body{background:#0d1922;color:#eff4f6;font:16px system-ui;margin:2rem}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}'+
+   'article{padding:1rem;background:#1b303d;border:1px solid #4c626f;border-radius:14px}svg{width:100%}p,small{color:#becdd5}strong{color:#91e3b8}</style>'+
+   '<h1>Forgefront – intern geprüfte Karten</h1><p>Alle Karten wurden mit demselben Hard-Profil und echten Engine-Wellen getestet. WIN_VERIFIED bedeutet echten Bosskill. Kein Sieg im Suchbudget beweist KEINE Unlösbarkeit. Die Schwierigkeit und Spielqualität wurden noch nicht durch Menschen bewertet.</p><main>'+cards+'</main></html>';
+}
+
 function cli(argv=process.argv.slice(2)){
  let seed=52741,count=2,out=null;
  for(let i=0;i<argv.length;i++){
@@ -199,16 +230,18 @@ function cli(argv=process.argv.slice(2)){
  }
  if(!Number.isInteger(seed)||seed<0||seed>0xffffffff||
    !Number.isInteger(count)||count<1||count>10)throw Error('Invalid seed/count');
- const source=fs.readFileSync(src,'utf8'),templates=G.extractBlueprints(source),results=[];
+ const source=fs.readFileSync(src,'utf8'),templates=G.extractBlueprints(source),results=[],maps=[];
+ const engineSourceHash=crypto.createHash('sha256').update(source).digest('hex');
  for(let i=0;i<count;i++){
    const c=G.candidate(templates[i%3],(seed+i*1013)>>>0,
-     ['split','front','remote'][i%3],'game-hash');
-   results.push(analyze(c,{families:['balanced','fire']}));
+     ['front','remote','split'][i%3],engineSourceHash);
+   maps.push(c);results.push(analyze(c,{families:['balanced','fire']}));
  }
- const result={simulatorVersion:'P1.0',profile:'hard-c1-l1-fixed-challenge0',
+ const result={simulatorVersion:'P1.1',engineSourceHash,profile:'hard-c1-l1-fixed-challenge0',
    note:'Unsuccessful bounded search is not proof of unplayability.',results};
  if(out){const file=path.resolve(out);fs.mkdirSync(path.dirname(file),{recursive:true});
-   fs.writeFileSync(file,JSON.stringify(result,null,2)+'\n');}
+   fs.writeFileSync(file,JSON.stringify(result,null,2)+'\n');
+   fs.writeFileSync(path.join(path.dirname(file),'review.html'),renderReview(maps,results));}
  console.log(JSON.stringify({trials:results.length,
    confirmedWins:results.filter(x=>x.status==='WIN_VERIFIED').length,
    uncertain:results.filter(x=>x.status==='NO_WIN_FOUND_WITHIN_SEARCH_BUDGET').length,
@@ -216,4 +249,4 @@ function cli(argv=process.argv.slice(2)){
  return result;
 }
 if(require.main===module)try{cli();}catch(e){console.error(e.stack||e);process.exitCode=1;}
-module.exports={boot,isVerifiedVictory,playWave,placeGroup,runFamily,analyze,scriptedReference,cli};
+module.exports={boot,isVerifiedVictory,playWave,placeGroup,runFamily,analyze,scriptedReference,renderReview,cli};
