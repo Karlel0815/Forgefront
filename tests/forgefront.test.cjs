@@ -331,6 +331,36 @@ test('DEV2: Panikdrohne speeds up once only on a nonlethal hit',()=>{
  assert.equal(oneShot.progress[0].panicked,false);
  assert.equal(oneShot.gold,1);
 });
+test('DEV2_EXPLORATORY: twelve Schwer campaigns with candidate mixed-weapon layouts (NOT balance acceptance)',()=>{
+ const costs={mine:22,factory:18,turret:24,cannon:38,mortar:42,pipe:4,bridge:10};
+ const records=[];
+ for(let chapter=1;chapter<=4;chapter++)for(let map=1;map<=3;map++){
+  const id=`c${chapter}-l${map}`,b=boot('hard'),plan=PLANS[`c1-l${map}`];
+  b.dbg.showCampaign();b.E['dev-test-levels'].events.click();
+  assert.equal(b.dbg.startLevel(id),true);
+  const history=[];let skipped=0;
+  for(let wave=1;wave<=6;wave++){
+   for(const [type,x,y] of plan[wave]){
+    let weapon=type;
+    if(type==='turret'&&chapter>=2&&(wave===1||wave===4))weapon='cannon';
+    if(type==='turret'&&chapter>=3&&(wave===2||wave===6))weapon='mortar';
+    if(b.dbg.snapshot().gold>=costs[weapon]&&b.dbg.place(weapon,x,y))continue;
+    if(weapon!==type&&b.dbg.snapshot().gold>=costs[type]&&b.dbg.place(type,x,y))continue;
+    skipped++;
+   }
+   if(!b.dbg.startWave())break;
+   b.dbg.advance(250);
+   const x=b.dbg.snapshot();
+   history.push({wave,hp:x.hp,leaks:x.leaks,kills:x.kills,gold:x.gold,mode:x.mode,boss:x.bossDefeated});
+   if(x.mode!=='playing')break;
+  }
+  const end=b.dbg.snapshot();
+  records.push({id,mode:end.mode,phase:end.phase,waves:history.length,hp:end.hp,kills:end.kills,leaks:end.leaks,gold:end.gold,skipped,boss:end.bossDefeated,escaped:end.bossEscaped,history});
+ }
+ for(const row of records)console.log('DEV2_EXPLORATORY '+JSON.stringify(row));
+ assert.equal(records.length,12);
+});
+
 test('DEV2: all twelve chapter/map wave profiles are distinct and follow planned types',()=>{
  const b=boot('hard');
  b.dbg.showCampaign();b.E['dev-test-levels'].events.click();
