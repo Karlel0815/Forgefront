@@ -331,47 +331,49 @@ test('DEV2: Panikdrohne speeds up once only on a nonlethal hit',()=>{
  assert.equal(oneShot.progress[0].panicked,false);
  assert.equal(oneShot.gold,1);
 });
-test('DEV2_EXPLORATORY: twelve Schwer campaigns with candidate mixed-weapon layouts (NOT balance acceptance)',()=>{
+test('DEV2: all 12 Schwer maps have six real waves and an actual boss kill',()=>{
  const costs={mine:22,factory:18,turret:24,cannon:38,mortar:42,pipe:4,bridge:10};
  const records=[];
- for(const strategy of ['early','late','specialist'])for(let chapter=1;chapter<=4;chapter++)for(let map=1;map<=3;map++){
+ for(let chapter=1;chapter<=4;chapter++)for(let map=1;map<=3;map++){
   const id=`c${chapter}-l${map}`,b=boot('hard'),plan=PLANS[`c1-l${map}`];
   b.dbg.showCampaign();b.E['dev-test-levels'].events.click();
   assert.equal(b.dbg.startLevel(id),true);
-  const history=[];let skipped=0;
+  const history=[];
   for(let wave=1;wave<=6;wave++){
-   let waveBuilds=plan[wave].slice();
-   // For the hard K4 supply map, move the end-route defense forward by two waves.
-   if(strategy==='specialist'&&chapter===4&&map===1){
-    if(wave===2)waveBuilds=plan[4].slice();
-    if(wave===3)waveBuilds=[['cannon',12,14]];
-    if(wave===4)waveBuilds=plan[2].slice();
+   let builds=plan[wave].slice();
+   if(chapter===4&&map===1){
+    if(wave===2)builds=plan[4].slice();
+    if(wave===3)builds=[['cannon',12,14]];
+    if(wave===4)builds=plan[2].slice();
    }
-   for(const [type,x,y] of waveBuilds){
+   for(const [type,x,y] of builds){
     let weapon=type;
-    if(strategy==='early'){
-     if(type==='turret'&&chapter>=2&&(wave===1||wave===4))weapon='cannon';
-     if(type==='turret'&&chapter>=3&&(wave===2||wave===6))weapon='mortar';
-    }else{
-     if(type==='turret'&&chapter>=2&&(wave===2||wave===4))weapon='cannon';
-     if(strategy==='specialist'&&chapter===4&&type==='turret'&&(wave===5||wave===6))weapon='cannon';
-     else if(type==='turret'&&chapter>=3&&wave===6)weapon='mortar';
-    }
-    if(b.dbg.snapshot().gold>=costs[weapon]&&b.dbg.place(weapon,x,y))continue;
-    if(weapon!==type&&b.dbg.snapshot().gold>=costs[type]&&b.dbg.place(type,x,y))continue;
-    skipped++;
+    if(type==='turret'&&chapter>=2&&(wave===2||wave===4))weapon='cannon';
+    if(type==='turret'&&chapter===4&&(wave===5||wave===6))weapon='cannon';
+    else if(type==='turret'&&chapter===3&&wave===6)weapon='mortar';
+    assert.ok(b.dbg.snapshot().gold>=costs[weapon],`${id} W${wave} lacks gold for ${weapon}`);
+    assert.equal(b.dbg.place(weapon,x,y),true,`${id} W${wave} cannot place ${weapon}@${x},${y}`);
    }
-   if(!b.dbg.startWave())break;
+   assert.equal(b.dbg.startWave(),true,`${id} W${wave} did not start`);
    b.dbg.advance(250);
-   const x=b.dbg.snapshot();
-   history.push({wave,hp:x.hp,leaks:x.leaks,kills:x.kills,gold:x.gold,mode:x.mode,boss:x.bossDefeated});
-   if(x.mode!=='playing')break;
+   const state=b.dbg.snapshot();
+   assert.equal(state.wave,wave,`${id} wrong wave index`);
+   history.push({wave,gold:state.gold,hp:state.hp,kills:state.kills,leaks:state.leaks});
+   if(wave<6)assert.equal(state.phase,'build',`${id} W${wave} ended early: ${state.mode}`);
   }
   const end=b.dbg.snapshot();
-  records.push({strategy,id,mode:end.mode,phase:end.phase,waves:history.length,hp:end.hp,kills:end.kills,leaks:end.leaks,gold:end.gold,skipped,boss:end.bossDefeated,escaped:end.bossEscaped,history});
+  assert.equal(end.mode,'won',`${id} lost: ${JSON.stringify(history)}`);
+  assert.equal(end.bossDefeated,true,`${id} boss was not killed`);
+  assert.equal(end.bossEscaped,false,`${id} boss escaped`);
+  assert.ok(end.hp>0,`${id} HQ destroyed`);
+  assert.ok(end.gold>=0,`${id} negative gold`);
+  assert.ok(end.producedAmmo+1e-6>=end.ammoSpent,`${id} created free ammo`);
+  assert.equal(end.kills+end.leaks,b.dbg.waves().reduce((n,w)=>n+w.count,0)+1,`${id} spawned wrong count`);
+  records.push({id,gold:end.gold,hp:end.hp,leaks:end.leaks,kills:end.kills,
+   boss:end.bossDefeated,buildings:end.buildings.length});
  }
- for(const row of records)console.log('DEV2_EXPLORATORY '+JSON.stringify(row));
- assert.equal(records.length,36);
+ console.log('DEV2_12_FULLRUNS '+JSON.stringify(records));
+ assert.equal(records.length,12);
 });
 
 test('DEV2: all twelve chapter/map wave profiles are distinct and follow planned types',()=>{
