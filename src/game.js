@@ -281,7 +281,7 @@ function warnGold(cost,type){
  inform(warningText);
 }
 function payGold(cost){if(g.gold<cost)return false;g.gold-=cost;return true;}
-function refundRate(){return ECONOMY.refundByDifficulty[ECONOMY.difficulty];}
+
 function erase(x,y,silent=false){
  if(g.mode!=='playing'||g.phase!=='build'){if(!silent)inform('Abriss ist während einer Angriffswelle gesperrt.');return false;}
  const b=at(x,y);if(!b){if(!silent)inform('Hier steht kein Gebäude.');return false;}
@@ -598,7 +598,7 @@ function wavePreview(i){
 function updateWavePreview(){
  const waves=levelWaves(),descriptions=waves.map((w,i)=>wavePreview(i));
  const i=Math.min(g.wave,MAX_WAVES-1);
- const label='NÄCHSTE WELLE '+(i+1)+' · '+waves[i].label+' · '+descriptions[i];
+ const label='NÄCHSTE WELLE '+(i+1)+' · '+waves[i].label+' · '+descriptions[i]+(waves[i].panicGroups?' · ⚡ Sprint nach Treffer':'');
  if($('next-wave').textContent!==label)$('next-wave').textContent=label;
  $('wave-preview').hidden=g.mode==='won'||g.mode==='lost'||g.phase!=='build';
  $('combat-count').hidden=g.mode!=='playing'||g.phase!=='combat';
