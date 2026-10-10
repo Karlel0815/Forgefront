@@ -32,6 +32,8 @@ const hook=`window.ForgefrontQA={
  setLeaks(n){g.leaks=n;},
  endWin(leaks=0){g.leaks=leaks;g.bossDefeated=true;g.bossEscaped=false;g.mode='playing';g.phase='combat';finish(true);},
  endLoss(){g.bossDefeated=false;g.bossEscaped=true;g.mode='playing';g.phase='combat';finish(false);},
+ accumulator:()=>acc,
+ setAccumulator(value){acc=value;},
  damageProbe(difficulty,raw=3,armor=0,pierce=0){
   g.difficulty=difficulty;g.phase='combat';g.wave=1;
   const enemy={id:42042,pos:0,hp:100,max:100,armor,kind:'normal',speed:0,wave:1,enraged:false};
@@ -220,6 +222,80 @@ test('V0.4 historical stars and unlocks survive with separate V0.5 result keys',
  assert.equal(b.dbg.startLevel('c1-l1'),true);b.qa.endWin(0);
  assert.equal(b.dbg.save().results['c1-l1'].v05_hard.stars,3);
  assert.equal(history.hard.stars,1,'legacy Schwer medal must not be overwritten');
+});
+
+
+test('SAVE-01: malformed v1 cannot mask or overwrite a healthy v2 save',()=>{
+ const storage=new Map(),old={version:2,difficulty:'hard',theme:'light',tutorialSeen:true,
+  results:{'c1-l1':{hard:{stars:3,leaks:0},v05_hard:{stars:2,leaks:1}}}};
+ storage.set('forgefront.progress.v1','{corrupted!');
+ storage.set('forgefront.progress.v2',JSON.stringify(old));
+ const b=boot('hard',storage);
+ assert.equal(b.dbg.save().theme,'light');
+ assert.equal(b.dbg.save().results['c1-l1'].hard.stars,3);
+ assert.equal(b.dbg.save().results['c1-l1'].v05_hard.stars,2);
+ assert.equal(b.dbg.levels()[1].unlocked,true);
+ b.dbg.showCampaign();assert.equal(b.dbg.setDifficulty('standard'),true);
+ const stored=JSON.parse(storage.get('forgefront.progress.v2'));
+ assert.equal(stored.results['c1-l1'].hard.stars,3);
+ assert.equal(stored.results['c1-l1'].v05_hard.stars,2);
+ assert.equal(stored.difficulty,'standard');
+ assert.equal(boot('standard',storage).dbg.save().results['c1-l1'].v05_hard.stars,2);
+});
+test('SAVE-02: malformed level entries cannot lose new V0.5 stars on JSON roundtrip',()=>{
+ const invalid=[[],null,'broken',1,false,{}, {hard:{stars:3,leaks:0},v05_hard:{stars:2,leaks:3}}];
+ for(const entry of invalid){
+  const storage=new Map();
+  storage.set('forgefront.progress.v2',JSON.stringify({version:2,difficulty:'standard',theme:'dark',
+   tutorialSeen:true,results:{'c1-l1':entry}}));
+  const b=boot('standard',storage);b.qa.endWin(0);
+  const stored=JSON.parse(storage.get('forgefront.progress.v2')).results['c1-l1'];
+  assert.equal(stored.v05_standard.stars,3,JSON.stringify(entry));
+  assert.equal(boot('standard',storage).dbg.save().results['c1-l1'].v05_standard.stars,3);
+  if(entry&&typeof entry==='object'&&!Array.isArray(entry)&&entry.hard){
+   assert.equal(stored.hard.stars,3);assert.equal(stored.v05_hard.stars,2);
+  }
+ }
+});
+test('SAVE-03: malformed v2 bytes remain untouched even when the game autosaves',()=>{
+ const storage=new Map(),damaged='{broken-v2-json';
+ storage.set('forgefront.progress.v2',damaged);
+ storage.set('forgefront.progress.v1',JSON.stringify({version:1,difficulty:'hard',theme:'light'}));
+ const b=boot('standard',storage);
+ assert.equal(storage.get('forgefront.progress.v2'),damaged);
+ assert.ok(b.E['campaign-note'].textContent.includes('nicht gespeichert'));
+ b.qa.endWin(0);
+ assert.equal(storage.get('forgefront.progress.v2'),damaged,'never overwrite unreadable original bytes');
+});
+test('TEMPO-01: speed switches do not discard partial simulation time',()=>{
+ const b=boot('hard');b.dbg.startWave();
+ b.qa.setAccumulator(.019);
+ assert.equal(b.dbg.setSpeed(3),true);assert.equal(b.qa.accumulator(),.019);
+ assert.equal(b.dbg.setSpeed(3),true);assert.equal(b.qa.accumulator(),.019);
+ b.E['pause'].events.click();
+ assert.equal(b.dbg.setSpeed(1),true);assert.equal(b.qa.accumulator(),.019);
+ const now=b.dbg.snapshot().time;
+ b.stepFrames(20,60);assert.equal(b.dbg.snapshot().time,now);
+ b.E['pause'].events.click();
+ assert.equal(b.dbg.setSpeed(2),true);
+});
+test('TEMPO-02: first full combat wave has identical results at 1x, 2x and 3x',()=>{
+ const runs=[];
+ for(const speed of [1,2,3]){
+  const b=boot('hard');build(b,classicStart);b.dbg.startWave();
+  assert.equal(b.dbg.setSpeed(speed),true);
+  let finished=false;
+  for(let i=0;i<180*30;i++){
+   b.stepFrames(1,30);
+   const snapshot=b.dbg.snapshot();
+   if(snapshot.phase==='build'&&snapshot.wave===1){finished=true;break;}
+  }
+  assert.ok(finished,'wave must finish at '+speed+'x');
+  const x=b.dbg.snapshot();
+  runs.push({hp:x.hp,kills:x.kills,gold:x.gold,shots:x.shotsFired,leaks:x.leaks,
+    ammoSpent:x.ammoSpent,producedAmmo:x.producedAmmo,mode:x.mode,boss:x.bossDefeated});
+ }
+ assert.deepEqual(runs[0],runs[1]);assert.deepEqual(runs[1],runs[2]);
 });
 
 test('Chapter 1 hard-locks advanced weapons, even through direct API calls',()=>{
