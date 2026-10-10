@@ -46,3 +46,54 @@
 /* Intro and result dialogs must remain visible above the fixed mobile build toolbar. */
 #overlay{position:fixed;inset:0;z-index:60;overflow-y:auto;padding:12px}
 #overlay .intro{max-height:calc(100dvh - 24px);overflow-y:auto}
+
+/* V0.4 Campaign prototype: isolated navigation; game HUD is absent from menu. */
+[hidden]{display:none!important}
+.campaign{min-height:100dvh;color:#eaf3fa;background:radial-gradient(ellipse at 15% 0%,#263c51,#0b1627 75%);padding:0 12px 130px}
+.campaign-inner{max-width:760px;margin:0 auto}
+.campaign-header{display:flex;align-items:center;justify-content:space-between;padding:23px 4px 16px}
+.campaign-header h1{font-size:clamp(23px,5vw,33px);letter-spacing:.07em;margin:0}.campaign-header h1 span{color:#f5c383}.campaign-header p{color:#93adbf;letter-spacing:.09em;font-size:10px;margin:4px 0}
+.icon-button{height:40px;min-width:42px;border:1px solid #53768c;border-radius:10px;color:#e6f5fb;background:#21425a;font-size:21px}
+.campaign-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 3px 9px}
+.campaign-heading h2{font-size:15px;margin:0;font-weight:800}.campaign-heading span{font-size:11px;color:#a7bdcd;text-align:right}
+.chapter-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.chapter-tab{background:#203c52;border:1px solid #426580;border-radius:9px;color:#afc8d7;min-height:45px;font-weight:800;font-size:13px}
+.chapter-tab.selected{border-color:#f1bf79;background:#36485a;color:#ffdfa4}.chapter-tab:disabled{opacity:.45}
+.level-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:12px}
+.level-card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:6px;min-height:166px;padding:12px 7px;border:1px solid #466b82;border-radius:13px;background:linear-gradient(155deg,#213e54,#15283d);color:#eef6fb}
+.level-card.available{cursor:pointer}.level-card.available:focus-visible{outline:3px solid #f9c57c;outline-offset:2px}.level-card.locked{opacity:.63}.level-card strong{font-size:13px;min-height:30px;display:flex;align-items:center;text-align:center}.level-number{color:#a7bbc9;letter-spacing:.07em;font-size:10px;font-weight:800}.level-glyph{font-size:31px;color:#f4cb8d;line-height:1.2}
+.level-card .level-stars{display:flex;gap:2px;font-size:19px;letter-spacing:.03em;color:#688096}.level-stars .earned{color:#ffd37c}.level-unavailable{font-size:9px;color:#bbc8d5;letter-spacing:.04em}.lock-icon{position:absolute;top:10px;right:10px;font-size:13px}
+.campaign-note{text-align:center;color:#aec5d4;font-size:12px;line-height:1.45;padding:14px 9px}
+.campaign-footer{position:fixed;z-index:20;bottom:0;left:0;right:0;background:#102238f5;border-top:1px solid #42637c;padding:12px max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom));display:grid;gap:5px;justify-items:center}
+.campaign-footer label{color:#efc784;font-size:10px;font-weight:850;letter-spacing:.12em}
+.campaign-footer select{width:min(95vw,700px);border:1px solid #608299;border-radius:9px;min-height:42px;background:#233f55;color:#fff;text-align:center;font-weight:800;font-size:14px}
+.campaign-footer small{color:#99b5c6;font-size:10px;text-align:center}
+.settings-panel{position:fixed;z-index:80;inset:0;background:#07111dd9;padding:18px;display:flex;align-items:center;justify-content:center}
+.settings-card{width:min(100%,410px);background:#1b3449;border:1px solid #7794a5;border-radius:15px;padding:17px;color:#f3f7fb;display:grid;gap:13px;box-shadow:0 20px 55px #061326bb}
+.settings-title{display:flex;align-items:center;justify-content:space-between}.settings-title h2{margin:0;font-size:20px}.settings-card label{font-size:12px;font-weight:750}.settings-card select{min-height:42px;background:#284a60;color:white;border:1px solid #6b96a6;border-radius:8px;padding:7px}.settings-card p{font-size:12px;line-height:1.5;color:#c4d5e1;margin:0}
+.back-button{border:1px solid #456a80;border-radius:7px;background:#193448;color:#dfebf6;font-weight:750;padding:7px 9px;font-size:11px;white-space:nowrap}
+.result-actions{display:grid;gap:8px;margin-top:14px}.secondary-action{min-height:42px;background:#284c61;color:#eaf8fe;border:1px solid #62869c;border-radius:8px;font-size:13px;font-weight:800}
+.result-rating{color:#ffcb69;font-size:29px;letter-spacing:.05em;font-weight:800;text-align:center;margin-top:9px}
+body[data-menu-theme=light] .campaign{color:#1b3145;background:linear-gradient(145deg,#e5eff4,#f7fafc)}
+body[data-menu-theme=light] .campaign-header h1 span{color:#9d671d}body[data-menu-theme=light] .campaign-header p,body[data-menu-theme=light] .campaign-heading span{color:#617786}
+body[data-menu-theme=light] .chapter-tab{background:#edf4f8;border-color:#bacfdb;color:#35536a}
+body[data-menu-theme=light] .chapter-tab.selected{background:#d5e8f1;border-color:#b98234;color:#283c4e}
+body[data-menu-theme=light] .level-card{background:linear-gradient(140deg,#fff,#e3edf3);border-color:#b1c9d8;color:#1c3c52}
+body[data-menu-theme=light] .level-number,body[data-menu-theme=light] .campaign-note{color:#526f80}
+body[data-menu-theme=light] .level-card .level-stars{color:#a6b6bf}body[data-menu-theme=light] .level-stars .earned,body[data-menu-theme=light] .level-glyph{color:#b88424}
+body[data-menu-theme=light] .campaign-footer{background:#f3f7faf7;border-color:#cad8e2}
+body[data-menu-theme=light] .campaign-footer label{color:#79561c}body[data-menu-theme=light] .campaign-footer small{color:#536f81}
+body[data-menu-theme=light] .campaign-footer select,body[data-menu-theme=light] .icon-button{background:#dceaf1;color:#1b364b;border-color:#abc6d5}
+@media(max-width:390px){.brand h1{font-size:17px}.brand small{display:none}.back-button{font-size:10px;padding:6px}.campaign{padding-left:9px;padding-right:9px}.level-card{min-height:150px}}
+
+.campaign{padding-bottom:180px}
+.difficulty-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;width:min(95vw,700px)}
+.difficulty-buttons button{min-height:43px;min-width:0;padding:8px 2px;background:#224056;border:1px solid #476b82;color:#c2d7e5;border-radius:8px;font-size:12px;font-weight:800}
+.difficulty-buttons button.selected{background:#615039;border-color:#ecc484;color:#fff1cf}
+body[data-menu-theme=light] .difficulty-buttons button{background:#e1ecf2;border-color:#b5ccda;color:#425e70}
+body[data-menu-theme=light] .difficulty-buttons button.selected{background:#f7e4bf;border-color:#b98937;color:#664817}
+@media(max-width:600px){.campaign-note{display:none}}
+
+.chapter-reward{text-align:center;margin:15px auto 2px;padding:11px 9px;max-width:440px;background:#223e55;border:1px solid #486d85;border-radius:9px;color:#efca8f;font-size:12px;font-weight:750}.chapter-reward.completed{border-color:#deb371;background:#384332;color:#ffe3b2}
+.result-unlock{background:#344d52;border:1px solid #ecbe73;color:#ffe0a4;padding:12px 7px;border-radius:10px;margin-top:13px;font-size:14px;font-weight:800;line-height:1.4}.result-unlock[hidden]{display:none!important}
+body[data-menu-theme=light] .chapter-reward{background:#eaf2f6;color:#795322;border-color:#c2d2dd}body[data-menu-theme=light] .chapter-reward.completed{background:#f8ecd2;border-color:#b98937}
