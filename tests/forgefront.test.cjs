@@ -654,9 +654,9 @@ test('Temporary test access opens all chapter maps, but never saves medals',()=>
 test('BALANCE_MATRIX_DEV2: legal weapon choices and late-game purchase opportunity on three maps',()=>{
  const prices={mine:22,factory:18,turret:24,cannon:38,mortar:42,pipe:4,bridge:10};
  const scenarios=[
-  {id:'c2-l3',choices:['mg','late','cannon','extraCannon','frontCannonNear','frontCannonFar']},
-  {id:'c3-l2',choices:['mg','cannon','mortar','mixed','mortarW5','extraNet']},
-  {id:'c4-l2',choices:['mg','cannon','mortar','mixed','mortarW5','extraNet']}
+  {id:'c2-l3',choices:['mg','late','cannon','extraCannon','frontCannonNear','frontCannonFar','extraFrontMG','extraFrontCannon']},
+  {id:'c3-l2',choices:['mg','cannon','mortar','mixed','mortarW5','extraNet','frontMortarW5','frontMortarW6']},
+  {id:'c4-l2',choices:['mg','cannon','mortar','mixed','mortarW5','extraNet','frontMortarW5','frontMortarW6']}
  ];
  const output=[];
  for(const {id,choices} of scenarios){
@@ -673,7 +673,7 @@ test('BALANCE_MATRIX_DEV2: legal weapon choices and late-game purchase opportuni
     const stages=original[wave].map(([type,x,y])=>{
      let weapon=type;
      if(type==='turret'){
-      if(['cannon','extraNet','frontCannonNear','frontCannonFar','mortarW5'].includes(choice)){
+      if(['cannon','extraNet','frontCannonNear','frontCannonFar','mortarW5','frontMortarW5','frontMortarW6','extraFrontMG','extraFrontCannon'].includes(choice)){
        if(wave===2||wave===4||(chapter===4&&wave===5&&choice!=='mortarW5'))weapon='cannon';
        if(wave===5&&choice==='mortarW5')weapon='mortar';
        if(chapter===2&&wave===1&&choice==='frontCannonNear'&&x===7&&y===4)weapon='cannon';
@@ -696,6 +696,11 @@ test('BALANCE_MATRIX_DEV2: legal weapon choices and late-game purchase opportuni
     if(choice==='extraNet'&&wave===6)stages.push(
      ['mine',3,5],['factory',4,5],['cannon',4,4]
     );
+    if((choice==='frontMortarW5'&&wave===5)||(choice==='frontMortarW6'&&wave===6))
+     stages.push(['mine',3,6],['factory',4,6],['mortar',4,5]);
+    if((choice==='extraFrontMG'||choice==='extraFrontCannon')&&wave===5)
+     stages.push(['mine',3,4],['factory',2,4],
+      [choice==='extraFrontMG'?'turret':'cannon',2,3]);
     for(const [type,x,y] of stages){
      if(b.dbg.snapshot().gold<prices[type]){purchaseFailures++;break;}
      if(!b.dbg.place(type,x,y)){purchaseFailures++;break;}
