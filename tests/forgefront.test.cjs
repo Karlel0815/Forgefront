@@ -85,7 +85,7 @@ function runGame(mode,plan=standardSteps,levelId='c1-l1'){const b=boot(mode),dat
  }return{b,history:data,state:b.dbg.snapshot()};}
 
 test('Unique DEV build stamp, flags and zero starting ammo',()=>{
- const b=boot('crazy'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.4.0-dev2');
+ const b=boot('crazy'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.4.0-dev3');
  assert.equal(s.bossDefeated,false);assert.equal(s.bossEscaped,false);assert.equal(s.leaks,0);assert.equal(s.ammoSpent,0);
 });
 test('Boss escapes with remaining HQ: instant loss, boss-specific message',()=>{
@@ -238,7 +238,7 @@ test('Repeated wins never overwrite a better rating and are persisted across bro
 
 test('Three genuine handcrafted maps and 3-slot Chapter 1',()=>{
  const b=boot();const first=b.dbg.map();
- assert.equal(b.dbg.levels().length,3);
+ assert.equal(b.dbg.levels().length,12);
  b.qa.endWin(0);b.dbg.showCampaign();assert.equal(b.dbg.startLevel('c1-l2'),true);
  const second=b.dbg.map();assert.notDeepEqual(second.path,first.path);
  assert.notDeepEqual(second.ore,first.ore);
@@ -302,4 +302,54 @@ test('DEV1 preferences migrate but invalid old medals are not credited to redesi
  assert.equal(b.dbg.save().tutorialSeen,true);
  assert.deepEqual(Object.keys(b.dbg.save().results),[]);
  assert.equal(b.dbg.startLevel('c1-l2'),false);
+});
+
+test('All four chapters share precisely the same three terrain maps',()=>{
+ const b=boot(),maps=[];
+ assert.equal(b.dbg.levels().length,12);
+ assert.deepEqual(b.dbg.chapters().map(c=>c.unlocked),[true,false,false,false]);
+ b.E['dev-test-levels'].events.click();
+ for(let c=1;c<=4;c++)for(let i=1;i<=3;i++){
+  assert.equal(b.dbg.startLevel('c'+c+'-l'+i),true);
+  maps.push({c,i,map:JSON.stringify(b.dbg.map())});
+ }
+ for(let c=2;c<=4;c++)for(let i=1;i<=3;i++){
+  assert.equal(maps.find(m=>m.c===c&&m.i===i).map,maps.find(m=>m.c===1&&m.i===i).map);
+ }
+});
+test('Four chapter wins unlock next weapon and persist per-map stars',()=>{
+ const b=boot('easy');assert.equal(b.dbg.startLevel('c2-l1'),false);
+ for(let c=1;c<=4;c++)for(let i=1;i<=3;i++){
+  if(c!==1||i!==1)assert.equal(b.dbg.startLevel('c'+c+'-l'+i),true);
+  assert.equal(b.dbg.allowedBuilding('cannon'),c>=2);
+  assert.equal(b.dbg.allowedBuilding('mortar'),c>=3);
+  assert.equal(b.dbg.allowedBuilding('research'),false);
+  b.qa.endWin(0);
+  if(i===3){
+   assert.equal(b.E['result-unlock'].hidden,false);
+   assert.match(b.E['o-title'].textContent,/ABGESCHLOSSEN/);
+   if(c===1)assert.match(b.E['result-unlock'].textContent,/KANONE/);
+   if(c===2)assert.match(b.E['result-unlock'].textContent,/MÖRSER/);
+  }
+ }
+ assert.equal(Object.keys(b.dbg.save().results).length,12);
+ assert.equal(b.dbg.chapters().every(ch=>ch.completed),true);
+});
+test('Boss escape at chapter boundary cannot grant weapon unlock',()=>{
+ const b=boot('normal');
+ b.qa.endWin();assert.equal(b.dbg.startLevel('c1-l2'),true);
+ b.qa.endWin();assert.equal(b.dbg.startLevel('c1-l3'),true);
+ b.qa.endLoss();
+ assert.equal(b.dbg.chapters()[1].unlocked,false);
+ assert.equal(b.dbg.startLevel('c2-l1'),false);
+ assert.equal(b.E['result-unlock'].hidden,true);
+});
+test('Temporary test access opens all chapter maps, but never saves medals',()=>{
+ const b=boot();assert.equal(b.dbg.startLevel('c4-l3'),false);
+ b.E['dev-test-levels'].events.click();
+ assert.equal(b.dbg.startLevel('c4-l3'),true);
+ assert.equal(b.dbg.allowedBuilding('cannon'),true);
+ assert.equal(b.dbg.allowedBuilding('mortar'),true);
+ b.qa.endWin();assert.deepEqual(Object.keys(b.dbg.save().results),[]);
+ const fresh=boot('normal',b.storage);assert.equal(fresh.dbg.startLevel('c4-l3'),false);
 });
