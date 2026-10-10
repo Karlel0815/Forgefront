@@ -340,8 +340,13 @@ test('DEV2_EXPLORATORY: twelve Schwer campaigns with candidate mixed-weapon layo
   assert.equal(b.dbg.startLevel(id),true);
   const history=[];let skipped=0;
   for(let wave=1;wave<=6;wave++){
-   const waveBuilds=plan[wave].slice();
-   if(strategy==='specialist'&&chapter===4&&map===1&&wave===3)waveBuilds.push(['cannon',8,15]);
+   let waveBuilds=plan[wave].slice();
+   // For the hard K4 supply map, move the end-route defense forward by two waves.
+   if(strategy==='specialist'&&chapter===4&&map===1){
+    if(wave===2)waveBuilds=plan[4].slice();
+    if(wave===3)waveBuilds=[['cannon',12,14]];
+    if(wave===4)waveBuilds=plan[2].slice();
+   }
    for(const [type,x,y] of waveBuilds){
     let weapon=type;
     if(strategy==='early'){
