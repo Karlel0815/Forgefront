@@ -7,7 +7,21 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 const code=fs.readFileSync(path.join(__dirname,'../src/game.js'),'utf8');
-const hook=`window.ForgefrontQA={
+const hook=`// A/B only: wrap actual per-level wave definitions inside the test VM.
+// The published game code, stage data and all existing T0 runs remain unchanged.
+const __baseLevelWaves=levelWaves;
+let __balanceVariant='T0';
+levelWaves=function(){
+ const original=__baseLevelWaves();
+ const id=currentLevel?.id;
+ return original.map((wave,i)=>{
+  if(__balanceVariant==='T1'&&/^c1-l[23]$/.test(id)&&i>=4)return {...wave,hp:wave.hp+1};
+  if(__balanceVariant==='T2'&&id==='c3-l2'&&i>=3)return {...wave,heavyShare:wave.heavyShare+.06};
+  if(__balanceVariant==='T3'&&id==='c3-l2'&&i>=3)return {...wave,panicGroups:wave.panicGroups+1};
+  return wave;
+ });
+};
+window.ForgefrontQA={
  forceFinal(kind,atExit=false){
   g.mode='playing';g.phase='combat';g.wave=6;g.paused=false;g.hp=10;
   g.bossDefeated=false;g.bossEscaped=false;g.spawner=null;g.enemyDelay=null;
@@ -34,6 +48,8 @@ const hook=`window.ForgefrontQA={
  endLoss(){g.bossDefeated=false;g.bossEscaped=true;g.mode='playing';g.phase='combat';finish(false);},
  accumulator:()=>acc,
  setAccumulator(value){acc=value;},
+ balanceVariant:()=>__balanceVariant,
+ setBalanceVariant(name){if(!['T0','T1','T2','T3'].includes(name))throw new Error('Unsupported balance variant');__balanceVariant=name;},
  readPlans(){return levelWaves().map(def=>({definition:def,units:makePlan(def)}));},
  captureShots:false,
  shotsByWeapon:{},
@@ -742,4 +758,115 @@ test('BALANCE_MATRIX_DEV2: legal weapon choices and late-game purchase opportuni
  assert.equal(output.length,scenarios.reduce((n,x)=>n+x.choices.length,0));
  assert.equal(output.filter(x=>x.purchaseFailures).length,0,
   'Illegal or unaffordable study layouts require a corrected study plan');
+});
+
+
+/* Work package 11: isolated V0.5 Schwer A/B tests. Only VM/test instrumentation
+   switches wave parameters. The playable engine and release HTML stay untouched.
+   All victories must actually kill the boss; losing plans are diagnostics, not cheats. */
+function runBalanceAB(level,variant,choice='cannon'){
+ const b=boot('hard');
+ b.qa.setBalanceVariant(variant);
+ b.dbg.showCampaign();b.E['dev-test-levels'].events.click();
+ assert.equal(b.dbg.startLevel(level),true,level);
+ const map=Number(level.slice(-1)),chapter=Number(level[1]);
+ const waves=b.qa.readPlans().map(x=>({count:x.definition.count,
+  heavies:x.units.filter(y=>y.kind==='heavy').length,
+  panic:x.units.filter(y=>y.kind==='panic').length,
+  enemyHp:x.definition.hp,bossHp:x.definition.bossHp}));
+ const history=[],sourcePlan=PLANS['c1-l'+map];
+ b.qa.startShotCapture();
+ for(let w=1;w<=6;w++){
+  const before=b.dbg.snapshot();
+  if(before.mode!=='playing')break;
+  const steps=sourcePlan[w].map(([type,x,y])=>{
+   const weapon=type==='turret'&&chapter===3&&(w===2||w===4)?'cannon':type;
+   return [weapon,x,y];
+  });
+  if(choice==='frontMortarW5'&&w===5)
+   steps.push(['mine',3,6],['factory',4,6],['mortar',4,5]);
+  for(const [type,x,y] of steps)
+   assert.equal(b.dbg.place(type,x,y),true,
+    level+' '+variant+' '+choice+' W'+w+' cannot place '+type+'@'+x+','+y);
+  const afterBuild=b.dbg.snapshot();
+  assert.ok(afterBuild.gold>=0,level+' '+variant+' negative gold');
+  assert.equal(b.dbg.startWave(),true,level+' '+variant+' W'+w+' not started');
+  b.dbg.advance(250);
+  const after=b.dbg.snapshot();
+  history.push({w,beforeGold:before.gold,afterBuildGold:afterBuild.gold,
+   endGold:after.gold,hp:after.hp,leaks:after.leaks,kills:after.kills,
+   shots:after.shotsFired,producedAmmo:+after.producedAmmo.toFixed(2),
+   spentAmmo:+after.ammoSpent.toFixed(2),bossKilled:after.bossDefeated,
+   bossEscaped:after.bossEscaped,mode:after.mode});
+  assert.ok(after.producedAmmo+1e-6>=after.ammoSpent,
+   level+' '+variant+' illegally created ammunition');
+  if(after.mode!=='playing')break;
+ }
+ const last=b.dbg.snapshot();
+ const success=last.mode==='won'&&last.bossDefeated&&
+  !last.bossEscaped&&last.hp>0&&history.length===6;
+ assert.ok(!last.bossEscaped||last.mode==='lost',
+  level+' '+variant+' escaped boss may never win');
+ assert.ok(last.gold>=0,level+' '+variant+' gold overdraw');
+ if(success)assert.equal(last.kills+last.leaks,
+  waves.reduce((n,x)=>n+x.count,0)+1,level+' '+variant+' wrong enemy total');
+ if(last.mode==='won')assert.ok(success,level+' '+variant+' false victory');
+ return {level,variant,choice,success,mode:last.mode,
+  stars:success?(last.leaks===0?3:last.leaks<=4?2:1):0,
+  hp:last.hp,leaks:last.leaks,kills:last.kills,
+  bossKilled:last.bossDefeated,bossEscaped:last.bossEscaped,
+  beforeBossGold:history.find(x=>x.w===6)?.beforeGold??null,
+  finalGold:last.gold,ammoSpent:+last.ammoSpent.toFixed(2),
+  ammoProduced:+last.producedAmmo.toFixed(2),weaponShots:b.qa.shotSummary(),
+  waves,history};
+}
+test('BALANCE_AB_11: T0/T1/T2/T3 full legal Schwer runs and unchanged control maps',()=>{
+ const results=[];
+ for(const level of ['c1-l2','c1-l3']){
+  for(const variant of ['T0','T1'])
+   results.push(runBalanceAB(level,variant,'mg'));
+ }
+ for(const variant of ['T0','T2','T3'])
+  for(const choice of ['cannon','frontMortarW5'])
+   results.push(runBalanceAB('c3-l2',variant,choice));
+ assert.equal(results.length,10);
+ // The variants must affect only the intended wave characteristics.
+ const by=(l,v,c)=>results.find(x=>x.level===l&&x.variant===v&&x.choice===c);
+ for(const level of ['c1-l2','c1-l3']){
+  const base=by(level,'T0','mg'),altered=by(level,'T1','mg');
+  for(let i=0;i<6;i++){
+   assert.equal(altered.waves[i].count,base.waves[i].count);
+   assert.equal(altered.waves[i].heavies,0);
+   assert.equal(altered.waves[i].panic,0);
+   assert.equal(altered.waves[i].enemyHp,base.waves[i].enemyHp+(i>=4?1:0));
+  }
+ }
+ const baseline=by('c3-l2','T0','cannon');
+ for(const variant of ['T2','T3']){
+  const changed=by('c3-l2',variant,'cannon');
+  for(let i=0;i<6;i++){
+   assert.equal(changed.waves[i].count,baseline.waves[i].count);
+   assert.equal(changed.waves[i].enemyHp,baseline.waves[i].enemyHp);
+   if(variant==='T2'){
+    assert.equal(changed.waves[i].panic,baseline.waves[i].panic);
+    assert.ok(i<3?changed.waves[i].heavies===baseline.waves[i].heavies:
+      changed.waves[i].heavies>baseline.waves[i].heavies);
+   }else{
+    assert.equal(changed.waves[i].panic,baseline.waves[i].panic+(i>=3?4:0));
+   }
+  }
+ }
+ // Invariants on unrelated chapters and maps: wave definitions must stay untouched.
+ for(const id of ['c1-l1','c2-l3','c3-l3','c4-l2']){
+  const base=boot('hard');base.dbg.showCampaign();base.E['dev-test-levels'].events.click();
+  assert.equal(base.dbg.startLevel(id),true);
+  const expected=JSON.stringify(base.qa.readPlans());
+  for(const variant of ['T1','T2','T3']){
+   const b=boot('hard');b.qa.setBalanceVariant(variant);
+   b.dbg.showCampaign();b.E['dev-test-levels'].events.click();
+   assert.equal(b.dbg.startLevel(id),true);
+   assert.equal(JSON.stringify(b.qa.readPlans()),expected,id+' altered by '+variant);
+  }
+ }
+ console.log('BALANCE_AB_11 '+JSON.stringify(results));
 });
