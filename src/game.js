@@ -1,8 +1,8 @@
 (() => {
 'use strict';
-const BUILD_ID='0.5.0-dev1';
+const BUILD_ID='0.5.0-dev2';
 const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DISPLAY_UPDATE_MS=250,DISPLAY_RESPONSE_S=1.5,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
-const ECONOMY={startGold:180,goldPerKill:5,goldPerType:{scout:1,normal:2,heavy:6,boss:20},goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
+const ECONOMY={goldPerType:{scout:1,normal:1,heavy:3,panic:1,boss:20},goldPerWave:20}; // V0.5 A20 test economy.
 const DIFFICULTIES={
  standard:{name:'Standard',startGold:155,hq:15,enemyHp:1.32,spawn:1.14,damageBonus:.25},
  hard:{name:'Schwer',startGold:155,hq:15,enemyHp:1.32,spawn:1.14,damageBonus:0}
@@ -161,27 +161,36 @@ const LEGACY_WAVES=[
  {label:"ÜBERMACHT",count:130,groupSize:26,interval:0.139,gap:0.70,hp:11,speed:1.86,pattern:["scout","scout","normal","scout","normal","scout","scout","heavy","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","heavy","normal","scout","scout","normal","scout","normal","scout","scout","normal","scout","scout","heavy","scout","normal","scout","scout","normal","scout","scout","scout","normal","scout","scout","normal","heavy","scout","scout","normal","scout","scout","normal","scout","scout","normal","scout","scout","normal","heavy","scout","scout","normal","scout","scout","normal"]},
  {label:"BOSS: EISENBRECHER",count:74,groupSize:14,interval:0.216,gap:0.99,hp:13,speed:1.58,pattern:["scout","normal","scout","heavy","normal","scout","normal","scout","heavy","normal","scout","normal","scout","heavy","scout","normal","scout","normal","heavy","scout","normal","scout","heavy","normal","scout","normal","scout","heavy","scout","normal","scout","normal","scout","normal"],boss:true}
 ];
-// MG-only introduction: every map has its own enemy pressure, timing and boss.
-const MG_LEVEL_WAVES=[
- {counts:[10,14,18,22,26,22],hp:[6,7,7,8,9,10],speed:[1.2,1.3,1.4,1.42,1.5,1.45],bossHp:48,bossSpeed:.78,intervals:[.55,.47,.43,.40,.37,.43]},
- {counts:[12,17,22,27,31,26],hp:[6,7,8,9,10,11],speed:[1.25,1.35,1.45,1.53,1.6,1.54],bossHp:60,bossSpeed:.80,intervals:[.52,.44,.39,.36,.33,.40]},
- {counts:[11,17,21,25,29,27],hp:[7,8,9,10,11,12],speed:[1.22,1.33,1.42,1.50,1.58,1.49],bossHp:65,bossSpeed:.80,intervals:[.52,.46,.41,.38,.35,.40]}
+// Twelve V0.5 test profiles: 4 chapters x 3 maps, six waves and mandatory boss kill.
+// Count targets follow the LATER moderate-wave decision, not the earlier 184–290 proposal.
+const CHAPTER_WAVES=[
+ {counts:[12,19,24,30,36,29],hp:[6,7,7,8,9,10],heavy:[0,0,0,0,0,0],panic:[0,0,0,0,0,0],bossHp:48,
+  intervals:[.61,.56,.53,.50,.49,.53],speed:[1.20,1.30,1.40,1.42,1.50,1.45]},
+ {counts:[14,22,28,35,43,33],hp:[7,8,9,10,11,12],heavy:[.10,.15,.18,.20,.24,.24],panic:[0,0,0,0,0,0],bossHp:64,
+  intervals:[.64,.59,.56,.52,.50,.54],speed:[1.18,1.26,1.35,1.42,1.48,1.43]},
+ {counts:[16,25,32,39,47,39],hp:[7,8,9,10,11,12],heavy:[.08,.12,.16,.18,.20,.22],panic:[1,1,2,2,3,2],bossHp:75,
+  intervals:[.67,.63,.59,.56,.54,.58],speed:[1.17,1.25,1.33,1.40,1.44,1.41]},
+ {counts:[18,27,35,43,52,40],hp:[8,9,10,11,12,13],heavy:[.15,.18,.22,.24,.27,.30],panic:[1,2,2,3,3,3],bossHp:88,
+  intervals:[.69,.65,.62,.58,.56,.60],speed:[1.17,1.26,1.35,1.41,1.46,1.43]}
 ];
+const WAVE_LABELS=['VORHUT','SCHNELLE VERBÄNDE','VERSORGUNG UNTER DRUCK','ANGRIFFSFORMATION','GROSSANGRIFF','KAPITELBOSS'];
 function levelWaves(){
  if(!currentLevel)return LEGACY_WAVES;
- const design=MG_LEVEL_WAVES[currentLevel.challenge];
- if(!design)return LEGACY_WAVES;
- return design.counts.map((count,i)=>({
-  label:['ERSTE VERTEIDIGUNG','SCHNELLE SCOUTS','VERSORGUNG UNTER DRUCK','DER ANSTURM','GROSSANGRIFF','KAPITELBOSS'][i],
-  count,hp:design.hp[i],speed:design.speed[i],interval:design.intervals[i],groupSize:Math.max(5,Math.ceil(count/3)),gap:.85,
-  pattern:i===0?['normal','normal','normal','scout']:
-   i===1?['scout','normal','scout','normal']:
-   i===2?['normal','scout','normal','normal','scout']:
-   i===3?['scout','scout','normal','scout','normal']:
-   i===4?['normal','scout','scout','normal','normal','scout']:
-   ['normal','scout','normal','scout','normal'],
-  boss:i===5,bossHp:design.bossHp,bossSpeed:design.bossSpeed,bossArmor:0
- }));
+ const chapter=Math.max(0,levelChapter(currentLevel.id)-1),map=currentLevel.challenge;
+ const plan=CHAPTER_WAVES[chapter],extra=map===0?0:map===1?.07:.12;
+ return plan.counts.map((original,i)=>{
+  const count=original+Math.round(original*extra);
+  return {
+   label:WAVE_LABELS[i],count,hp:plan.hp[i]+(map===2?1:0),
+   speed:plan.speed[i]+(map===1?.02:map===2?.04:0),
+   interval:plan.intervals[i]+(map===1?.03:map===2?.05:0),
+   groupSize:Math.max(6,Math.round(count/4)),gap:.85+map*.09,
+   scoutShare:chapter===0?.44:.30,heavyShare:plan.heavy[i],
+   panicGroups:plan.panic[i]+(map===2&&chapter>=2&&i>2?1:0),
+   variantSeed:chapter*71+map*19+i*11+1,
+   boss:i===5,bossHp:plan.bossHp+map*8,bossSpeed:[.78,.81,.82][map],bossArmor:0
+  };
+ });
 }
 const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d'),boardbox=$('boardbox'),mini=$('minimap'),mc=mini.getContext('2d');
 const buildButtons=[...document.querySelectorAll('.build')],speedValues=[1,2,3],minZoom=.35,maxZoom=3;
@@ -306,10 +315,10 @@ function startWave(){
 }
 function checkWaveComplete(){
  const r=g.waves[g.wave-1];if(!r||!r.doneSpawning||r.alive!==0||g.spawner||g.enemyDelay!==null||g.phase!=='combat')return;
- if(!r.paid){r.paid=true;const reward=currentLevel?.challenge!==undefined?20:ECONOMY.goldPerWave;g.gold+=reward;g.goldEarned+=reward;}
+ if(!r.paid){r.paid=true;const reward=ECONOMY.goldPerWave;g.gold+=reward;g.goldEarned+=reward;}
  captureWaveMetrics();if(g.wave===MAX_WAVES){finish(g.bossDefeated&&!g.bossEscaped);return;}
  g.phase='build';g.selected=null;g.paused=false;showBuildTray(false);
- inform('Welle '+g.wave+' überstanden! +'+(currentLevel?.challenge!==undefined?20:ECONOMY.goldPerWave)+' Gold. Industrie pausiert. In Ruhe umbauen, dann Welle '+(g.wave+1)+' starten.');
+ inform('Welle '+g.wave+' überstanden! +'+ECONOMY.goldPerWave+' Gold. Industrie pausiert. In Ruhe umbauen, dann Welle '+(g.wave+1)+' starten.');
  update();
 }
 function enemyPos(e){const i=Math.min(Math.floor(e.pos),PATH.length-2),a=PATH[i],b=PATH[i+1],t=Math.min(1,e.pos-i);return{x:a[0]+(b[0]-a[0])*t,y:a[1]+(b[1]-a[1])*t};}
