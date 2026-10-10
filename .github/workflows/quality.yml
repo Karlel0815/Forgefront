@@ -27,10 +27,19 @@ jobs:
         run: node --test tests/map-battle.test.cjs
       - name: Internal P1 engine smoke run
         run: node tools/map-battle.cjs --count 3 --seed 52741 --budget 2
-      - name: Archive internal generator and battle reviews
+      - name: Independent 24-map batch (fixed Hard profile, 3 strategies per map)
+        run: |
+          node tools/map-battle.cjs --count 8 --seed 52741 --budget 3 --out generated/map-batch/a
+          node tools/map-battle.cjs --count 8 --seed 91573 --budget 3 --out generated/map-batch/b
+          node tools/map-battle.cjs --count 8 --seed 183011 --budget 3 --out generated/map-batch/c
+      - name: Summarize verified wins and strategy differences
+        run: node -e 'const fs=require("node:fs"); const roots=["a","b","c"].map(x=>"generated/map-batch/"+x+"/"); const rows=roots.flatMap(root=>{const report=JSON.parse(fs.readFileSync(root+"battle-report.json")); const maps=JSON.parse(fs.readFileSync(root+"candidates.json")).candidates; const byId=new Map(maps.map(x=>[x.candidateId,x])); return report.results.map(r=>({...r,motif:byId.get(r.candidateId)?.motif,oreCount:byId.get(r.candidateId)?.ore.length}));}); const evaluated=rows.length,winning=rows.filter(r=>r.winningStrategies>0),attempts=rows.flatMap(r=>r.attempts); const strategy0Wins=rows.filter(r=>r.attempts[0]?.verifiedWin).length; const improvementOnly=winning.filter(r=>!r.attempts[0]?.verifiedWin).length; const allWin=rows.filter(r=>r.winningStrategies===r.strategiesAttempted).length; const distribution=Object.fromEntries([...new Set(rows.map(r=>r.routeId))].map(route=>[route,{n:rows.filter(r=>r.routeId===route).length,wins:winning.filter(r=>r.routeId===route).length}])); const motif=Object.fromEntries([...new Set(rows.map(r=>r.motif))].map(k=>[k,{n:rows.filter(r=>r.motif===k).length,wins:winning.filter(r=>r.motif===k).length}])); const winningAttempts=attempts.filter(a=>a.verifiedWin); const easy3=winning.filter(r=>r.attempts.some(a=>a.verifiedWin&&a.final.leaks===0)).length; const firstMines=new Set(winningAttempts.map(a=>{const b=a.actions.find(x=>x.type==="mine");return b?b.x+","+b.y:"missing";})); const categories={};for(const r of rows)categories[r.engineResult]=(categories[r.engineResult]||0)+1; const final={sampleSize:evaluated,attempts:attempts.length,winningMaps:winning.length, strategy0Wins,improvementOnly,allStrategiesWin:allWin,threeStarWins:easy3, uniqueFirstMineCellsAcrossWinningAttempts:firstMines.size,byRoute:distribution,byMotif:motif,status:categories, caution:"Heuristic solver only; same hard Chapter-1 wave profile; no human difficulty validation"}; console.log("FORGEFRONT_BATCH_SUMMARY "+JSON.stringify(final)); for(const r of rows){const w=r.attempts.find(a=>a.verifiedWin),first=w?.actions.find(b=>b.type==="mine"); const rec={id:r.candidateId,route:r.routeId,motif:r.motif,ore:r.oreCount,plans:r.plansConsidered, tries:r.strategiesAttempted,wins:r.winningStrategies, cheapWin:!!r.attempts[0]?.verifiedWin,firstMine:first?[first.x,first.y]:null, leaks:w?.final.leaks??null,hp:w?.final.hp??null}; console.log("FORGEFRONT_MAP_RESULT "+JSON.stringify(rec));} fs.mkdirSync("generated/map-batch",{recursive:true}); fs.writeFileSync("generated/map-batch/summary.json",JSON.stringify({final,maps:rows.map(r=>({ candidateId:r.candidateId,routeId:r.routeId,motif:r.motif,oreCount:r.oreCount, planCount:r.plansConsidered,strategiesAttempted:r.strategiesAttempted, winningStrategies:r.winningStrategies,engineResult:r.engineResult, attempts:r.attempts.map(a=>({name:a.name,verifiedWin:a.verifiedWin, firstMine:a.actions.find(x=>x.type==="mine")||null,final:a.final, buildings:a.actions.filter(x=>["mine","factory","turret","pipe","bridge"].includes(x.type)).length})) }))},null,2)+"\n");'
+      - name: Archive map-batch QA (internal only)
         if: github.ref != 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: forgefront-map-battle-p1-results
-          path: generated/map-battle/
+          name: forgefront-map-batch-24
+          path: |
+            generated/map-battle/
+            generated/map-batch/
           retention-days: 14
