@@ -34,6 +34,20 @@ const hook=`window.ForgefrontQA={
  endLoss(){g.bossDefeated=false;g.bossEscaped=true;g.mode='playing';g.phase='combat';finish(false);},
  accumulator:()=>acc,
  setAccumulator(value){acc=value;},
+ readPlans(){return levelWaves().map(def=>({definition:def,units:makePlan(def)}));},
+ panicProbe(shots){
+  const e={kind:'panic',hp:6,max:6,speed:1.1,armor:0,wave:1,pos:1,panicked:false,enraged:false,id:99999};
+  g.phase='combat';g.wave=1;g.enemies=[e];g.waves[0].alive=1;
+  const initialGold=g.gold;
+  const progress=[];
+  for(const hit of shots){hitEnemy(e,hit,0);progress.push({hp:e.hp,speed:e.speed,panicked:e.panicked,alive:g.enemies.includes(e)});}
+  return {progress,gold:g.gold-initialGold,kills:g.kills};
+ },
+ bountyProbe(kind){
+  const e={kind,hp:1,max:1,speed:0,armor:0,wave:1,pos:0,enraged:false,id:99996};
+  g.phase='combat';g.wave=1;g.enemies=[e];g.waves[0].alive=1;
+  const before=g.gold;killEnemy(e);return g.gold-before;
+ },
  damageProbe(difficulty,raw=3,armor=0,pierce=0){
   g.difficulty=difficulty;g.phase='combat';g.wave=1;
   const enemy={id:42042,pos:0,hp:100,max:100,armor,kind:'normal',speed:0,wave:1,enraged:false};
@@ -296,6 +310,62 @@ test('TEMPO-02: first full combat wave has identical results at 1x, 2x and 3x',(
     ammoSpent:x.ammoSpent,producedAmmo:x.producedAmmo,mode:x.mode,boss:x.bossDefeated});
  }
  assert.deepEqual(runs[0],runs[1]);assert.deepEqual(runs[1],runs[2]);
+});
+
+
+test('DEV2: A20 bounties and fixed 20-gold completion reward',()=>{
+ const b=boot('hard'),gold=b.dbg.config().goldPerType;
+ assert.equal(JSON.stringify(gold),JSON.stringify({scout:1,normal:1,heavy:3,panic:1,boss:20}));
+ assert.equal(b.dbg.config().goldPerWave,20);
+ for(const [kind,bounty] of Object.entries(gold))assert.equal(b.qa.bountyProbe(kind),bounty,kind);
+});
+test('DEV2: Panikdrohne speeds up once only on a nonlethal hit',()=>{
+ const b=boot('hard');
+ const damaged=b.qa.panicProbe([3,1,1]);
+ assert.ok(Math.abs(damaged.progress[0].speed-1.65)<1e-9);
+ assert.equal(damaged.progress[1].speed,damaged.progress[0].speed);
+ assert.equal(damaged.progress[2].speed,damaged.progress[0].speed);
+ assert.equal(damaged.gold,0);
+ const oneShot=boot('hard').qa.panicProbe([7]);
+ assert.equal(oneShot.progress[0].alive,false);
+ assert.equal(oneShot.progress[0].panicked,false);
+ assert.equal(oneShot.gold,1);
+});
+test('DEV2: all twelve chapter/map wave profiles are distinct and follow planned types',()=>{
+ const b=boot('hard');
+ b.dbg.showCampaign();b.E['dev-test-levels'].events.click();
+ const chapterTotals=[150,175,198,215];
+ const snapshots=[];
+ for(let c=1;c<=4;c++)for(let map=1;map<=3;map++){
+  const id=`c${c}-l${map}`;
+  assert.equal(b.dbg.startLevel(id),true,id);
+  const arr=b.qa.readPlans();
+  assert.equal(arr.length,6);
+  const total=arr.reduce((sum,w)=>sum+w.definition.count,0);
+  if(map===1)assert.equal(total,chapterTotals[c-1],id);
+  if(map>1)assert.ok(total>chapterTotals[c-1],id);
+  assert.ok(arr.every(w=>w.units.length===w.definition.count+(w.definition.boss?1:0)));
+  assert.ok(arr.every((w,i)=>w.units.filter(x=>x.kind==='boss').length===(i===5?1:0)));
+  for(const wave of arr){
+   const kinds=wave.units.map(u=>u.kind);
+   if(c===1)assert.ok(!kinds.includes('heavy')&&!kinds.includes('panic'));
+   if(c===2)assert.ok(kinds.includes('heavy')&&!kinds.includes('panic'));
+   if(c>=3){
+    assert.ok(kinds.includes('panic')&&kinds.includes('heavy'));
+    const drones=wave.units.filter(x=>x.kind==='panic');
+    assert.equal(drones.length%4,0);
+    assert.ok(drones.every(x=>x.hp===6&&x.armor===0&&x.speed===1.1));
+    let groups=0;
+    for(let i=0;i<kinds.length;i++)if(kinds[i]==='panic'&&(i===0||kinds[i-1]!=='panic')){
+     groups++;assert.deepEqual(kinds.slice(i,i+4),['panic','panic','panic','panic']);
+     assert.ok(wave.units.slice(i,i+3).every(x=>x.nextDelay===.36));
+    }
+    assert.equal(groups,wave.definition.panicGroups);
+   }
+  }
+  snapshots.push({id,total,first:arr[0].units.map(u=>u.kind).join('|')});
+ }
+ assert.equal(new Set(snapshots.map(x=>x.total)).size,12);
 });
 
 test('Chapter 1 hard-locks advanced weapons, even through direct API calls',()=>{
