@@ -28,7 +28,7 @@ jobs:
       - name: Real engine P1 simulator tests
         run: node --test tests/map-simulator.test.cjs
       - name: Generated map engine trials
-        run: node tools/map-simulator.cjs --count 2 --seed 52741 --out generated/map-sim/results.json
+        run: node tools/map-simulator.cjs --count 3 --seed 52741 --out generated/map-sim/results.json
       - name: Archive internal previews and simulation results
         if: github.ref != 'refs/heads/main'
         uses: actions/upload-artifact@v4

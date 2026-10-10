@@ -38,3 +38,26 @@ test('P1 invalid candidate is rejected before engine simulation',()=>{
  assert.equal(result.status,'REJECT_INVALID_MAP');
  assert.equal(result.runs.length,0);
 });
+
+test('P1 documented 3-seed manifest maps exactly match P0 preview geometry',()=>{
+ const os=require('node:os'),temp=fs.mkdtempSync(path.join(os.tmpdir(),'forgefront-p1-'));
+ try {
+   const out=path.join(temp,'out','results.json');
+   const report=S.cli(['--seed','52741','--count','3','--out',out]);
+   const maps=G.extractBlueprints(fs.readFileSync(path.join(__dirname,'../src/game.js'),'utf8'));
+   assert.equal(report.results.length,3);
+   for(let i=0;i<3;i++){
+     const c=G.candidate(maps[i],(52741+i*1013)>>>0,['front','remote','split'][i],report.engineSourceHash);
+     assert.equal(report.results[i].mapHash,c.mapHash);
+     assert.ok(['WIN_VERIFIED','NO_WIN_FOUND_WITHIN_SEARCH_BUDGET'].includes(report.results[i].status));
+   }
+   const html=fs.readFileSync(path.join(temp,'out','review.html'),'utf8');
+   assert.match(html,/echte Engine-Maptests/);
+   assert.match(html,/WIN_VERIFIED|NO_WIN_FOUND_WITHIN_SEARCH_BUDGET/);
+ } finally {fs.rmSync(temp,{recursive:true,force:true});}
+});
+test('P1 red-team fake victory flags do not pass independent boss assertion',()=>{
+ assert.equal(S.isVerifiedVictory({wave:6,mode:'won',bossDefeated:false,bossEscaped:false,hp:15}),false);
+ assert.equal(S.isVerifiedVictory({wave:6,mode:'won',bossDefeated:true,bossEscaped:true,hp:15}),false);
+ assert.equal(S.isVerifiedVictory({wave:6,mode:'won',bossDefeated:true,bossEscaped:false,hp:0}),false);
+});
