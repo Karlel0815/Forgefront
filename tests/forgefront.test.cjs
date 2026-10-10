@@ -35,6 +35,22 @@ const hook=`window.ForgefrontQA={
  accumulator:()=>acc,
  setAccumulator(value){acc=value;},
  readPlans(){return levelWaves().map(def=>({definition:def,units:makePlan(def)}));},
+ captureShots:false,
+ shotsByWeapon:{},
+ startShotCapture(){this.captureShots=true;this.shotsByWeapon={};},
+ recordShot(type,victims){
+  if(!this.captureShots)return;
+  const s=this.shotsByWeapon[type]??={shots:0,allHits:0,panicHits:0,multiHits:0,
+   panicMultiShots:0,panicQuadShots:0,heavyHits:0,maxHits:0};
+  const panic=victims.filter(x=>x.kind==='panic').length;
+  s.shots++;s.allHits+=victims.length;s.panicHits+=panic;
+  s.heavyHits+=victims.filter(x=>x.kind==='heavy').length;
+  if(victims.length>=2)s.multiHits++;
+  if(panic>=2)s.panicMultiShots++;
+  if(panic>=4)s.panicQuadShots++;
+  s.maxHits=Math.max(s.maxHits,victims.length);
+ },
+ shotSummary(){return JSON.parse(JSON.stringify(this.shotsByWeapon));},
  panicProbe(shots){
   const e={kind:'panic',hp:6,max:6,speed:1.1,armor:0,wave:1,pos:1,panicked:false,enraged:false,id:99999};
   g.phase='combat';g.wave=1;g.enemies=[e];g.waves[0].alive=1;
@@ -64,7 +80,10 @@ const hook=`window.ForgefrontQA={
  }
 };\nwindow.ForgefrontDebug={`;
 assert.ok(code.includes('window.ForgefrontDebug={'),'Debug hook missing');
-const instrumented=code.replace('window.ForgefrontDebug={',hook);
+assert.equal(code.split('for(const e of victims){const raw=').length,2,'shot hook must be unique');
+const instrumented=code.replace('window.ForgefrontDebug={',hook)
+ .replace('for(const e of victims){const raw=',
+  'window.ForgefrontQA?.recordShot?.(turret.type,victims);for(const e of victims){const raw=');
 function boot(difficulty='standard',existingStorage){
  const noop=()=>{};
  const ctx=new Proxy({},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
@@ -635,9 +654,9 @@ test('Temporary test access opens all chapter maps, but never saves medals',()=>
 test('BALANCE_MATRIX_DEV2: legal weapon choices and late-game purchase opportunity on three maps',()=>{
  const prices={mine:22,factory:18,turret:24,cannon:38,mortar:42,pipe:4,bridge:10};
  const scenarios=[
-  {id:'c2-l3',choices:['mg','late','cannon','extraCannon']},
-  {id:'c3-l2',choices:['mg','cannon','mortar','mixed','extraNet']},
-  {id:'c4-l2',choices:['mg','cannon','mortar','mixed','extraNet']}
+  {id:'c2-l3',choices:['mg','late','cannon','extraCannon','frontCannonNear','frontCannonFar']},
+  {id:'c3-l2',choices:['mg','cannon','mortar','mixed','mortarW5','extraNet']},
+  {id:'c4-l2',choices:['mg','cannon','mortar','mixed','mortarW5','extraNet']}
  ];
  const output=[];
  for(const {id,choices} of scenarios){
@@ -645,6 +664,7 @@ test('BALANCE_MATRIX_DEV2: legal weapon choices and late-game purchase opportuni
   for(const choice of choices){
    const b=boot('hard');b.dbg.showCampaign();b.E['dev-test-levels'].events.click();
    assert.equal(b.dbg.startLevel(id),true);
+   b.qa.startShotCapture();
    const original=PLANS[`c1-l${map}`],events=[];
    let totalSpend=0,purchaseFailures=0;
    for(let wave=1;wave<=6;wave++){
@@ -653,8 +673,11 @@ test('BALANCE_MATRIX_DEV2: legal weapon choices and late-game purchase opportuni
     const stages=original[wave].map(([type,x,y])=>{
      let weapon=type;
      if(type==='turret'){
-      if(choice==='cannon'||choice==='extraNet'){
-       if(wave===2||wave===4||(chapter===4&&wave===5))weapon='cannon';
+      if(['cannon','extraNet','frontCannonNear','frontCannonFar','mortarW5'].includes(choice)){
+       if(wave===2||wave===4||(chapter===4&&wave===5&&choice!=='mortarW5'))weapon='cannon';
+       if(wave===5&&choice==='mortarW5')weapon='mortar';
+       if(chapter===2&&wave===1&&choice==='frontCannonNear'&&x===7&&y===4)weapon='cannon';
+       if(chapter===2&&wave===1&&choice==='frontCannonFar'&&x===7&&y===2)weapon='cannon';
       }else if(choice==='late'){
        if(wave===4||wave>=5)weapon='cannon';
       }else if(choice==='extraCannon'){
@@ -707,7 +730,7 @@ test('BALANCE_MATRIX_DEV2: legal weapon choices and late-game purchase opportuni
     beforeBossGold:events.find(x=>x.wave===6)?.goldBefore??null,
     spend:totalSpend,purchaseFailures,
     ammoSpent:+last.ammoSpent.toFixed(2),ammoProduced:+last.producedAmmo.toFixed(2),
-    shots:last.shotsFired,events});
+    shots:last.shotsFired,weaponShots:b.qa.shotSummary(),events});
   }
  }
  console.log('BALANCE_MATRIX_DEV2 '+JSON.stringify(output));
