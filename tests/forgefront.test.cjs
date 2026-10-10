@@ -43,6 +43,14 @@ const hook=`window.ForgefrontQA={
   for(const hit of shots){hitEnemy(e,hit,0);progress.push({hp:e.hp,speed:e.speed,panicked:e.panicked,alive:g.enemies.includes(e)});}
   return {progress,gold:g.gold-initialGold,kills:g.kills};
  },
+ mortarPanicProbe(){
+  const drones=Array.from({length:4},(_,i)=>({kind:'panic',hp:6,max:6,speed:1.1,armor:0,wave:1,
+   pos:12+i*.08,panicked:false,enraged:false,id:88001+i}));
+  g.wave=1;g.phase='combat';g.enemies=drones;g.waves[0].alive=4;refreshEnemyGeometry();
+  const gold=g.gold,ammo=g.ammoSpent;
+  shoot({type:'mortar',x:11,y:5},drones[0]);
+  return {survivors:g.enemies.length,kills:g.kills,gold:g.gold-gold,ammo:g.ammoSpent-ammo};
+ },
  bountyProbe(kind){
   const e={kind,hp:1,max:1,speed:0,armor:0,wave:1,pos:0,enraged:false,id:99996};
   g.phase='combat';g.wave=1;g.enemies=[e];g.waves[0].alive=1;
@@ -374,6 +382,27 @@ test('DEV2: all 12 Schwer maps have six real waves and an actual boss kill',()=>
  }
  console.log('DEV2_12_FULLRUNS '+JSON.stringify(records));
  assert.equal(records.length,12);
+});
+
+test('DEV2: one supplied mortar salvo can destroy a clustered four-drone formation',()=>{
+ const b=boot('hard'),s=b.qa.mortarPanicProbe();
+ assert.equal(s.survivors,0);
+ assert.equal(s.kills,4);
+ assert.equal(s.gold,4);
+ assert.ok(Math.abs(s.ammo-1.43)<1e-9);
+ const mg=boot('hard').qa.panicProbe([3,3]);
+ assert.equal(mg.progress[0].alive,true);
+ assert.equal(mg.progress[0].panicked,true);
+ assert.equal(mg.progress[1].alive,false);
+});
+test('DEV2: Standard and Schwer use exactly the same late-chapter enemy plan',()=>{
+ const plans=[];
+ for(const difficulty of ['hard','standard']){
+  const b=boot(difficulty);b.dbg.showCampaign();b.E['dev-test-levels'].events.click();
+  assert.equal(b.dbg.startLevel('c4-l3'),true);
+  plans.push(JSON.stringify(b.qa.readPlans()));
+ }
+ assert.equal(plans[0],plans[1]);
 });
 
 test('DEV2: all twelve chapter/map wave profiles are distinct and follow planned types',()=>{
