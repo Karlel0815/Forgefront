@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const BUILD_ID='0.5.0-dev2';
+const BUILD_ID='0.5.0-dev3-t3';
 const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DISPLAY_UPDATE_MS=250,DISPLAY_RESPONSE_S=1.5,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
 const ECONOMY={goldPerType:{scout:1,normal:1,heavy:3,panic:1,boss:20},goldPerWave:20}; // V0.5 A20 test economy.
 const DIFFICULTIES={
@@ -186,7 +186,7 @@ function levelWaves(){
    interval:plan.intervals[i]+(map===1?.03:map===2?.05:0),
    groupSize:Math.max(6,Math.round(count/4)),gap:.85+map*.09,
    scoutShare:chapter===0?.44:.30,heavyShare:plan.heavy[i],
-   panicGroups:plan.panic[i]+(map===2&&chapter>=2&&i>2?1:0),
+   panicGroups:plan.panic[i]+(map===2&&chapter>=2&&i>2?1:0)+(currentLevel.id==='c3-l2'&&i>=3?1:0),
    variantSeed:chapter*71+map*19+i*11+1,
    boss:i===5,bossHp:plan.bossHp+map*8,bossSpeed:[.78,.81,.82][map],bossArmor:0
   };
