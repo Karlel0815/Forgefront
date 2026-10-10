@@ -150,7 +150,7 @@ function runGame(mode,plan=standardSteps,levelId='c1-l1'){const b=boot(mode),dat
  }return{b,history:data,state:b.dbg.snapshot()};}
 
 test('Unique DEV build stamp, flags and zero starting ammo',()=>{
- const b=boot('hard'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.5.0-dev2');
+ const b=boot('hard'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.5.0-dev3-t3');
  assert.equal(s.bossDefeated,false);assert.equal(s.bossEscaped,false);assert.equal(s.leaks,0);assert.equal(s.ammoSpent,0);
 });
 test('Boss escapes with remaining HQ: instant loss, boss-specific message',()=>{
@@ -389,6 +389,11 @@ test('DEV2: all 12 Schwer maps have six real waves and an actual boss kill',()=>
     if(wave===3)builds=[['cannon',12,14]];
     if(wave===4)builds=plan[2].slice();
    }
+   // DEV3 T3 K3-L2: use a legal, funded front MG production net from W5.
+   // The historical unreinforced cannon setup correctly loses by boss escape.
+   if(chapter===3&&map===2&&wave===5)builds.push(
+    ['mine',3,6],['factory',4,6],['turret',4,5]
+   );
    for(const [type,x,y] of builds){
     let weapon=type;
     if(type==='turret'&&chapter>=2&&(wave===2||wave===4))weapon='cannon';
@@ -854,7 +859,7 @@ test('BALANCE_AB_11: T0/T1/T2/T3 full legal Schwer runs and unchanged control ma
  assert.equal(live.qa.balanceVariant(),'T3');
  live.dbg.showCampaign();live.E['dev-test-levels'].events.click();
  assert.equal(live.dbg.startLevel('c3-l2'),true);
- assert.deepEqual(live.qa.readPlans().slice(3).map(p=>p.units.filter(u=>u.kind==='panic').length),[12,16,12]);
+ assert.equal(JSON.stringify(live.qa.readPlans().slice(3).map(p=>p.units.filter(u=>u.kind==='panic').length)),JSON.stringify([12,16,12]));
  for(const variant of ['T2','T3']){
   const changed=by('c3-l2',variant,'cannon');
   for(let i=0;i<6;i++){
