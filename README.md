@@ -1,6 +1,8 @@
 # Forgefront V0.4.0 DEV3 – 12 Level zum Waffenvergleich
 
-**Entwicklungsbranch, nicht main/Pages.**
+**V0.4.0 DEV3 ist ein öffentlicher Alpha-Testbuild.** Die Veröffentlichung auf `main`/GitHub Pages erfolgt nach gesonderter Freigabe und erfolgreichen Release-Prüfungen. Der geprüfte Versionsstand wird in GitHub Commits und Actions dokumentiert.
+
+**Spiel:** https://karlel0815.github.io/Forgefront/
 
 Vier Kapitel mit denselben drei Kartenlayouts und denselben Wellenprofilen. Die Fortschritte werden unter eigenen Level-IDs gespeichert: 4 × 3 = 12. Die vorhandenen Sterne aus DEV2 für Kapitel 1 bleiben gültig.
 
