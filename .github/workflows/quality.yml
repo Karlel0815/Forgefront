@@ -21,3 +21,7 @@ jobs:
         run: node tools/verify-release.cjs
       - name: Gameplay and regression tests
         run: node --test tests/forgefront.test.cjs
+      - name: Internal P0 generator tests
+        run: node --test tests/map-generator.test.cjs
+      - name: Internal P0 CLI smoke check
+        run: node tools/map-generator.cjs --count 3 --seed 52741
