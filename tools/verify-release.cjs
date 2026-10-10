@@ -9,7 +9,7 @@ const html=fs.readFileSync(path.join(root,'src/index.html'),'utf8');
 const standalone=fs.readFileSync(path.join(root,'index.html'),'utf8');
 new Function(js);
 assert.match(html,/ALPHA 0\.4\.0/);
-assert.match(js,/BUILD_ID='0\.4\.0-dev2'/);
+assert.match(js,/BUILD_ID='0\.4\.0-dev3'/);
 assert.ok(standalone.includes(js.trim()),'Standalone HTML must contain exact modular JS');
 assert.ok(standalone.includes(css.trim()),'Standalone HTML must contain exact modular CSS');
 assert.ok(!standalone.includes('href="style.css"')&&!standalone.includes('src="game.js"'));
