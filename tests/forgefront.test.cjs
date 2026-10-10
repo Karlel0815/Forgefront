@@ -307,7 +307,7 @@ test('DEV1 preferences migrate but invalid old medals are not credited to redesi
 test('All four chapters share precisely the same three terrain maps',()=>{
  const b=boot(),maps=[];
  assert.equal(b.dbg.levels().length,12);
- assert.deepEqual(b.dbg.chapters().map(c=>c.unlocked),[true,false,false,false]);
+ assert.equal(JSON.stringify(b.dbg.chapters().map(c=>c.unlocked)),JSON.stringify([true,false,false,false]));
  b.E['dev-test-levels'].events.click();
  for(let c=1;c<=4;c++)for(let i=1;i<=3;i++){
   assert.equal(b.dbg.startLevel('c'+c+'-l'+i),true);
