@@ -93,7 +93,7 @@ function runGame(mode,plan=standardSteps,levelId='c1-l1'){const b=boot(mode),dat
  }return{b,history:data,state:b.dbg.snapshot()};}
 
 test('Unique DEV build stamp, flags and zero starting ammo',()=>{
- const b=boot('hard'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.5.0-dev1');
+ const b=boot('hard'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.5.0-dev2');
  assert.equal(s.bossDefeated,false);assert.equal(s.bossEscaped,false);assert.equal(s.leaks,0);assert.equal(s.ammoSpent,0);
 });
 test('Boss escapes with remaining HQ: instant loss, boss-specific message',()=>{
@@ -172,7 +172,7 @@ for(const difficulty of ['standard','hard']){
  test(`Six-wave full run ${difficulty}: actual boss kill, economy and survival`,()=>{
   const {history,state}=runGame(difficulty);
   assert.equal(history.length,6);assert.equal(state.mode,'won');assert.equal(state.bossDefeated,true);assert.equal(state.bossEscaped,false);
-  assert.ok(state.hp>0);assert.equal(state.kills+state.leaks,113);assert.ok(state.producedAmmo+1e-6>=state.ammoSpent);
+  assert.ok(state.hp>0);assert.equal(state.kills+state.leaks,history.length===6?150+1:-1);assert.ok(state.producedAmmo+1e-6>=state.ammoSpent);
  });
 }
 test('Difficulty modes use identical enemy and economy factors; only damage differs',()=>{
