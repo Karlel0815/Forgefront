@@ -17,3 +17,4 @@ Berichte: battle-report.json und battle-review.html sowie P0 candidates.json / r
 Testkontrollen: bestehender legaler 6-Wellen-MG-Plan muss erneut real gewinnen; ein leerer Aufbau darf nie als Sieg zählen. Danach werden generierte Erzvarianten mit begrenzter Strategieanzahl getestet.
 
 Ausstehend: Verbesserte Strategie-Suche, echte Erfolgsquote an vielen Seeds, KI-Critic, neue Gegnerwege, Mobile-Endgeräteprüfung. Übernahme in die Kampagne nur nach persönlicher Bewertung und separater Veröffentlichungsgenehmigung.
+Critic-Korrektur P1.1: maximal zwei MGs je lokal erreichbarer Fabrik/Ammo-Komponente nachrüsten; zusätzliche Waffen nicht durch künstliche Unterversorgung als bessere Solver-Strategie verkaufen. Der CI-Smoke prüft drei Seed-Kandidaten (verschiedene vorhandene Routen) mit je zwei eigenständigen Anfangsplänen. Zusätzlicher Negativtest verwirft unzulässige Platzierungen ohne Siegbehauptung.

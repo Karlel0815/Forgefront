@@ -82,6 +82,11 @@ function appendMG(m,dbg,chain,wave,log){
  for(let i=0;i<ammo.length;i++)for(const p of pipes)
    if(!seen.has(key(p))&&dist(p,ammo[i])===1){seen.add(key(p));ammo.push(p);}
  const nodes=[f,...ammo],occ=new Set(buildings.map(key));
+ // A single factory supplies 1.2 ammo/s: never add more than two MGs to
+ // this local ammunition component merely to improve a test outcome.
+ const suppliedMGs=buildings.filter(b=>b.type==='turret'&&
+   nodes.some(p=>dist(p,b)===1));
+ if(suppliedMGs.length>=2)return;
  const blocked=new Set([...m.path,...m.ore].map(p=>p.join(',')));
  const options=[];
  for(const n of nodes)for(const [dx,dy] of dirs){

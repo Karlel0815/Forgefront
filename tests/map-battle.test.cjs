@@ -48,6 +48,12 @@ test('P1 no buildings never fabricated into a victory',()=>{
  assert.equal(out.verifiedWin,false);
  assert.equal(out.final.bossDefeated,false);
 });
+test('P1 illegal build action is recorded as invalid and never a win',()=>{
+ const illegal=B.simulate(snapshot(),source,{name:'illegal-control',fixed:{1:[['mine',0,3]]}});
+ assert.equal(illegal.verifiedWin,false);
+ assert.equal(illegal.status,'INVALID_STRATEGY_OR_TIMEOUT');
+ assert.match(illegal.error,/Illegal placement/);
+});
 test('P1 generated ore is evaluated with actual engine and bounded strategies',()=>{
  const m=G.candidate(templates[0],52741,'split','run1');
  const r=B.evaluate(m,source,{budget:2});
