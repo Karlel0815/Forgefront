@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.4.0 DEV2 – Kampagnen-Prototyp</title><style>:root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#ecf4ff;background:#0b1627;font-synthesis:none}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% -10%,#263c51,#0b1627 68%);min-height:100vh}button{font:inherit;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.42;cursor:default}.app{max-width:1000px;margin:auto;padding:8px 10px 155px}.brand{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 4px 5px}.brand h1{font-size:clamp(20px,4vw,28px);letter-spacing:.055em;margin:0}.brand h1 span{color:#f5c383}.brand small{color:#89abbc;letter-spacing:.08em;font-size:9px}.version{color:#f6c384;border:1px solid #47677a;border-radius:6px;padding:5px 7px;font-size:10px;white-space:nowrap}
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1627"><title>Forgefront V0.4.0 DEV3 – Kampagnen-Prototyp</title><style>:root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#ecf4ff;background:#0b1627;font-synthesis:none}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% -10%,#263c51,#0b1627 68%);min-height:100vh}button{font:inherit;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.42;cursor:default}.app{max-width:1000px;margin:auto;padding:8px 10px 155px}.brand{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 4px 5px}.brand h1{font-size:clamp(20px,4vw,28px);letter-spacing:.055em;margin:0}.brand h1 span{color:#f5c383}.brand small{color:#89abbc;letter-spacing:.08em;font-size:9px}.version{color:#f6c384;border:1px solid #47677a;border-radius:6px;padding:5px 7px;font-size:10px;white-space:nowrap}
 .stats{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:#0b1726f4;backdrop-filter:blur(9px);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:5px 0 7px}.stat{border:1px solid #35536b;background:#193048;border-radius:6px;text-align:center;padding:7px 1px}.stat label{display:block;font-size:clamp(8px,2vw,11px);color:#b4c8db;white-space:nowrap}.stat strong{display:block;font-size:clamp(14px,4vw,23px);font-variant-numeric:tabular-nums}
 .maptop{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:5px 2px;font-size:10px;font-weight:750;color:#b7c8d8;min-height:26px}.maptop #phase-label{background:#315a50;color:#bdf7d6;border-radius:4px;padding:4px 6px;white-space:nowrap}.maptop #phase-label.combat{background:#5e3940;color:#ffe0d0}.maptop #indicator{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.maptop #threat{color:#f9c68e;white-space:nowrap}.map-frame{position:relative}.boardbox{position:relative;height:clamp(340px,72dvh,780px);overflow:auto;border:1px solid #49667d;border-radius:10px;background:#112238;overscroll-behavior:contain;touch-action:pan-x pan-y}#board{display:block;width:864px;height:auto;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}.minimap-wrap{position:absolute;right:8px;top:8px;pointer-events:none;opacity:.9}#minimap{width:61px;height:68px;background:#112438;border:1px solid #6e92a4;border-radius:6px;pointer-events:auto;cursor:crosshair;box-shadow:0 2px 8px #06121ca8}.game-hint{font-size:11px;line-height:1.35;color:#b2cbd8;min-height:32px;margin:8px 2px}
 #overlay{position:absolute;inset:0;background:#081625e9;display:grid;place-items:center;z-index:5;padding:16px;text-align:center}#overlay.hidden{display:none}.intro{max-width:380px;padding:19px 17px;background:#192f46;border:1px solid #56748d;border-radius:15px;box-shadow:0 9px 40px #0008}.intro .o-icon{font-size:48px;color:#f1bd77}.intro h2{font-size:25px;margin:6px}.intro p{line-height:1.6;font-size:13px;color:#c4d7e3}
@@ -93,7 +93,11 @@ body[data-menu-theme=light] .campaign-footer select,body[data-menu-theme=light] 
 .difficulty-buttons button.selected{background:#615039;border-color:#ecc484;color:#fff1cf}
 body[data-menu-theme=light] .difficulty-buttons button{background:#e1ecf2;border-color:#b5ccda;color:#425e70}
 body[data-menu-theme=light] .difficulty-buttons button.selected{background:#f7e4bf;border-color:#b98937;color:#664817}
-@media(max-width:600px){.campaign-note{display:none}}</style></head>
+@media(max-width:600px){.campaign-note{display:none}}
+
+.chapter-reward{text-align:center;margin:15px auto 2px;padding:11px 9px;max-width:440px;background:#223e55;border:1px solid #486d85;border-radius:9px;color:#efca8f;font-size:12px;font-weight:750}.chapter-reward.completed{border-color:#deb371;background:#384332;color:#ffe3b2}
+.result-unlock{background:#344d52;border:1px solid #ecbe73;color:#ffe0a4;padding:12px 7px;border-radius:10px;margin-top:13px;font-size:14px;font-weight:800;line-height:1.4}.result-unlock[hidden]{display:none!important}
+body[data-menu-theme=light] .chapter-reward{background:#eaf2f6;color:#795322;border-color:#c2d2dd}body[data-menu-theme=light] .chapter-reward.completed{background:#f8ecd2;border-color:#b98937}</style></head>
 <body>
 <section id="campaign" class="campaign" aria-label="Forgefront Levelauswahl">
   <div class="campaign-inner">
@@ -102,6 +106,7 @@ body[data-menu-theme=light] .difficulty-buttons button.selected{background:#f7e4
     <nav id="chapter-tabs" class="chapter-tabs" aria-label="Kampagnenkapitel"></nav>
     <div class="campaign-heading"><h2 id="chapter-title">Kapitel 1</h2><span id="chapter-subtitle">Die ersten Schritte</span></div>
     <div id="level-grid" class="level-grid" aria-label="Levelkarten"></div>
+    <div id="chapter-reward" class="chapter-reward" role="status">Belohnung nach Kapitelabschluss</div>
     <p id="campaign-note" class="campaign-note" role="status">Freigeschaltete Karten antippen und direkt bauen.</p>
   </div>
   <footer class="campaign-footer"><label for="difficulty">SCHWIERIGKEIT</label>
@@ -116,14 +121,14 @@ body[data-menu-theme=light] .difficulty-buttons button.selected{background:#f7e4
       <label for="theme-choice">Menüdesign</label><select id="theme-choice"><option value="dark">Dunkel</option><option value="light">Hell</option></select>
       <p>Das Menüdesign lässt sich ändern. Die Spielfeldfarben bleiben vorerst unverändert.</p>
       <p>Das Tutorial kannst du im Spiel jederzeit über <b>? HILFE</b> neu starten.</p>
-      <button type="button" class="secondary-action" id="dev-test-levels" aria-pressed="false">TESTZUGANG · Level 2/3 öffnen</button>
-      <p>Nur in dieser Entwicklungsversion: öffnet Level 2 und 3 vorübergehend. Siege im Testmodus verändern keine gespeicherten Sterne.</p>
+      <button type="button" class="secondary-action" id="dev-test-levels" aria-pressed="false">TESTZUGANG · Alle Kapitel öffnen</button>
+      <p>Nur in dieser Entwicklungsversion: öffnet alle Kapitel und Level vorübergehend. Siege im Testmodus verändern keine gespeicherten Sterne.</p>
       <button type="button" id="settings-done" class="primary">Zurück zur Levelauswahl</button>
     </div>
   </section>
 </section>
 <div id="game-shell" hidden><div class="app">
-<header class="brand"><button type="button" id="back-to-campaign" class="back-button" aria-label="Zurück zur Levelauswahl">‹ Levelauswahl</button><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.4.0 · DEV2</span></div></header>
+<header class="brand"><button type="button" id="back-to-campaign" class="back-button" aria-label="Zurück zur Levelauswahl">‹ Levelauswahl</button><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.4.0 · DEV3</span></div></header>
 <section class="stats" aria-label="Gold"><div class="stat"><label>● GOLD</label><strong id="gold">180</strong></div></section>
 <main><div id="gold-warning" class="gold-warning" role="alert" hidden></div><div class="maptop"><span id="phase-label">BAUPHASE</span><span id="indicator">Industrie pausiert</span><span id="threat">5 WELLEN + BOSS</span></div>
 <section id="wave-preview" class="wave-preview"><div class="wave-preview-head"><b id="next-wave">NÄCHSTE WELLE</b><button type="button" id="waves-toggle" aria-controls="wave-list" aria-expanded="false">Alle Wellen ▾</button></div><div id="wave-list" class="wave-list" hidden></div></section>
@@ -135,6 +140,7 @@ body[data-menu-theme=light] .difficulty-buttons button.selected{background:#f7e4
   <div class="meter"><span id="details-meter"></span></div><p id="details-state">Status</p><small id="details-explain">Werte beziehen sich auf die aktuelle Kampfphase.</small></section><div id="boardbox" class="boardbox"><canvas id="board" width="1080" height="1200" aria-label="Spielfeld – ziehen zum Verschieben, zwei Finger für Zoom"></canvas>
 </div><div id="overlay" class="hidden"><div class="intro" role="dialog" aria-modal="true" aria-labelledby="o-title"><div class="o-icon" id="o-icon">★</div><h2 id="o-title">ERGEBNIS</h2><p id="o-text"></p>
 <div id="result-rating" class="result-rating" hidden aria-label="Levelbewertung"></div>
+<div id="result-unlock" class="result-unlock" hidden aria-live="polite"></div>
 <div class="result-actions"><button id="start" class="primary">Nochmal versuchen</button><button id="result-next" class="secondary-action" hidden>Nächstes Level</button><button id="result-hub" class="secondary-action">Zur Levelauswahl</button></div>
 <button id="intro-skip" hidden>Ohne Tutorial spielen</button></div></div>
 <div class="minimap-wrap"><canvas id="minimap" width="180" height="200" title="Kartenübersicht" aria-label="Minikarte"></canvas></div></div>
@@ -160,7 +166,7 @@ body[data-menu-theme=light] .difficulty-buttons button.selected{background:#f7e4
 <div class="dock-actions"><button type="button" class="primary" id="pause">▶ WELLE 1 STARTEN</button><button type="button" id="reset" class="reset" title="Neue Runde">↻</button></div>
 <div id="status" class="dock-status" role="status">V0.4.0 · Kampagnen-Prototyp</div></div></div><script>(() => {
 'use strict';
-const BUILD_ID='0.4.0-dev2';
+const BUILD_ID='0.4.0-dev3';
 const W=18,H=20,S=60,MAX_WAVES=6,FIRST_DELAY=2,DISPLAY_UPDATE_MS=250,DISPLAY_RESPONSE_S=1.5,DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
 const ECONOMY={startGold:180,goldPerKill:5,goldPerType:{scout:1,normal:2,heavy:6,boss:20},goldPerWave:10,refundByDifficulty:{easy:1,normal:.75,hard:.5},difficulty:'easy'}; // Easy = test mode; difficulty selector later.
 const DIFFICULTIES={
@@ -197,22 +203,25 @@ const PATH_BELAGERUNG=[
  [16,18]
 ];
 const ORE_BELAGERUNG=['1,4','1,5','0,5','3,4','4,4','8,3','9,3','8,4','9,4','4,12','5,12','4,13','5,13','6,12','14,12','15,12','14,13','15,13','13,15','14,15','9,18','10,18','11,18','12,18','4,17','5,17'];
-const CHAPTERS=[
- {id:'c1',name:'Die ersten Minen',levels:[
-  {id:'c1-l1',name:'Die Versorgung',ready:true,path:BASE_PATH,ore:[...BASE_ORE],hq:{x:16,y:18},challenge:0},
-  {id:'c1-l2',name:'Der Engpass',ready:true,path:PATH_ENGPASS,ore:ORE_ENGPASS,hq:{x:16,y:18},challenge:1},
-  {id:'c1-l3',name:'Die Belagerung',ready:true,path:PATH_BELAGERUNG,ore:ORE_BELAGERUNG,hq:{x:16,y:18},challenge:2}]},
- {id:'c2',name:'Schwere Geschütze',levels:[]},
- {id:'c3',name:'Flächenverteidigung',levels:[]},
- {id:'c4',name:'Forschung',levels:[]}
+// Terrain is shared across chapters; only the weapon choices change.
+const MAP_BLUEPRINTS=[
+ {name:'Die Versorgung',path:BASE_PATH,ore:[...BASE_ORE],hq:{x:16,y:18},challenge:0},
+ {name:'Der Engpass',path:PATH_ENGPASS,ore:ORE_ENGPASS,hq:{x:16,y:18},challenge:1},
+ {name:'Die Belagerung',path:PATH_BELAGERUNG,ore:ORE_BELAGERUNG,hq:{x:16,y:18},challenge:2}
 ];
+const CHAPTERS=[
+ {id:'c1',name:'Die ersten Minen',reward:'Kanone',weapon:'MG'},
+ {id:'c2',name:'Schwere Geschütze',reward:'Mörser',weapon:'MG + Kanone'},
+ {id:'c3',name:'Flächenverteidigung',reward:'Kapitel 4',weapon:'MG + Kanone + Mörser'},
+ {id:'c4',name:'Forschung',reward:'Kampagnenabschluss',weapon:'MG + Kanone + Mörser'}
+].map((chapter,ci)=>({...chapter,levels:MAP_BLUEPRINTS.map((template,i)=>({...template,id:'c'+(ci+1)+'-l'+(i+1),ready:true}))}));
 const ALL_LEVELS=CHAPTERS.flatMap(ch=>ch.levels);
 let PATH=BASE_PATH.map(p=>p.slice()),ORE=new Set(BASE_ORE),HQ={x:16,y:18},currentLevel=null;
 let activeChapter=CHAPTERS[0].id;
 let devTestAccess=false;
 const BASE_WEAPON_UNLOCKS={turret:1,cannon:2,mortar:3};
 const levelChapter=id=>CHAPTERS.findIndex(ch=>ch.levels.some(l=>l.id===id))+1;
-const buildingAvailable=type=>!(type in BASE_WEAPON_UNLOCKS)||BASE_WEAPON_UNLOCKS[type]<=levelChapter(currentLevel?.id);
+const buildingAvailable=type=>['turret','cannon','mortar','mine','factory','pipe','bridge','eraser'].includes(type)&&(!(type in BASE_WEAPON_UNLOCKS)||BASE_WEAPON_UNLOCKS[type]<=levelChapter(currentLevel?.id));
 const SAVE_KEY='forgefront.progress.v2';
 const EMPTY_SAVE=()=>({version:2,difficulty:'normal',theme:'dark',tutorialSeen:false,results:{}});
 function loadSave(){
@@ -230,6 +239,8 @@ const save=loadSave();selectedDifficulty=save.difficulty;
 function persist(){try{window.localStorage?.setItem(SAVE_KEY,JSON.stringify(save));}catch{/* Game remains playable in private mode. */}}
 function best(levelId,difficulty){const v=save.results[levelId]?.[difficulty];return v&&Number.isInteger(v.stars)&&v.stars>=1&&v.stars<=3&&Number.isInteger(v.leaks)&&v.leaks>=0?v:null;}
 function completed(levelId){return Object.keys(DIFFICULTIES).some(d=>!!best(levelId,d));}
+function chapterCompleted(ch){return ch.levels.every(l=>completed(l.id));}
+function chapterUnlocked(i){return devTestAccess||i===0||chapterCompleted(CHAPTERS[i-1]);}
 function unlocked(levelId){const idx=ALL_LEVELS.findIndex(l=>l.id===levelId);return idx>=0&&(devTestAccess||idx===0||completed(ALL_LEVELS[idx-1].id));}
 function availableLevel(id){const level=ALL_LEVELS.find(l=>l.id===id);return level&&level.ready&&unlocked(id)?level:null;}
 function score(leaks){return leaks===0?3:leaks<=4?2:1;}
@@ -248,8 +259,9 @@ function renderCampaign(){
  document.querySelectorAll('[data-difficulty]').forEach(b=>{const active=b.dataset.difficulty===selectedDifficulty;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));});
  const total=ALL_LEVELS.filter(l=>l.ready).length,done=ALL_LEVELS.filter(l=>l.ready&&completed(l.id)).length;
  $('campaign-progress').textContent=done+' / '+total+' Level geschafft'+(devTestAccess?' · TESTZUGANG':'');
- $('chapter-tabs').innerHTML=CHAPTERS.map((ch,i)=>'<button type="button" data-chapter="'+ch.id+'" class="chapter-tab'+(ch.id===activeChapter?' selected':'')+'" '+(ch.levels.length?'':'disabled')+'>'+String(i+1).padStart(2,'0')+(ch.levels.length?'':' · Bald')+'</button>').join('');
- const chapter=CHAPTERS.find(ch=>ch.id===activeChapter)||CHAPTERS[0];
+ $('chapter-tabs').innerHTML=CHAPTERS.map((ch,i)=>'<button type="button" data-chapter="'+ch.id+'" class="chapter-tab'+(ch.id===activeChapter?' selected':'')+'" '+(chapterUnlocked(i)?'':'disabled')+' aria-label="Kapitel '+(i+1)+(chapterUnlocked(i)?' auswählen':' gesperrt')+'">'+String(i+1).padStart(2,'0')+(chapterCompleted(ch)?' ★':chapterUnlocked(i)?'':' 🔒')+'</button>').join('');
+ const requested=CHAPTERS.find(ch=>ch.id===activeChapter)||CHAPTERS[0];
+  const chapter=chapterUnlocked(CHAPTERS.indexOf(requested))?requested:CHAPTERS[0];activeChapter=chapter.id;
  $('chapter-title').textContent='Kapitel '+(CHAPTERS.indexOf(chapter)+1)+' · '+chapter.name;
  $('chapter-subtitle').textContent=chapter.levels.length+' Karten';
  $('level-grid').innerHTML=chapter.levels.map((l,i)=>{
@@ -260,7 +272,10 @@ function renderCampaign(){
   (l.ready?'<span class="level-stars" aria-label="'+(rating?rating.stars+' von 3 Sternen':'Noch keine Sterne')+'">'+stars+'</span>':'<span class="level-unavailable">IN VORBEREITUNG</span>')+
   ''+'</button>';
  }).join('');
- $('campaign-note').textContent='Kapitel 1: nur MG. Baue in Ruhe, starte dann Welle 1 selbst.';
+ $('campaign-note').textContent='Verfügbare Waffen: '+chapter.weapon+'. Welle 1 startest du selbst.';
+  const chIndex=CHAPTERS.indexOf(chapter),chDone=chapterCompleted(chapter);
+  $('chapter-reward').textContent=chDone?(chIndex===3?'★ Kampagne abgeschlossen':'★ Kapitel abgeschlossen · '+chapter.reward+' freigeschaltet'):'Belohnung für 3 Siege: '+chapter.reward+(chIndex===2?' · Labor folgt später':'');
+  $('chapter-reward').classList.toggle('completed',chDone);
 }
 function showCampaign(){
  g=null;currentLevel=null;acc=0;pointerPositions.clear();gesture=null;warningExpires=0;
@@ -451,14 +466,20 @@ function enemyPos(e){const i=Math.min(Math.floor(e.pos),PATH.length-2),a=PATH[i]
 function finish(win){
  win=!!win&&g.bossDefeated&&!g.bossEscaped;if(!win&&g.phase==='combat')captureWaveMetrics();
  g.mode=win?'won':'lost';g.paused=false;
+ const chapterIndex=levelChapter(currentLevel.id)-1,chapter=CHAPTERS[chapterIndex];
+ const firstChapterClear=win&&currentLevel.challenge===2&&!chapterCompleted(chapter)&&!devTestAccess;
  const stars=win?storeVictory():null;
- overlay(win?'★':'⚠',win?'BOSS BESIEGT!':g.bossEscaped?'BOSS ENTWISCHT!':'BASIS VERLOREN',
+ g.chapterClear=firstChapterClear;
+ overlay(win?'★':'⚠',firstChapterClear?(chapterIndex===3?'KAMPAGNE ABGESCHLOSSEN!':'KAPITEL '+(chapterIndex+1)+' ABGESCHLOSSEN!'):win?'BOSS BESIEGT!':g.bossEscaped?'BOSS ENTWISCHT!':'BASIS VERLOREN',
  win?'Boss besiegt! '+g.kills+' Abschüsse · '+g.leaks+' Durchbrüche · HQ: '+g.hp+' Leben.':
  g.bossEscaped?'Der Boss ist durchgekommen. Das Level ist unabhängig von den HQ-Leben verloren.':
  g.kills+' Gegner besiegt, '+g.leaks+' Durchbrüche. Verbessere Standorte und Versorgung.','Nochmal versuchen');
  $('result-rating').hidden=!win;$('result-rating').textContent=win?('★'.repeat(stars)+'☆'.repeat(3-stars)+'  ·  '+DIFFICULTIES[selectedDifficulty].name):'';
+ $('result-unlock').hidden=!firstChapterClear;
+ $('result-unlock').textContent=firstChapterClear?(chapterIndex===0?'✹ KANONE FREIGESCHALTET · KAPITEL 2':chapterIndex===1?'◉ MÖRSER FREIGESCHALTET · KAPITEL 3':chapterIndex===2?'⚗ KAPITEL 4 FREIGESCHALTET · LABOR FOLGT':'★ ALLE KAPITEL ABGESCHLOSSEN'):'';
  const next=ALL_LEVELS[ALL_LEVELS.findIndex(l=>l.id===currentLevel.id)+1];
  $('result-next').hidden=!win||!next||!availableLevel(next.id);
+ $('result-next').textContent=currentLevel.challenge===2?'Nächstes Kapitel':'Nächstes Level';
  inform(win?'Sieg: Boss besiegt!':'Niederlage – Beim nächsten Versuch cleverer planen.');update();
 }
 // KISS: Connections are pipes/bridges (buildings are endpoints, never relay nodes).
@@ -879,13 +900,13 @@ $('difficulty-buttons').addEventListener('click',e=>{const b=e.target.closest('b
 $('chapter-tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-chapter]');if(b&&!b.disabled){activeChapter=b.dataset.chapter;renderCampaign();}});
 $('level-grid').addEventListener('click',e=>{const b=e.target.closest('button[data-level]');if(b&&!b.disabled)startLevel(b.dataset.level);});
 $('start').addEventListener('click',()=>{if(currentLevel)startLevel(currentLevel.id);});
-$('result-hub').addEventListener('click',showCampaign);
+$('result-hub').addEventListener('click',()=>{if(g?.chapterClear){const ix=levelChapter(currentLevel.id);if(CHAPTERS[ix])activeChapter=CHAPTERS[ix].id;}showCampaign();});
 $('result-next').addEventListener('click',()=>{if(currentLevel){const next=ALL_LEVELS[ALL_LEVELS.findIndex(l=>l.id===currentLevel.id)+1];if(next)startLevel(next.id);}});
 $('settings-open').addEventListener('click',()=>{$('settings-panel').hidden=false;$('theme-choice').value=save.theme;});
 $('settings-close').addEventListener('click',()=>{$('settings-panel').hidden=true;});
 $('settings-done').addEventListener('click',()=>{$('settings-panel').hidden=true;});
 $('theme-choice').addEventListener('change',e=>applyTheme(e.target.value));
-$('dev-test-levels').addEventListener('click',()=>{devTestAccess=!devTestAccess;$('dev-test-levels').textContent=devTestAccess?'TESTZUGANG AN · Level 2/3 geöffnet':'TESTZUGANG · Level 2/3 öffnen';$('dev-test-levels').setAttribute('aria-pressed',String(devTestAccess));renderCampaign();});
+$('dev-test-levels').addEventListener('click',()=>{devTestAccess=!devTestAccess;$('dev-test-levels').textContent=devTestAccess?'TESTZUGANG AN · Alle Kapitel geöffnet':'TESTZUGANG · Alle Kapitel öffnen';$('dev-test-levels').setAttribute('aria-pressed',String(devTestAccess));renderCampaign();});
 $('tutorial-skip').addEventListener('click',()=>{g.tutorial.active=false;$('tutorial').hidden=true;clearGuideMarks();save.tutorialSeen=true;persist();});
 $('details-close').addEventListener('click',hideDetails);
 $('waves-toggle').addEventListener('click',()=>{const l=$('wave-list');l.hidden=!l.hidden;$('waves-toggle').setAttribute('aria-expanded',String(!l.hidden));});
@@ -893,7 +914,7 @@ $('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zu
 document.addEventListener('keydown',e=>{if(e.key==='1')select('turret');if(e.key==='2')select('mine');if(e.key==='3')select('factory');if(e.key==='4')select('pipe');if(e.key==='5')select('bridge');if(e.key==='6'||e.key==='Delete')select('eraser');if(e.key==='Escape'&&g){g.selected=null;update();}if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();pause();}});
 document.addEventListener('visibilitychange',()=>{previous=performance.now();acc=0;});
 
-window.ForgefrontDebug={buildId:()=>BUILD_ID,setDifficulty:changeDifficulty,startLevel,showCampaign,levels:()=>ALL_LEVELS.map(l=>({id:l.id,ready:l.ready,unlocked:unlocked(l.id)})),map:()=>({hq:{...HQ},path:PATH.map(p=>[...p]),ore:[...ORE]}),save:()=>JSON.parse(JSON.stringify(save)),score,difficulties:()=>JSON.parse(JSON.stringify(DIFFICULTIES)),pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),allowedBuilding:buildingAvailable,testAccess:()=>devTestAccess,waves:()=>levelWaves().map((w,i)=>({label:w.label,composition:wavePreview(i),count:w.count,bossHp:w.bossHp||null})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
+window.ForgefrontDebug={buildId:()=>BUILD_ID,setDifficulty:changeDifficulty,startLevel,showCampaign,levels:()=>ALL_LEVELS.map(l=>({id:l.id,ready:l.ready,unlocked:unlocked(l.id)})),chapters:()=>CHAPTERS.map((ch,i)=>({id:ch.id,unlocked:chapterUnlocked(i),completed:chapterCompleted(ch),reward:ch.reward})),map:()=>({hq:{...HQ},path:PATH.map(p=>[...p]),ore:[...ORE]}),save:()=>JSON.parse(JSON.stringify(save)),score,difficulties:()=>JSON.parse(JSON.stringify(DIFFICULTIES)),pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),allowedBuilding:buildingAvailable,testAccess:()=>devTestAccess,waves:()=>levelWaves().map((w,i)=>({label:w.label,composition:wavePreview(i),count:w.count,bossHp:w.bossHp||null})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
 function frame(now){
  if(warningExpires&&now>=warningExpires){warningExpires=0;$('gold-warning').hidden=true;$('gold').classList.remove('low-gold');}
  const dt=Math.min(.1,(now-previous)/1000);previous=now;
