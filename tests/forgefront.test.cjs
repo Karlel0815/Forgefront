@@ -91,7 +91,7 @@ function runGame(mode,plan=standardSteps,levelId='c1-l1'){const b=boot(mode),dat
  }return{b,history:data,state:b.dbg.snapshot()};}
 
 test('Unique DEV build stamp, flags and zero starting ammo',()=>{
- const b=boot('hard'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.4.0-dev3');
+ const b=boot('hard'),s=b.dbg.snapshot();assert.equal(b.dbg.buildId(),'0.5.0-dev1');
  assert.equal(s.bossDefeated,false);assert.equal(s.bossEscaped,false);assert.equal(s.leaks,0);assert.equal(s.ammoSpent,0);
 });
 test('Boss escapes with remaining HQ: instant loss, boss-specific message',()=>{
@@ -312,7 +312,7 @@ test('Three genuine handcrafted maps and 3-slot Chapter 1',()=>{
   for(const o of map.ore){const [x,y]=o.split(',').map(Number);assert.ok(x>=0&&x<18&&y>=0&&y<20);assert.equal(road.has(o),false,'ore must never overlap road');}
  }
 });
-for(const level of ['c1-l1','c1-l2','c1-l3'])for(const mode of ['easy','normal','hard','crazy']){
+for(const level of ['c1-l1','c1-l2','c1-l3'])for(const mode of ['standard','hard']){
  test(`Real MG-only victory ${level}/${mode} after 6 waves with boss killed`,()=>{
   const {history,state,b}=runGame(mode,PLANS[level],level);
   assert.equal(history.length,6,JSON.stringify(history));
