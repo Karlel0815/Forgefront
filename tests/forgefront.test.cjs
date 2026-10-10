@@ -783,8 +783,14 @@ function runBalanceAB(level,variant,choice='cannon'){
    const weapon=type==='turret'&&chapter===3&&(w===2||w===4)?'cannon':type;
    return [weapon,x,y];
   });
-  if(choice==='frontMortarW5'&&w===5)
+  if((choice==='frontMortarW5'&&w===5)||(choice==='frontMortarW6'&&w===6))
    steps.push(['mine',3,6],['factory',4,6],['mortar',4,5]);
+  if(choice==='frontCannonW5'&&w===5)
+   steps.push(['mine',3,6],['factory',4,6],['cannon',4,5]);
+  if(choice==='frontMGW5'&&w===5)
+   steps.push(['mine',3,6],['factory',4,6],['turret',4,5]);
+  if(choice==='extraNet'&&w===6)
+   steps.push(['mine',3,5],['factory',4,5],['cannon',4,4]);
   for(const [type,x,y] of steps)
    assert.equal(b.dbg.place(type,x,y),true,
     level+' '+variant+' '+choice+' W'+w+' cannot place '+type+'@'+x+','+y);
@@ -827,9 +833,10 @@ test('BALANCE_AB_11: T0/T1/T2/T3 full legal Schwer runs and unchanged control ma
    results.push(runBalanceAB(level,variant,'mg'));
  }
  for(const variant of ['T0','T2','T3'])
-  for(const choice of ['cannon','frontMortarW5'])
+  for(const choice of ['cannon','frontMortarW5','frontMortarW6',
+   'frontCannonW5','frontMGW5','extraNet'])
    results.push(runBalanceAB('c3-l2',variant,choice));
- assert.equal(results.length,10);
+ assert.equal(results.length,22);
  // The variants must affect only the intended wave characteristics.
  const by=(l,v,c)=>results.find(x=>x.level===l&&x.variant===v&&x.choice===c);
  for(const level of ['c1-l2','c1-l3']){
