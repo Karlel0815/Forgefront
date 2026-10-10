@@ -357,7 +357,7 @@ test('DEV2: all twelve chapter/map wave profiles are distinct and follow planned
     assert.ok(drones.every(x=>x.hp===6&&x.armor===0&&x.speed===1.1));
     let groups=0;
     for(let i=0;i<kinds.length;i++)if(kinds[i]==='panic'&&(i===0||kinds[i-1]!=='panic')){
-     groups++;assert.deepEqual(kinds.slice(i,i+4),['panic','panic','panic','panic']);
+     groups++;assert.equal(kinds.slice(i,i+4).join(','),'panic,panic,panic,panic');
      assert.ok(wave.units.slice(i,i+3).every(x=>x.nextDelay===.36));
     }
     assert.equal(groups,wave.definition.panicGroups);
