@@ -471,12 +471,49 @@ function visibleRatio(b,info){
  return g.phase==='combat'&&displayRatios.has(b.id)?Math.round(displayRatios.get(b.id)):info.ratio;
 }
 function captureWaveMetrics(){for(const b of g.buildings)if(!isPipe(b)){b.lastWaveRate=b.waveAmount/Math.max(.1,g.time-g.waveStart);}}
-function makePlan(def){const list=[];
- for(let i=0;i<def.count;i++){
-  const kind=def.pattern[i%def.pattern.length]||'normal';
-  list.push({kind,hp:Math.max(1,Math.round((kind==='heavy'?Math.round(def.hp*1.5):kind==='scout'?Math.round(def.hp*.64):def.hp)*DIFFICULTIES[g?.difficulty||selectedDifficulty].enemyHp)),speed:kind==='heavy'?def.speed*.72:kind==='scout'?def.speed*1.35:def.speed,armor:kind==='heavy'?2:0});
+function makePlan(def){
+ const difficulty=DIFFICULTIES[g?.difficulty||selectedDifficulty],groups=def.panicGroups||0;
+ const total=def.count-4*groups;
+ if(total<0)throw Error('Invalid panic formation');
+ const heavyCount=Math.round(total*(def.heavyShare||0)),scoutCount=Math.round(total*(def.scoutShare||0));
+ // Fixed-seed permutation makes enemy mixtures reproducible across tests/difficulties.
+ const kinds=[...Array(heavyCount).fill('heavy'),...Array(scoutCount).fill('scout'),
+  ...Array(total-heavyCount-scoutCount).fill('normal')];
+ let seed=def.variantSeed||1;
+ for(let i=kinds.length-1;i>0;i--){
+  seed=(1664525*seed+1013904223)>>>0;
+  const k=seed%(i+1);[kinds[i],kinds[k]]=[kinds[k],kinds[i]];
  }
- if(def.boss)list.splice(Math.floor(list.length/2),0,{kind:'boss',hp:Math.max(1,Math.round((def.bossHp??110)*DIFFICULTIES[g?.difficulty||selectedDifficulty].enemyHp)),speed:def.bossSpeed??.98,armor:def.bossArmor??0});
+ const list=[],factor=difficulty.enemyHp;
+ const makeUnit=kind=>({
+  kind,hp:kind==='panic'?6:Math.max(1,Math.round((kind==='heavy'?Math.round(def.hp*1.5):
+   kind==='scout'?Math.round(def.hp*.64):def.hp)*factor)),
+  speed:kind==='panic'?1.10:kind==='heavy'?def.speed*.72:kind==='scout'?def.speed*1.35:def.speed,
+  armor:kind==='heavy'?2:0,nextDelay:def.interval/difficulty.spawn
+ });
+ let offset=0;
+ for(let chunk=0;chunk<=groups;chunk++){
+  const take=Math.round((kinds.length-offset)/(groups+1-chunk));
+  for(let j=0;j<take;j++){
+   const unit=makeUnit(kinds[offset++]);
+   if((j+1)%Math.max(5,Math.round(def.groupSize/2))===0)unit.nextDelay=def.gap/difficulty.spawn;
+   list.push(unit);
+  }
+  if(chunk<groups){
+   if(list.length)list[list.length-1].nextDelay=def.gap/difficulty.spawn;
+   for(let j=0;j<4;j++){
+    const unit=makeUnit('panic');
+    unit.nextDelay=j<3?.36:def.gap/difficulty.spawn;
+    list.push(unit);
+   }
+  }
+ }
+ if(def.boss){
+  let middle=Math.floor(list.length/2);
+  while(middle<list.length&&list[middle]?.kind==='panic')middle++;
+  list.splice(middle,0,{kind:'boss',hp:Math.max(1,Math.round((def.bossHp??110)*factor)),
+   speed:def.bossSpeed??.98,armor:def.bossArmor??0,nextDelay:def.interval/difficulty.spawn});
+ }
  return list;
 }
 // Cached local-area splash counts replace an O(enemy^2 * mortarCount) search.
@@ -505,13 +542,14 @@ function makeTarget(turret){
 }
 function killEnemy(e){
  const i=g.enemies.indexOf(e);if(i<0)return;
- g.enemies.splice(i,1);g.waves[e.wave-1].alive--;g.kills++;if(e.kind==='boss')g.bossDefeated=true;enemyPositions.delete(e.id);splashCache.clear();targetCache.clear();const bounty=ECONOMY.goldPerType[e.kind]??2;g.gold+=bounty;g.goldEarned+=bounty;
+ g.enemies.splice(i,1);g.waves[e.wave-1].alive--;g.kills++;if(e.kind==='boss')g.bossDefeated=true;enemyPositions.delete(e.id);splashCache.clear();targetCache.clear();const bounty=ECONOMY.goldPerType[e.kind]??0;g.gold+=bounty;g.goldEarned+=bounty;
  if(e.kind==='boss')inform('BOSS GESTOPPT! Besiege die letzten Begleitgegner.');
 }
 function hitEnemy(e,raw,pierce){
  // Standard changes only effective player-weapon damage, AFTER armor and minimum hit.
  const effective=Math.max(1,raw-Math.max(0,(e.armor||0)-pierce));
  e.hp-=effective*(1+DIFFICULTIES[g.difficulty].damageBonus);
+ if(e.kind==='panic'&&e.hp>0&&!e.panicked){e.panicked=true;e.speed*=1.5;}
  if(e.kind==='boss'&&e.hp<=e.max*.5&&!e.enraged){e.enraged=true;e.speed*=1.38;e.armor=currentLevel?.challenge!==undefined?0:2;inform('⚠ BOSS-PHASE 2: Der Boss beschleunigt!');}
  if(e.hp<=0)killEnemy(e);
 }
@@ -528,10 +566,9 @@ function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')re
  if(g.spawner){const sp=g.spawner;sp.timer-=dt;
   // Each group is compact, followed by a deliberate gap. One spawn per simulation tick.
   if(sp.index<sp.plan.length&&sp.timer<=0){
-   const unit=sp.plan[sp.index++];g.enemies.push({id:nextId++,pos:0,hp:unit.hp,max:unit.hp,speed:unit.speed,armor:unit.armor,kind:unit.kind,wave:g.wave,enraged:false});
+   const unit=sp.plan[sp.index++];g.enemies.push({id:nextId++,pos:0,hp:unit.hp,max:unit.hp,speed:unit.speed,armor:unit.armor,kind:unit.kind,wave:g.wave,enraged:false,panicked:false});
    g.waves[g.wave-1].alive++;
-   const crossed=sp.index%sp.groupSize===0&&sp.index<sp.plan.length;
-   sp.timer+=crossed?sp.gap/DIFFICULTIES[g.difficulty].spawn:sp.interval/DIFFICULTIES[g.difficulty].spawn;
+   sp.timer+=unit.nextDelay;
   }
   if(sp.index===sp.plan.length){g.waves[g.wave-1].doneSpawning=true;g.spawner=null;}
  }
@@ -554,8 +591,8 @@ function simulate(dt){if(!g||g.mode!=='playing'||g.paused||g.phase!=='combat')re
  checkWaveComplete();
 }
 function wavePreview(i){
- const counts={normal:0,scout:0,heavy:0,boss:0};for(const e of makePlan(levelWaves()[i]))counts[e.kind]++;
- return Object.entries(counts).filter(([k,n])=>n).map(([k,n])=>n+'× '+({normal:'Normal',scout:'Scout',heavy:'Panzer',boss:'Boss'}[k])).join(' · ');
+ const counts={normal:0,scout:0,heavy:0,panic:0,boss:0};for(const e of makePlan(levelWaves()[i]))counts[e.kind]++;
+ return Object.entries(counts).filter(([k,n])=>n).map(([k,n])=>n+'× '+({normal:'Normal',scout:'Scout',heavy:'Panzer',panic:'Panikdrohne',boss:'Boss'}[k])).join(' · ');
 }
 
 function updateWavePreview(){
@@ -667,8 +704,12 @@ function draw(){if(!g)return;const c=ctx;c.clearRect(0,0,W*S,H*S);
   c.setLineDash([]);c.font='bold 14px sans-serif';c.textAlign='center';c.fillStyle='#ccf8ff';c.fillText('R '+spec.range+' / Ø '+(spec.range*2).toFixed(1),cx,Math.max(17,cy-spec.range*S-6));
  }
  for(const e of g.enemies){const p=enemyPos(e),x=(p.x+.5)*S,y=(p.y+.5)*S;
-  const boss=e.kind==='boss',heavy=e.kind==='heavy',scout=e.kind==='scout',r=boss?23:heavy?18:scout?11:14;
-  c.fillStyle=boss?'#ef6f85':heavy?'#ab91dc':scout?'#ffcd72':'#fb8e84';c.beginPath();c.moveTo(x,y-r);c.lineTo(x+r,y);c.lineTo(x,y+r);c.lineTo(x-r,y);c.closePath();c.fill();
+  const boss=e.kind==='boss',heavy=e.kind==='heavy',scout=e.kind==='scout',panic=e.kind==='panic',r=boss?23:heavy?18:scout?11:panic?13:14;
+  c.fillStyle=boss?'#ef6f85':heavy?'#ab91dc':scout?'#ffcd72':panic?'#69e6c6':'#fb8e84';c.beginPath();
+  if(panic){for(let n=0;n<6;n++){const ang=Math.PI*n/3;c[n?'lineTo':'moveTo'](x+Math.sin(ang)*r,y-Math.cos(ang)*r);}}
+  else{c.moveTo(x,y-r);c.lineTo(x+r,y);c.lineTo(x,y+r);c.lineTo(x-r,y);}
+  c.closePath();c.fill();
+  if(panic){c.font='bold 15px system-ui,sans-serif';c.textAlign='center';c.fillStyle='#123344';c.fillText('ϟ',x,y+5);if(e.panicked){c.strokeStyle='#fff2a6';c.lineWidth=3;c.stroke();}}
   if(boss){c.lineWidth=3;c.strokeStyle=e.enraged?'#ffbd72':'#ffdce2';c.stroke();c.font='bold 20px sans-serif';c.textAlign='center';c.fillStyle='#351b34';c.fillText('✦',x,y+7);}
   const bar=boss?56:34,offset=boss?35:26;c.fillStyle='#0c1d30';c.fillRect(x-bar/2,y-offset,bar,5);c.fillStyle=e.hp/e.max<.5?'#ff8a6d':'#b9f4aa';c.fillRect(x-bar/2,y-offset,bar*Math.max(0,e.hp/e.max),5);
  }
