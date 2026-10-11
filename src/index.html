@@ -3,7 +3,7 @@
 <body>
 <section id="campaign" class="campaign" aria-label="Forgefront Levelauswahl">
   <div class="campaign-inner">
-    <header class="campaign-header"><div><h1>FORGE<span>FRONT</span></h1><p>KAMPAGNE · LEVELAUSWAHL</p></div><button type="button" id="settings-open" class="icon-button" aria-label="Einstellungen öffnen" title="Einstellungen">⚙</button></header>
+    <header class="campaign-header"><div><h1>FORGE<span>FRONT</span></h1><p>KAMPAGNE · LEVELAUSWAHL</p></div><div class="campaign-editor-actions"><button type="button" id="editor-open" class="editor-entry" title="Karte zeichnen">▦ Karteneditor</button><button type="button" id="settings-open" class="icon-button" aria-label="Einstellungen öffnen" title="Einstellungen">⚙</button></div></header>
     <div class="campaign-heading"><h2>Kapitel wählen</h2><span id="campaign-progress">0 / 3 geschafft</span></div>
     <nav id="chapter-tabs" class="chapter-tabs" aria-label="Kampagnenkapitel"></nav>
     <div class="campaign-heading"><h2 id="chapter-title">Kapitel 1</h2><span id="chapter-subtitle">Die ersten Schritte</span></div>
@@ -29,6 +29,25 @@
     </div>
   </section>
 </section>
+<section id="map-editor" class="map-editor" hidden aria-label="Karteneditor">
+<div class="editor-shell">
+<header class="editor-header"><button type="button" id="editor-back" class="back-button">‹ Levelauswahl</button><strong>KARTENEDITOR</strong><span class="editor-draft">AP1 · ENTWURF</span></header>
+<div class="editor-heading"><h2>Neue Karte zeichnen</h2><button type="button" id="editor-check" class="secondary-action">✓ Karte prüfen</button></div>
+<p class="editor-help">Mit dem Finger Wege und Erz zeichnen. Start (S) und HQ (H) lassen sich versetzen. Der Radiergummi löscht einzelne Felder auch durch Ziehen.</p>
+<div class="editor-zoom-bar"><button type="button" id="editor-zoom-out" aria-label="Verkleinern">−</button><span id="editor-zoom">75 %</span><button type="button" id="editor-zoom-in" aria-label="Vergrößern">+</button><button type="button" id="editor-fit">Gesamtkarte</button></div>
+<div id="editor-viewport" class="editor-viewport"><canvas id="editor-canvas" width="720" height="800" aria-label="Rasterkarte bearbeiten"></canvas></div>
+<div class="editor-tools" role="toolbar" aria-label="Kartenwerkzeuge">
+<button type="button" data-editor-tool="path" class="selected" aria-pressed="true">✎ Weg</button>
+<button type="button" data-editor-tool="ore" aria-pressed="false">◆ Erz</button>
+<button type="button" data-editor-tool="erase" aria-pressed="false">⌫ Radiergummi</button>
+<button type="button" data-editor-tool="spawn" aria-pressed="false">⚑ Start</button>
+<button type="button" data-editor-tool="hq" aria-pressed="false">⬡ HQ</button>
+<button type="button" data-editor-tool="pan" aria-pressed="false">✥ Verschieben</button>
+</div>
+<div class="editor-actions"><button type="button" id="editor-undo" class="secondary-action" disabled>↶ Rückgängig</button><button type="button" id="editor-clear" class="secondary-action">Neue leere Karte</button></div>
+<p id="editor-status" class="editor-status" role="status" aria-live="polite">Zeichne einen Weg vom Start zum HQ.</p>
+<p class="editor-note">AP1 dient nur zum Zeichnen. Entwürfe werden nicht gespeichert oder veröffentlicht. Testspielen und Schwer-Bosskill-Freigabe folgen später.</p>
+</div></section>
 <div id="game-shell" hidden><div class="app">
 <header class="brand"><button type="button" id="back-to-campaign" class="back-button" aria-label="Zurück zur Levelauswahl">‹ Levelauswahl</button><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.5.0 · DEV2</span></div></header>
 <section class="stats" aria-label="Gold"><div class="stat"><label>● GOLD</label><strong id="gold">180</strong></div></section>
@@ -67,4 +86,4 @@
 </div></div>
 <div class="dock-actions"><button type="button" class="primary" id="pause">▶ WELLE 1 STARTEN</button><button type="button" id="reset" class="reset" title="Neue Runde">↻</button></div>
 <div id="speed-controls" class="speed-controls" role="group" aria-label="Spieltempo" hidden><span>TEMPO</span><button type="button" data-speed="1" aria-pressed="false">1×</button><button type="button" data-speed="2" aria-pressed="true">2×</button><button type="button" data-speed="3" aria-pressed="false">3×</button></div>
-<div id="status" class="dock-status" role="status">V0.5.0 DEV2 · Kampfprototyp</div></div></div><script src="game.js"></script></body></html>
+<div id="status" class="dock-status" role="status">V0.5.0 DEV2 · Kampfprototyp</div></div></div><script src="game.js"></script><script src="map-editor.js"></script></body></html>

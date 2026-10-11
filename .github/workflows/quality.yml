@@ -20,4 +20,4 @@ jobs:
       - name: Source syntax and bundled standalone
         run: node tools/verify-release.cjs
       - name: Gameplay and regression tests
-        run: node --test tests/forgefront.test.cjs
+        run: node --test tests/*.test.cjs
