@@ -67,40 +67,69 @@
     return changed;
   }
 
-  function validate(s) {
-    const fail = reason => ({ valid: false, message: reason });
-    if (!s.spawn || !inside(s.spawn.x, s.spawn.y)) return fail('Setze zuerst einen Startpunkt (S).');
-    if (!s.hq || !inside(s.hq.x, s.hq.y)) return fail('Setze zuerst das Ziel/HQ (H).');
-    if (at(s.spawn, s.hq.x, s.hq.y)) return fail('HQ und Start müssen getrennte Felder sein.');
-    if (s.path.size < 6) return fail('Zeichne einen Gegnerweg mit mindestens sechs Feldern.');
-    if (!s.path.has(key(s.spawn.x, s.spawn.y)) || !s.path.has(key(s.hq.x, s.hq.y))) {
-      return fail('Der Gegnerweg muss Start und HQ erreichen.');
-    }
-    if (s.ore.size === 0) return fail('Platziere mindestens ein Erzfeld.');
-    for (const k of s.ore) if (s.path.has(k)) return fail('Erz und Weg dürfen sich nicht überlappen.');
-    const neighbours = k => {
-      const [x, y] = k.split(',').map(Number);
-      return [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]
-        .map(p => key(p[0], p[1])).filter(n => s.path.has(n));
-    };
-    const first = key(s.spawn.x, s.spawn.y), last = key(s.hq.x, s.hq.y);
-    for (const k of s.path) {
-      const expected = k === first || k === last ? 1 : 2;
-      if (neighbours(k).length !== expected) return fail('Weg enthält eine Verzweigung, Schleife oder ein offenes Ende.');
-    }
-    const visited = new Set([first]), queue = [first];
-    for (let i = 0; i < queue.length; i++) {
-      for (const n of neighbours(queue[i])) if (!visited.has(n)) {
-        visited.add(n);
-        queue.push(n);
-      }
-    }
-    if (visited.size !== s.path.size || !visited.has(last)) return fail('Der Weg muss durchgehend von Start bis HQ führen.');
-    return { valid: true, message: 'Geometrie gültig. Testspielen und Speichern folgen erst mit AP2.' };
+  function effectivePath(s) {
+    const road=new Set(s.path);
+    if(s.spawn)road.add(key(s.spawn.x,s.spawn.y));
+    if(s.hq)road.add(key(s.hq.x,s.hq.y));
+    return road;
   }
-
+  const neighbours=(path,k)=>{
+    const [x,y]=k.split(',').map(Number);
+    return [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].map(p=>key(p[0],p[1])).filter(p=>path.has(p));
+  };
+  function validate(s) {
+    const fail=message=>({valid:false,message});
+    if(!s.spawn||!inside(s.spawn.x,s.spawn.y))return fail('Setze zuerst einen Startpunkt (S).');
+    if(!s.hq||!inside(s.hq.x,s.hq.y))return fail('Setze zuerst das Ziel/HQ (H).');
+    if(at(s.spawn,s.hq.x,s.hq.y))return fail('Start und Ziel müssen getrennte Felder sein.');
+    const road=effectivePath(s),first=key(s.spawn.x,s.spawn.y),last=key(s.hq.x,s.hq.y);
+    if(road.size<6)return fail('Zeichne einen Weg mit mindestens sechs Feldern.');
+    if(!s.ore.size)return fail('Platziere mindestens ein Erzfeld.');
+    for(const k of s.ore)if(road.has(k))return fail('Erz und Weg dürfen sich nicht überlappen.');
+    for(const k of road){
+      const expected=k===first||k===last?1:2;
+      if(neighbours(road,k).length!==expected)return fail('Der Gegnerweg muss ohne Verzweigung von Start bis HQ führen.');
+    }
+    const seen=new Set([first]),queue=[first];
+    for(let i=0;i<queue.length;i++)for(const k of neighbours(road,queue[i]))if(!seen.has(k)){seen.add(k);queue.push(k);}
+    if(seen.size!==road.size||!seen.has(last))return fail('Der Gegnerweg muss Start und HQ verbinden.');
+    return {valid:true,message:'Geometrie gültig. Testspiel auf Schwer kann gestartet werden.'};
+  }
+  function mapSnapshot(s) {
+    if(!validate(s).valid)return null;
+    const road=effectivePath(s),ordered=[],last=key(s.hq.x,s.hq.y);
+    let prev=null,current=key(s.spawn.x,s.spawn.y);
+    while(current!==null){
+      ordered.push(current.split(',').map(Number));
+      if(current===last)break;
+      const next=neighbours(road,current).filter(k=>k!==prev);
+      if(next.length!==1)return null;
+      prev=current;current=next[0];
+    }
+    if(ordered.length!==road.size)return null;
+    return {path:ordered,ore:[...s.ore].sort(),hq:{...s.hq}};
+  }
+  function mapSignature(s) {
+    const snapshot=mapSnapshot(s);
+    return snapshot?JSON.stringify(snapshot):null;
+  }
+  function restoreSnapshot(snapshot) {
+    if(!snapshot||!Array.isArray(snapshot.path)||!Array.isArray(snapshot.ore)||!snapshot.hq)return null;
+    const state=makeState();
+    for(const p of snapshot.path){
+      if(!Array.isArray(p)||p.length!==2||!inside(p[0],p[1]))return null;
+      if(!paintCell(state,'path',p[0],p[1]))return null;
+    }
+    for(const p of snapshot.ore){
+      const m=/^(\d+),(\d+)$/.exec(p);
+      if(!m||!paintCell(state,'ore',Number(m[1]),Number(m[2])))return null;
+    }
+    state.spawn={x:snapshot.path[0][0],y:snapshot.path[0][1]};
+    state.hq={...snapshot.hq};
+    return validate(state).valid?state:null;
+  }
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { WIDTH, HEIGHT, makeState, cloneState, paintCell, paintLine, validate };
+    module.exports = { WIDTH, HEIGHT, makeState, cloneState, paintCell, paintLine, validate, mapSnapshot, mapSignature, restoreSnapshot };
   }
   if (typeof document === 'undefined') return;
 
@@ -115,7 +144,15 @@
   const undoButton = document.getElementById('editor-undo');
   const buttons = Array.from(section.querySelectorAll('[data-editor-tool]'));
   let state = makeState(), history = [], tool = 'path', zoom = 0.75, pointer = null;
+  let clearedSignature = null, testSignature = null, editingId = null;
+  const LOCAL_KEY = 'forgefront.editor.maps.v1';
+  const testButton = document.getElementById('editor-test');
+  const saveButton = document.getElementById('editor-save');
+  const nameInput = document.getElementById('editor-name');
+  const localList = document.getElementById('editor-local-list');
 
+
+  function updateButtons(){const sig=mapSignature(state);testButton.disabled=!sig;saveButton.disabled=!sig||sig!==clearedSignature;}
   function setMessage(message) { status.textContent = message; }
   function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -149,6 +186,7 @@
     marker(state.spawn, '#8ad2ae', 'S');
     marker(state.hq, '#f7c781', 'H');
     undoButton.disabled = history.length === 0;
+    updateButtons();
   }
   function chooseTool(name) {
     tool = name;
@@ -183,6 +221,7 @@
     if (!pointer) return;
     if (cancelled) state = pointer.before;
     else if (pointer.changed) {
+      clearedSignature = null;
       history.push(pointer.before);
       if (history.length > 30) history.shift();
     }
@@ -231,6 +270,7 @@
   undoButton.addEventListener('click', () => {
     if (!history.length) return;
     state = history.pop();
+    clearedSignature = null;
     render();
     setMessage('Letzten Zeichenstrich rückgängig gemacht.');
   });
@@ -239,6 +279,27 @@
     status.dataset.valid = String(result.valid);
     setMessage(result.message);
   });
+  testButton.addEventListener('click',()=>{const snapshot=mapSnapshot(state);if(!snapshot){setMessage(validate(state).message);return;}testSignature=mapSignature(state);if(window.ForgefrontCustom?.start(snapshot)){section.hidden=true;}else{testSignature=null;setMessage('Testspiel konnte nicht gestartet werden.');}});
+  function onTestResult(e){clearedSignature=e.detail?.won&&window.ForgefrontCustom?.verifiedWin?.()&&mapSignature(state)===testSignature?testSignature:null;updateButtons();}
+  window.addEventListener('forgefront-custom-result',onTestResult);
+  function refreshSavedList(){localList.replaceChildren();try{showSavedEntries();}catch{}}
+  function showSavedEntries(){const cards=JSON.parse(window.localStorage.getItem(LOCAL_KEY)||'[]');if(!Array.isArray(cards))return;for(const card of cards){const row=document.createElement('div'),label=document.createElement('span'),btn=document.createElement('button');label.textContent=String(card.name||'Karte');btn.textContent='Öffnen';btn.addEventListener('click',()=>loadSavedCard(card));row.append(label,btn);localList.append(row);}}
+
+  function loadSavedCard(card){const draft=restoreSnapshot(card.snapshot);if(!draft)return;state=draft;history=[];editingId=card.id;nameInput.value=card.name;clearedSignature=mapSignature(state);render();setMessage('Gespeicherte Karte geladen. Änderungen brauchen einen neuen Sieg.');}
+  function saveTestedMap(){
+    const snapshot=mapSnapshot(state);
+    if(!snapshot||mapSignature(state)!==clearedSignature)return;
+    const name=nameInput.value.trim().slice(0,60);
+    if(!name){setMessage('Bitte Karte benennen.');return;}
+    try{
+      const raw=JSON.parse(window.localStorage.getItem(LOCAL_KEY)||'[]');
+      const cards=Array.isArray(raw)?raw:[];
+      const id=editingId||('map-'+Date.now().toString(36));
+      window.localStorage.setItem(LOCAL_KEY,JSON.stringify(cards.filter(c=>c.id!==id).concat([{id,name,snapshot}]).slice(-30)));
+      editingId=id;setMessage('Nach Schwer-Sieg lokal gespeichert. Freigabe für alle folgt in AP3.');refreshSavedList();
+    }catch{setMessage('Speichern im Browser fehlgeschlagen.');}
+  }
+  saveButton.addEventListener('click',saveTestedMap);
   document.getElementById('editor-zoom-in').addEventListener('click', () => applyZoom(zoom + 0.2));
   document.getElementById('editor-zoom-out').addEventListener('click', () => applyZoom(zoom - 0.2));
   document.getElementById('editor-fit').addEventListener('click', () => {
@@ -247,17 +308,17 @@
   });
   document.getElementById('editor-clear').addEventListener('click', () => {
     if (!window.confirm('Die aktuelle, nicht gespeicherte Karte verwerfen?')) return;
-    state = makeState(); history = [];
+    state = makeState(); history = []; editingId = null; clearedSignature = null; nameInput.value = '';
     render(); setMessage('Neue leere Karte.');
   });
   openButton.addEventListener('click', () => {
     if (!document.getElementById('game-shell').hidden) return;
-    state = makeState(); history = [];
+    state = makeState(); history = []; editingId = null; clearedSignature = null; nameInput.value = '';
     campaign.hidden = true;
     section.hidden = false;
     applyZoom(0.75);
     viewport.scrollLeft = 0; viewport.scrollTop = 0;
-    render(); chooseTool('path');
+    render(); chooseTool('path'); refreshSavedList();
   });
   document.getElementById('editor-back').addEventListener('click', () => {
     if ((state.path.size || state.ore.size || state.spawn || state.hq) && !window.confirm('Nicht gespeicherte Karte verwerfen und zur Kampagne zurück?')) return;

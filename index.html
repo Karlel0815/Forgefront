@@ -170,7 +170,7 @@ body[data-menu-theme=light] .editor-entry{background:#e7f1f6;color:#324a5b}
 <section id="map-editor" class="map-editor" hidden aria-label="Karteneditor">
 <div class="editor-shell">
 <header class="editor-header"><button type="button" id="editor-back" class="back-button">‹ Levelauswahl</button><strong>KARTENEDITOR</strong><span class="editor-draft">AP1 · ENTWURF</span></header>
-<div class="editor-heading"><h2>Neue Karte zeichnen</h2><button type="button" id="editor-check" class="secondary-action">✓ Karte prüfen</button></div>
+<div class="editor-heading"><h2>Neue Karte zeichnen</h2><button type="button" id="editor-check" class="secondary-action">✓ Karte prüfen</button><button type="button" id="editor-test" class="primary" disabled>▶ Testspielen</button></div>
 <p class="editor-help">Start (S) und Ziel/HQ (H) selbst setzen, danach den Weg dazwischen zeichnen. Beide können später versetzt oder mit dem Radiergummi gelöscht werden, ohne Wegfelder zu erzeugen.</p>
 <div class="editor-zoom-bar"><button type="button" id="editor-zoom-out" aria-label="Verkleinern">−</button><span id="editor-zoom">75 %</span><button type="button" id="editor-zoom-in" aria-label="Vergrößern">+</button><button type="button" id="editor-fit">Gesamtkarte</button></div>
 <div id="editor-viewport" class="editor-viewport"><canvas id="editor-canvas" width="720" height="800" aria-label="Rasterkarte bearbeiten"></canvas></div>
@@ -184,7 +184,9 @@ body[data-menu-theme=light] .editor-entry{background:#e7f1f6;color:#324a5b}
 </div>
 <div class="editor-actions"><button type="button" id="editor-undo" class="secondary-action" disabled>↶ Rückgängig</button><button type="button" id="editor-clear" class="secondary-action">Neue leere Karte</button></div>
 <p id="editor-status" class="editor-status" role="status" aria-live="polite">Zeichne einen Weg vom Start zum HQ.</p>
-<p class="editor-note">AP1 dient nur zum Zeichnen. Entwürfe werden nicht gespeichert oder veröffentlicht. Testspielen und Schwer-Bosskill-Freigabe folgen später.</p>
+<div class="editor-save-panel"><label for="editor-name">KARTENNAME</label><input id="editor-name" type="text" maxlength="60" placeholder="Name deiner Karte"><button type="button" id="editor-save" class="primary" disabled>Karte speichern</button></div>
+<p class="editor-note">AP2: Zuerst den Boss auf Schwer besiegen. Erst danach kannst du diese Kartenversion auf diesem Gerät speichern. Gemeinsame Karten folgen in AP3.</p>
+<div class="editor-local-maps"><strong>Auf diesem Gerät gespeichert</strong><div id="editor-local-list"></div></div>
 </div></section>
 <div id="game-shell" hidden><div class="app">
 <header class="brand"><button type="button" id="back-to-campaign" class="back-button" aria-label="Zurück zur Levelauswahl">‹ Levelauswahl</button><div><h1>FORGE<span>FRONT</span></h1><small>LOGISTIK · BAUEN · ÜBERLEBEN</small></div><div class="top-tools"><button type="button" id="help" aria-label="Tutorial und Hilfe öffnen" title="Tutorial öffnen">? HILFE</button><span class="version">ALPHA 0.5.0 · DEV2</span></div></header>
@@ -277,11 +279,12 @@ const CHAPTERS=[
 ].map((chapter,ci)=>({...chapter,levels:MAP_BLUEPRINTS.map((template,i)=>({...template,id:'c'+(ci+1)+'-l'+(i+1),ready:true}))}));
 const ALL_LEVELS=CHAPTERS.flatMap(ch=>ch.levels);
 let PATH=BASE_PATH.map(p=>p.slice()),ORE=new Set(BASE_ORE),HQ={x:16,y:18},currentLevel=null;
+let customLevel=null; // Test games are isolated from campaign and progression.
 let activeChapter=CHAPTERS[0].id;
 let devTestAccess=false;
 const BASE_WEAPON_UNLOCKS={turret:1,cannon:2,mortar:3};
 const levelChapter=id=>CHAPTERS.findIndex(ch=>ch.levels.some(l=>l.id===id))+1;
-const buildingAvailable=type=>['turret','cannon','mortar','mine','factory','pipe','bridge','eraser'].includes(type)&&(!(type in BASE_WEAPON_UNLOCKS)||BASE_WEAPON_UNLOCKS[type]<=levelChapter(currentLevel?.id));
+const buildingAvailable=type=>['turret','cannon','mortar','mine','factory','pipe','bridge','eraser'].includes(type)&&(customLevel||!(type in BASE_WEAPON_UNLOCKS)||BASE_WEAPON_UNLOCKS[type]<=levelChapter(currentLevel?.id));
 const SAVE_KEY='forgefront.progress.v2';
 const EMPTY_SAVE=()=>({version:2,difficulty:'standard',theme:'dark',tutorialSeen:false,results:{}});
 const isRecord=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
@@ -319,9 +322,9 @@ function chapterUnlocked(i){return devTestAccess||i===0||chapterCompleted(CHAPTE
 function unlocked(levelId){const idx=ALL_LEVELS.findIndex(l=>l.id===levelId);return idx>=0&&(devTestAccess||idx===0||completed(ALL_LEVELS[idx-1].id));}
 function availableLevel(id){const level=ALL_LEVELS.find(l=>l.id===id);return level&&level.ready&&unlocked(id)?level:null;}
 function score(leaks){return leaks===0?3:leaks<=4?2:1;}
-function storeVictory(){if(!currentLevel||!g?.bossDefeated||g.bossEscaped)return null;
+function storeVictory(){if(!currentLevel||!g?.bossDefeated||g.bossEscaped||g.hp<=0)return null;
  const stars=score(g.leaks);
- if(devTestAccess)return stars; // Test levels can be sampled without contaminating campaign records.
+ if(customLevel||devTestAccess)return stars; // Test maps never modify campaign progress.
  const old=best(currentLevel.id,selectedDifficulty);
  if(!old||stars>old.stars||stars===old.stars&&g.leaks<old.leaks){
   if(!isRecord(save.results[currentLevel.id]))save.results[currentLevel.id]={};
@@ -354,7 +357,7 @@ function renderCampaign(){
   $('chapter-reward').classList.toggle('completed',chDone);
 }
 function showCampaign(){
- g=null;currentLevel=null;acc=0;pointerPositions.clear();gesture=null;warningExpires=0;
+ customLevel=null;g=null;currentLevel=null;acc=0;pointerPositions.clear();gesture=null;warningExpires=0;
  $('overlay').classList.add('hidden');$('tutorial').hidden=true;$('details').hidden=true;
  $('game-shell').hidden=true;$('campaign').hidden=false;
  $('settings-panel').hidden=true;document.body.dataset.menuTheme=save.theme;
@@ -369,9 +372,40 @@ function syncWeaponUnlocks(){
 }
 function startLevel(id){
  const level=availableLevel(id);if(!level)return false;
+ customLevel=null;
  currentLevel=level;loadMap(level);syncWeaponUnlocks();
  $('campaign').hidden=true;$('game-shell').hidden=false;$('settings-panel').hidden=true;
  reset();goto(HQ.x===16?8:9,10);
+ return true;
+}
+function validateCustomLevel(level){
+ if(!level||!Array.isArray(level.path)||level.path.length<6||level.path.length>W*H||!Array.isArray(level.ore)||!level.hq)return false;
+ const validCell=p=>Array.isArray(p)&&p.length===2&&p.every(Number.isInteger)&&p[0]>=0&&p[0]<W&&p[1]>=0&&p[1]<H;
+ const seen=new Set();
+ for(let i=0;i<level.path.length;i++){
+  const p=level.path[i];if(!validCell(p))return false;
+  const k=p.join(',');if(seen.has(k))return false;seen.add(k);
+  if(i>0&&Math.abs(p[0]-level.path[i-1][0])+Math.abs(p[1]-level.path[i-1][1])!==1)return false;
+ }
+ const last=level.path[level.path.length-1];
+ if(!Number.isInteger(level.hq.x)||!Number.isInteger(level.hq.y)||last[0]!==level.hq.x||last[1]!==level.hq.y)return false;
+ if(!level.ore.length||level.ore.length>W*H)return false;
+ const ore=new Set();
+ for(const k of level.ore){
+  if(typeof k!=='string'||!/^\d+,\d+$/.test(k))return false;
+  const [x,y]=k.split(',').map(Number);
+  if(x<0||x>=W||y<0||y>=H||seen.has(k)||ore.has(k))return false;
+  ore.add(k);
+ }
+ return true;
+}
+function startCustomMap(level){
+ if(!validateCustomLevel(level)||!$('game-shell').hidden)return false;
+ customLevel={id:'editor-test',name:'Kartentest',path:level.path.map(p=>p.slice()),ore:level.ore.slice(),hq:{...level.hq},challenge:0};
+ currentLevel=customLevel;loadMap(customLevel);syncWeaponUnlocks();
+ $('campaign').hidden=true;$('game-shell').hidden=false;$('settings-panel').hidden=true;
+ $('result-hub').textContent='Zur Karte';$('back-to-campaign').textContent='‹ Zum Karteneditor';
+ reset();goto(HQ.x,Math.min(H-1,Math.max(0,HQ.y)));
  return true;
 }
 function changeDifficulty(value){if(!$('campaign').hidden&&DIFFICULTIES[value]){selectedDifficulty=value;save.difficulty=value;persist();renderCampaign();return true;}return false;}
@@ -402,7 +436,7 @@ const CHAPTER_WAVES=[
 const WAVE_LABELS=['VORHUT','SCHNELLE VERBÄNDE','VERSORGUNG UNTER DRUCK','ANGRIFFSFORMATION','GROSSANGRIFF','KAPITELBOSS'];
 function levelWaves(){
  if(!currentLevel)return LEGACY_WAVES;
- const chapter=Math.max(0,levelChapter(currentLevel.id)-1),map=currentLevel.challenge;
+ const chapter=customLevel?2:Math.max(0,levelChapter(currentLevel.id)-1),map=customLevel?0:currentLevel.challenge;
  const plan=CHAPTER_WAVES[chapter],extra=map===0?0:map===1?.07:.12;
  return plan.counts.map((original,i)=>{
   const count=original+Math.round(original*extra);
@@ -476,13 +510,14 @@ function reset(){
  warningExpires=0;warningText='';hoverCell=null;$('gold-warning').hidden=true;$('gold').classList.remove('low-gold');
  activeCategory=null;delete $('wave-list').dataset.ready;
  nextId=1;speedIndex=1;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;displayRatios.clear();lastDisplayAt=null;
- const difficulty=DIFFICULTIES[selectedDifficulty];
- g={mode:'playing',levelId:currentLevel.id,phase:'build',wave:0,paused:false,time:0,enemyDelay:null,difficulty:selectedDifficulty,gold:difficulty.startGold,metal:0,ammo:0,hp:difficulty.hq,kills:0,leaks:0,bossDefeated:false,bossEscaped:false,
+ const modeDifficulty=customLevel?'hard':selectedDifficulty;
+ const difficulty=DIFFICULTIES[modeDifficulty];
+ g={mode:'playing',levelId:currentLevel.id,phase:'build',wave:0,paused:false,time:0,enemyDelay:null,difficulty:modeDifficulty,gold:difficulty.startGold,metal:0,ammo:0,hp:difficulty.hq,kills:0,leaks:0,bossDefeated:false,bossEscaped:false,
   selected:null,buildings:[],packets:[],enemies:[],shots:[],spawner:null,deliveredMetal:0,deliveredAmmo:0,producedMetal:0,producedAmmo:0,ammoSpent:0,shotsFired:0,
   waves:Array.from({length:MAX_WAVES},()=>({started:false,doneSpawning:false,alive:0,paid:false})),goldEarned:0,goldRefunded:0,waveStart:0,tutorial:{active:false,stage:0,completed:false},selectedBuildingId:null};
  acc=0;pointerPositions.clear();gesture=null;refreshEnemyGeometry();
  $('overlay').classList.add('hidden');showBuildTray(false);$('tutorial').hidden=true;$('details').hidden=true;
- const firstTutorial=!save.tutorialSeen;g.tutorial.active=firstTutorial;if(firstTutorial){save.tutorialSeen=true;persist();}
+ const firstTutorial=!customLevel&&!save.tutorialSeen;g.tutorial.active=firstTutorial;if(firstTutorial){save.tutorialSeen=true;persist();}
  inform('BAUPHASE: Plane dein Netz in Ruhe. Starte Welle 1 erst, wenn du bereit bist.');update();draw();
 }
 function buildError(type,x,y){
@@ -552,19 +587,26 @@ function finish(win){
  win=!!win&&g.bossDefeated&&!g.bossEscaped;if(!win&&g.phase==='combat')captureWaveMetrics();
  g.mode=win?'won':'lost';g.paused=false;
  const chapterIndex=levelChapter(currentLevel.id)-1,chapter=CHAPTERS[chapterIndex];
- const firstChapterClear=win&&currentLevel.challenge===2&&!chapterCompleted(chapter)&&!devTestAccess;
+ const firstChapterClear=!customLevel&&win&&currentLevel.challenge===2&&!chapterCompleted(chapter)&&!devTestAccess;
  const stars=win?storeVictory():null;
  g.chapterClear=firstChapterClear;
  overlay(win?'★':'⚠',firstChapterClear?(chapterIndex===3?'KAMPAGNE ABGESCHLOSSEN!':'KAPITEL '+(chapterIndex+1)+' ABGESCHLOSSEN!'):win?'BOSS BESIEGT!':g.bossEscaped?'BOSS ENTWISCHT!':'BASIS VERLOREN',
  win?'Boss besiegt! '+g.kills+' Abschüsse · '+g.leaks+' Durchbrüche · HQ: '+g.hp+' Leben.':
  g.bossEscaped?'Der Boss ist durchgekommen. Das Level ist unabhängig von den HQ-Leben verloren.':
  g.kills+' Gegner besiegt, '+g.leaks+' Durchbrüche. Verbessere Standorte und Versorgung.','Nochmal versuchen');
- $('result-rating').hidden=!win;$('result-rating').textContent=win?('★'.repeat(stars)+'☆'.repeat(3-stars)+'  ·  '+DIFFICULTIES[selectedDifficulty].name):'';
+ $('result-rating').hidden=!win;$('result-rating').textContent=win?('★'.repeat(stars)+'☆'.repeat(3-stars)+'  ·  '+DIFFICULTIES[g.difficulty].name):'';
  $('result-unlock').hidden=!firstChapterClear;
  $('result-unlock').textContent=firstChapterClear?(chapterIndex===0?'✹ KANONE FREIGESCHALTET · KAPITEL 2':chapterIndex===1?'◉ MÖRSER FREIGESCHALTET · KAPITEL 3':chapterIndex===2?'⚗ KAPITEL 4 FREIGESCHALTET · LABOR FOLGT':'★ ALLE KAPITEL ABGESCHLOSSEN'):'';
  const next=ALL_LEVELS[ALL_LEVELS.findIndex(l=>l.id===currentLevel.id)+1];
- $('result-next').hidden=!win||!next||!availableLevel(next.id);
+ $('result-next').hidden=!!customLevel||!win||!next||!availableLevel(next.id);
  $('result-next').textContent=currentLevel.challenge===2?'Nächstes Kapitel':'Nächstes Level';
+ if(customLevel){
+  // Only the actual engine conclusion can unlock saving, not a drawn path.
+  window.dispatchEvent(new CustomEvent('forgefront-custom-result',{detail:{
+   won:win&&g.mode==='won'&&g.difficulty==='hard'&&g.bossDefeated&&!g.bossEscaped&&g.hp>0&&g.wave===MAX_WAVES,
+   bossDefeated:g.bossDefeated,bossEscaped:g.bossEscaped,hp:g.hp,leaks:g.leaks,wave:g.wave
+  }}));
+ }
  inform(win?'Sieg: Boss besiegt!':'Niederlage – Beim nächsten Versuch cleverer planen.');update();
 }
 // KISS: Connections are pipes/bridges (buildings are endpoints, never relay nodes).
@@ -1036,14 +1078,15 @@ $('speed-controls').addEventListener('click',e=>{
 
 function goto(x,y){const scale=canvas.getBoundingClientRect().width/(W*S);boardbox.scrollLeft=Math.max(0,(x+.5)*S*scale-boardbox.clientWidth/2);boardbox.scrollTop=Math.max(0,(y+.5)*S*scale-boardbox.clientHeight/2);drawMini();}
 mini.addEventListener('click',e=>{const r=mini.getBoundingClientRect();goto(Math.floor((e.clientX-r.left)/r.width*W),Math.floor((e.clientY-r.top)/r.height*H));});
-$('reset').addEventListener('click',()=>{if(currentLevel)startLevel(currentLevel.id);});
-$('back-to-campaign').addEventListener('click',showCampaign);
+$('reset').addEventListener('click',()=>{if(customLevel)reset();else if(currentLevel)startLevel(currentLevel.id);});
+function leaveGame(){const wasCustom=!!customLevel;showCampaign();if(wasCustom){$('campaign').hidden=true;$('map-editor').hidden=false;}}
+$('back-to-campaign').addEventListener('click',leaveGame);
 $('difficulty').addEventListener('change',e=>changeDifficulty(e.target.value));
 $('difficulty-buttons').addEventListener('click',e=>{const b=e.target.closest('button[data-difficulty]');if(b)changeDifficulty(b.dataset.difficulty);});
 $('chapter-tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-chapter]');if(b&&!b.disabled){activeChapter=b.dataset.chapter;renderCampaign();}});
 $('level-grid').addEventListener('click',e=>{const b=e.target.closest('button[data-level]');if(b&&!b.disabled)startLevel(b.dataset.level);});
-$('start').addEventListener('click',()=>{if(currentLevel)startLevel(currentLevel.id);});
-$('result-hub').addEventListener('click',()=>{if(g?.chapterClear){const ix=levelChapter(currentLevel.id);if(CHAPTERS[ix])activeChapter=CHAPTERS[ix].id;}showCampaign();});
+$('start').addEventListener('click',()=>{if(customLevel)reset();else if(currentLevel)startLevel(currentLevel.id);});
+$('result-hub').addEventListener('click',()=>{if(g?.chapterClear){const ix=levelChapter(currentLevel.id);if(CHAPTERS[ix])activeChapter=CHAPTERS[ix].id;}leaveGame();});
 $('result-next').addEventListener('click',()=>{if(currentLevel){const next=ALL_LEVELS[ALL_LEVELS.findIndex(l=>l.id===currentLevel.id)+1];if(next)startLevel(next.id);}});
 $('settings-open').addEventListener('click',()=>{$('settings-panel').hidden=false;$('theme-choice').value=save.theme;});
 $('settings-close').addEventListener('click',()=>{$('settings-panel').hidden=true;});
@@ -1057,6 +1100,7 @@ $('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zu
 document.addEventListener('keydown',e=>{if(e.key==='1')select('turret');if(e.key==='2')select('mine');if(e.key==='3')select('factory');if(e.key==='4')select('pipe');if(e.key==='5')select('bridge');if(e.key==='6'||e.key==='Delete')select('eraser');if(e.key==='Escape'&&g){g.selected=null;update();}if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();pause();}});
 document.addEventListener('visibilitychange',()=>{previous=performance.now();acc=0;});
 
+window.ForgefrontCustom={start:startCustomMap,active:()=>!!customLevel,verifiedWin:()=>!!customLevel&&g?.mode==='won'&&g?.difficulty==='hard'&&g?.bossDefeated===true&&g?.bossEscaped===false&&g?.hp>0&&g?.wave===MAX_WAVES};
 window.ForgefrontDebug={buildId:()=>BUILD_ID,setDifficulty:changeDifficulty,setSpeed,speed:()=>speedValues[speedIndex],startLevel,showCampaign,levels:()=>ALL_LEVELS.map(l=>({id:l.id,ready:l.ready,unlocked:unlocked(l.id)})),chapters:()=>CHAPTERS.map((ch,i)=>({id:ch.id,unlocked:chapterUnlocked(i),completed:chapterCompleted(ch),reward:ch.reward})),map:()=>({hq:{...HQ},path:PATH.map(p=>[...p]),ore:[...ORE]}),save:()=>JSON.parse(JSON.stringify(save)),score,difficulties:()=>JSON.parse(JSON.stringify(DIFFICULTIES)),pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),allowedBuilding:buildingAvailable,testAccess:()=>devTestAccess,waves:()=>levelWaves().map((w,i)=>({label:w.label,composition:wavePreview(i),count:w.count,bossHp:w.bossHp||null})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
 function frame(now){
  if(warningExpires&&now>=warningExpires){warningExpires=0;$('gold-warning').hidden=true;$('gold').classList.remove('low-gold');}
@@ -1144,40 +1188,69 @@ $('difficulty').value=selectedDifficulty;applyTheme(save.theme);showCampaign();s
     return changed;
   }
 
-  function validate(s) {
-    const fail = reason => ({ valid: false, message: reason });
-    if (!s.spawn || !inside(s.spawn.x, s.spawn.y)) return fail('Setze zuerst einen Startpunkt (S).');
-    if (!s.hq || !inside(s.hq.x, s.hq.y)) return fail('Setze zuerst das Ziel/HQ (H).');
-    if (at(s.spawn, s.hq.x, s.hq.y)) return fail('HQ und Start müssen getrennte Felder sein.');
-    if (s.path.size < 6) return fail('Zeichne einen Gegnerweg mit mindestens sechs Feldern.');
-    if (!s.path.has(key(s.spawn.x, s.spawn.y)) || !s.path.has(key(s.hq.x, s.hq.y))) {
-      return fail('Der Gegnerweg muss Start und HQ erreichen.');
-    }
-    if (s.ore.size === 0) return fail('Platziere mindestens ein Erzfeld.');
-    for (const k of s.ore) if (s.path.has(k)) return fail('Erz und Weg dürfen sich nicht überlappen.');
-    const neighbours = k => {
-      const [x, y] = k.split(',').map(Number);
-      return [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]
-        .map(p => key(p[0], p[1])).filter(n => s.path.has(n));
-    };
-    const first = key(s.spawn.x, s.spawn.y), last = key(s.hq.x, s.hq.y);
-    for (const k of s.path) {
-      const expected = k === first || k === last ? 1 : 2;
-      if (neighbours(k).length !== expected) return fail('Weg enthält eine Verzweigung, Schleife oder ein offenes Ende.');
-    }
-    const visited = new Set([first]), queue = [first];
-    for (let i = 0; i < queue.length; i++) {
-      for (const n of neighbours(queue[i])) if (!visited.has(n)) {
-        visited.add(n);
-        queue.push(n);
-      }
-    }
-    if (visited.size !== s.path.size || !visited.has(last)) return fail('Der Weg muss durchgehend von Start bis HQ führen.');
-    return { valid: true, message: 'Geometrie gültig. Testspielen und Speichern folgen erst mit AP2.' };
+  function effectivePath(s) {
+    const road=new Set(s.path);
+    if(s.spawn)road.add(key(s.spawn.x,s.spawn.y));
+    if(s.hq)road.add(key(s.hq.x,s.hq.y));
+    return road;
   }
-
+  const neighbours=(path,k)=>{
+    const [x,y]=k.split(',').map(Number);
+    return [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].map(p=>key(p[0],p[1])).filter(p=>path.has(p));
+  };
+  function validate(s) {
+    const fail=message=>({valid:false,message});
+    if(!s.spawn||!inside(s.spawn.x,s.spawn.y))return fail('Setze zuerst einen Startpunkt (S).');
+    if(!s.hq||!inside(s.hq.x,s.hq.y))return fail('Setze zuerst das Ziel/HQ (H).');
+    if(at(s.spawn,s.hq.x,s.hq.y))return fail('Start und Ziel müssen getrennte Felder sein.');
+    const road=effectivePath(s),first=key(s.spawn.x,s.spawn.y),last=key(s.hq.x,s.hq.y);
+    if(road.size<6)return fail('Zeichne einen Weg mit mindestens sechs Feldern.');
+    if(!s.ore.size)return fail('Platziere mindestens ein Erzfeld.');
+    for(const k of s.ore)if(road.has(k))return fail('Erz und Weg dürfen sich nicht überlappen.');
+    for(const k of road){
+      const expected=k===first||k===last?1:2;
+      if(neighbours(road,k).length!==expected)return fail('Der Gegnerweg muss ohne Verzweigung von Start bis HQ führen.');
+    }
+    const seen=new Set([first]),queue=[first];
+    for(let i=0;i<queue.length;i++)for(const k of neighbours(road,queue[i]))if(!seen.has(k)){seen.add(k);queue.push(k);}
+    if(seen.size!==road.size||!seen.has(last))return fail('Der Gegnerweg muss Start und HQ verbinden.');
+    return {valid:true,message:'Geometrie gültig. Testspiel auf Schwer kann gestartet werden.'};
+  }
+  function mapSnapshot(s) {
+    if(!validate(s).valid)return null;
+    const road=effectivePath(s),ordered=[],last=key(s.hq.x,s.hq.y);
+    let prev=null,current=key(s.spawn.x,s.spawn.y);
+    while(current!==null){
+      ordered.push(current.split(',').map(Number));
+      if(current===last)break;
+      const next=neighbours(road,current).filter(k=>k!==prev);
+      if(next.length!==1)return null;
+      prev=current;current=next[0];
+    }
+    if(ordered.length!==road.size)return null;
+    return {path:ordered,ore:[...s.ore].sort(),hq:{...s.hq}};
+  }
+  function mapSignature(s) {
+    const snapshot=mapSnapshot(s);
+    return snapshot?JSON.stringify(snapshot):null;
+  }
+  function restoreSnapshot(snapshot) {
+    if(!snapshot||!Array.isArray(snapshot.path)||!Array.isArray(snapshot.ore)||!snapshot.hq)return null;
+    const state=makeState();
+    for(const p of snapshot.path){
+      if(!Array.isArray(p)||p.length!==2||!inside(p[0],p[1]))return null;
+      if(!paintCell(state,'path',p[0],p[1]))return null;
+    }
+    for(const p of snapshot.ore){
+      const m=/^(\d+),(\d+)$/.exec(p);
+      if(!m||!paintCell(state,'ore',Number(m[1]),Number(m[2])))return null;
+    }
+    state.spawn={x:snapshot.path[0][0],y:snapshot.path[0][1]};
+    state.hq={...snapshot.hq};
+    return validate(state).valid?state:null;
+  }
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { WIDTH, HEIGHT, makeState, cloneState, paintCell, paintLine, validate };
+    module.exports = { WIDTH, HEIGHT, makeState, cloneState, paintCell, paintLine, validate, mapSnapshot, mapSignature, restoreSnapshot };
   }
   if (typeof document === 'undefined') return;
 
@@ -1192,7 +1265,15 @@ $('difficulty').value=selectedDifficulty;applyTheme(save.theme);showCampaign();s
   const undoButton = document.getElementById('editor-undo');
   const buttons = Array.from(section.querySelectorAll('[data-editor-tool]'));
   let state = makeState(), history = [], tool = 'path', zoom = 0.75, pointer = null;
+  let clearedSignature = null, testSignature = null, editingId = null;
+  const LOCAL_KEY = 'forgefront.editor.maps.v1';
+  const testButton = document.getElementById('editor-test');
+  const saveButton = document.getElementById('editor-save');
+  const nameInput = document.getElementById('editor-name');
+  const localList = document.getElementById('editor-local-list');
 
+
+  function updateButtons(){const sig=mapSignature(state);testButton.disabled=!sig;saveButton.disabled=!sig||sig!==clearedSignature;}
   function setMessage(message) { status.textContent = message; }
   function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1226,6 +1307,7 @@ $('difficulty').value=selectedDifficulty;applyTheme(save.theme);showCampaign();s
     marker(state.spawn, '#8ad2ae', 'S');
     marker(state.hq, '#f7c781', 'H');
     undoButton.disabled = history.length === 0;
+    updateButtons();
   }
   function chooseTool(name) {
     tool = name;
@@ -1260,6 +1342,7 @@ $('difficulty').value=selectedDifficulty;applyTheme(save.theme);showCampaign();s
     if (!pointer) return;
     if (cancelled) state = pointer.before;
     else if (pointer.changed) {
+      clearedSignature = null;
       history.push(pointer.before);
       if (history.length > 30) history.shift();
     }
@@ -1308,6 +1391,7 @@ $('difficulty').value=selectedDifficulty;applyTheme(save.theme);showCampaign();s
   undoButton.addEventListener('click', () => {
     if (!history.length) return;
     state = history.pop();
+    clearedSignature = null;
     render();
     setMessage('Letzten Zeichenstrich rückgängig gemacht.');
   });
@@ -1316,6 +1400,27 @@ $('difficulty').value=selectedDifficulty;applyTheme(save.theme);showCampaign();s
     status.dataset.valid = String(result.valid);
     setMessage(result.message);
   });
+  testButton.addEventListener('click',()=>{const snapshot=mapSnapshot(state);if(!snapshot){setMessage(validate(state).message);return;}testSignature=mapSignature(state);if(window.ForgefrontCustom?.start(snapshot)){section.hidden=true;}else{testSignature=null;setMessage('Testspiel konnte nicht gestartet werden.');}});
+  function onTestResult(e){clearedSignature=e.detail?.won&&window.ForgefrontCustom?.verifiedWin?.()&&mapSignature(state)===testSignature?testSignature:null;updateButtons();}
+  window.addEventListener('forgefront-custom-result',onTestResult);
+  function refreshSavedList(){localList.replaceChildren();try{showSavedEntries();}catch{}}
+  function showSavedEntries(){const cards=JSON.parse(window.localStorage.getItem(LOCAL_KEY)||'[]');if(!Array.isArray(cards))return;for(const card of cards){const row=document.createElement('div'),label=document.createElement('span'),btn=document.createElement('button');label.textContent=String(card.name||'Karte');btn.textContent='Öffnen';btn.addEventListener('click',()=>loadSavedCard(card));row.append(label,btn);localList.append(row);}}
+
+  function loadSavedCard(card){const draft=restoreSnapshot(card.snapshot);if(!draft)return;state=draft;history=[];editingId=card.id;nameInput.value=card.name;clearedSignature=mapSignature(state);render();setMessage('Gespeicherte Karte geladen. Änderungen brauchen einen neuen Sieg.');}
+  function saveTestedMap(){
+    const snapshot=mapSnapshot(state);
+    if(!snapshot||mapSignature(state)!==clearedSignature)return;
+    const name=nameInput.value.trim().slice(0,60);
+    if(!name){setMessage('Bitte Karte benennen.');return;}
+    try{
+      const raw=JSON.parse(window.localStorage.getItem(LOCAL_KEY)||'[]');
+      const cards=Array.isArray(raw)?raw:[];
+      const id=editingId||('map-'+Date.now().toString(36));
+      window.localStorage.setItem(LOCAL_KEY,JSON.stringify(cards.filter(c=>c.id!==id).concat([{id,name,snapshot}]).slice(-30)));
+      editingId=id;setMessage('Nach Schwer-Sieg lokal gespeichert. Freigabe für alle folgt in AP3.');refreshSavedList();
+    }catch{setMessage('Speichern im Browser fehlgeschlagen.');}
+  }
+  saveButton.addEventListener('click',saveTestedMap);
   document.getElementById('editor-zoom-in').addEventListener('click', () => applyZoom(zoom + 0.2));
   document.getElementById('editor-zoom-out').addEventListener('click', () => applyZoom(zoom - 0.2));
   document.getElementById('editor-fit').addEventListener('click', () => {
@@ -1324,17 +1429,17 @@ $('difficulty').value=selectedDifficulty;applyTheme(save.theme);showCampaign();s
   });
   document.getElementById('editor-clear').addEventListener('click', () => {
     if (!window.confirm('Die aktuelle, nicht gespeicherte Karte verwerfen?')) return;
-    state = makeState(); history = [];
+    state = makeState(); history = []; editingId = null; clearedSignature = null; nameInput.value = '';
     render(); setMessage('Neue leere Karte.');
   });
   openButton.addEventListener('click', () => {
     if (!document.getElementById('game-shell').hidden) return;
-    state = makeState(); history = [];
+    state = makeState(); history = []; editingId = null; clearedSignature = null; nameInput.value = '';
     campaign.hidden = true;
     section.hidden = false;
     applyZoom(0.75);
     viewport.scrollLeft = 0; viewport.scrollTop = 0;
-    render(); chooseTool('path');
+    render(); chooseTool('path'); refreshSavedList();
   });
   document.getElementById('editor-back').addEventListener('click', () => {
     if ((state.path.size || state.ore.size || state.spawn || state.hq) && !window.confirm('Nicht gespeicherte Karte verwerfen und zur Kampagne zurück?')) return;

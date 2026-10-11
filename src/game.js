@@ -51,11 +51,12 @@ const CHAPTERS=[
 ].map((chapter,ci)=>({...chapter,levels:MAP_BLUEPRINTS.map((template,i)=>({...template,id:'c'+(ci+1)+'-l'+(i+1),ready:true}))}));
 const ALL_LEVELS=CHAPTERS.flatMap(ch=>ch.levels);
 let PATH=BASE_PATH.map(p=>p.slice()),ORE=new Set(BASE_ORE),HQ={x:16,y:18},currentLevel=null;
+let customLevel=null; // Test games are isolated from campaign and progression.
 let activeChapter=CHAPTERS[0].id;
 let devTestAccess=false;
 const BASE_WEAPON_UNLOCKS={turret:1,cannon:2,mortar:3};
 const levelChapter=id=>CHAPTERS.findIndex(ch=>ch.levels.some(l=>l.id===id))+1;
-const buildingAvailable=type=>['turret','cannon','mortar','mine','factory','pipe','bridge','eraser'].includes(type)&&(!(type in BASE_WEAPON_UNLOCKS)||BASE_WEAPON_UNLOCKS[type]<=levelChapter(currentLevel?.id));
+const buildingAvailable=type=>['turret','cannon','mortar','mine','factory','pipe','bridge','eraser'].includes(type)&&(customLevel||!(type in BASE_WEAPON_UNLOCKS)||BASE_WEAPON_UNLOCKS[type]<=levelChapter(currentLevel?.id));
 const SAVE_KEY='forgefront.progress.v2';
 const EMPTY_SAVE=()=>({version:2,difficulty:'standard',theme:'dark',tutorialSeen:false,results:{}});
 const isRecord=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
@@ -93,9 +94,9 @@ function chapterUnlocked(i){return devTestAccess||i===0||chapterCompleted(CHAPTE
 function unlocked(levelId){const idx=ALL_LEVELS.findIndex(l=>l.id===levelId);return idx>=0&&(devTestAccess||idx===0||completed(ALL_LEVELS[idx-1].id));}
 function availableLevel(id){const level=ALL_LEVELS.find(l=>l.id===id);return level&&level.ready&&unlocked(id)?level:null;}
 function score(leaks){return leaks===0?3:leaks<=4?2:1;}
-function storeVictory(){if(!currentLevel||!g?.bossDefeated||g.bossEscaped)return null;
+function storeVictory(){if(!currentLevel||!g?.bossDefeated||g.bossEscaped||g.hp<=0)return null;
  const stars=score(g.leaks);
- if(devTestAccess)return stars; // Test levels can be sampled without contaminating campaign records.
+ if(customLevel||devTestAccess)return stars; // Test maps never modify campaign progress.
  const old=best(currentLevel.id,selectedDifficulty);
  if(!old||stars>old.stars||stars===old.stars&&g.leaks<old.leaks){
   if(!isRecord(save.results[currentLevel.id]))save.results[currentLevel.id]={};
@@ -128,7 +129,7 @@ function renderCampaign(){
   $('chapter-reward').classList.toggle('completed',chDone);
 }
 function showCampaign(){
- g=null;currentLevel=null;acc=0;pointerPositions.clear();gesture=null;warningExpires=0;
+ customLevel=null;g=null;currentLevel=null;acc=0;pointerPositions.clear();gesture=null;warningExpires=0;
  $('overlay').classList.add('hidden');$('tutorial').hidden=true;$('details').hidden=true;
  $('game-shell').hidden=true;$('campaign').hidden=false;
  $('settings-panel').hidden=true;document.body.dataset.menuTheme=save.theme;
@@ -143,9 +144,40 @@ function syncWeaponUnlocks(){
 }
 function startLevel(id){
  const level=availableLevel(id);if(!level)return false;
+ customLevel=null;
  currentLevel=level;loadMap(level);syncWeaponUnlocks();
  $('campaign').hidden=true;$('game-shell').hidden=false;$('settings-panel').hidden=true;
  reset();goto(HQ.x===16?8:9,10);
+ return true;
+}
+function validateCustomLevel(level){
+ if(!level||!Array.isArray(level.path)||level.path.length<6||level.path.length>W*H||!Array.isArray(level.ore)||!level.hq)return false;
+ const validCell=p=>Array.isArray(p)&&p.length===2&&p.every(Number.isInteger)&&p[0]>=0&&p[0]<W&&p[1]>=0&&p[1]<H;
+ const seen=new Set();
+ for(let i=0;i<level.path.length;i++){
+  const p=level.path[i];if(!validCell(p))return false;
+  const k=p.join(',');if(seen.has(k))return false;seen.add(k);
+  if(i>0&&Math.abs(p[0]-level.path[i-1][0])+Math.abs(p[1]-level.path[i-1][1])!==1)return false;
+ }
+ const last=level.path[level.path.length-1];
+ if(!Number.isInteger(level.hq.x)||!Number.isInteger(level.hq.y)||last[0]!==level.hq.x||last[1]!==level.hq.y)return false;
+ if(!level.ore.length||level.ore.length>W*H)return false;
+ const ore=new Set();
+ for(const k of level.ore){
+  if(typeof k!=='string'||!/^\d+,\d+$/.test(k))return false;
+  const [x,y]=k.split(',').map(Number);
+  if(x<0||x>=W||y<0||y>=H||seen.has(k)||ore.has(k))return false;
+  ore.add(k);
+ }
+ return true;
+}
+function startCustomMap(level){
+ if(!validateCustomLevel(level)||!$('game-shell').hidden)return false;
+ customLevel={id:'editor-test',name:'Kartentest',path:level.path.map(p=>p.slice()),ore:level.ore.slice(),hq:{...level.hq},challenge:0};
+ currentLevel=customLevel;loadMap(customLevel);syncWeaponUnlocks();
+ $('campaign').hidden=true;$('game-shell').hidden=false;$('settings-panel').hidden=true;
+ $('result-hub').textContent='Zur Karte';$('back-to-campaign').textContent='‹ Zum Karteneditor';
+ reset();goto(HQ.x,Math.min(H-1,Math.max(0,HQ.y)));
  return true;
 }
 function changeDifficulty(value){if(!$('campaign').hidden&&DIFFICULTIES[value]){selectedDifficulty=value;save.difficulty=value;persist();renderCampaign();return true;}return false;}
@@ -176,7 +208,7 @@ const CHAPTER_WAVES=[
 const WAVE_LABELS=['VORHUT','SCHNELLE VERBÄNDE','VERSORGUNG UNTER DRUCK','ANGRIFFSFORMATION','GROSSANGRIFF','KAPITELBOSS'];
 function levelWaves(){
  if(!currentLevel)return LEGACY_WAVES;
- const chapter=Math.max(0,levelChapter(currentLevel.id)-1),map=currentLevel.challenge;
+ const chapter=customLevel?2:Math.max(0,levelChapter(currentLevel.id)-1),map=customLevel?0:currentLevel.challenge;
  const plan=CHAPTER_WAVES[chapter],extra=map===0?0:map===1?.07:.12;
  return plan.counts.map((original,i)=>{
   const count=original+Math.round(original*extra);
@@ -250,13 +282,14 @@ function reset(){
  warningExpires=0;warningText='';hoverCell=null;$('gold-warning').hidden=true;$('gold').classList.remove('low-gold');
  activeCategory=null;delete $('wave-list').dataset.ready;
  nextId=1;speedIndex=1;networkConnectionCache.clear();topologyVersion++;flowCache=null;pipeTypeCache=null;activeFlowCache=null;displayRatios.clear();lastDisplayAt=null;
- const difficulty=DIFFICULTIES[selectedDifficulty];
- g={mode:'playing',levelId:currentLevel.id,phase:'build',wave:0,paused:false,time:0,enemyDelay:null,difficulty:selectedDifficulty,gold:difficulty.startGold,metal:0,ammo:0,hp:difficulty.hq,kills:0,leaks:0,bossDefeated:false,bossEscaped:false,
+ const modeDifficulty=customLevel?'hard':selectedDifficulty;
+ const difficulty=DIFFICULTIES[modeDifficulty];
+ g={mode:'playing',levelId:currentLevel.id,phase:'build',wave:0,paused:false,time:0,enemyDelay:null,difficulty:modeDifficulty,gold:difficulty.startGold,metal:0,ammo:0,hp:difficulty.hq,kills:0,leaks:0,bossDefeated:false,bossEscaped:false,
   selected:null,buildings:[],packets:[],enemies:[],shots:[],spawner:null,deliveredMetal:0,deliveredAmmo:0,producedMetal:0,producedAmmo:0,ammoSpent:0,shotsFired:0,
   waves:Array.from({length:MAX_WAVES},()=>({started:false,doneSpawning:false,alive:0,paid:false})),goldEarned:0,goldRefunded:0,waveStart:0,tutorial:{active:false,stage:0,completed:false},selectedBuildingId:null};
  acc=0;pointerPositions.clear();gesture=null;refreshEnemyGeometry();
  $('overlay').classList.add('hidden');showBuildTray(false);$('tutorial').hidden=true;$('details').hidden=true;
- const firstTutorial=!save.tutorialSeen;g.tutorial.active=firstTutorial;if(firstTutorial){save.tutorialSeen=true;persist();}
+ const firstTutorial=!customLevel&&!save.tutorialSeen;g.tutorial.active=firstTutorial;if(firstTutorial){save.tutorialSeen=true;persist();}
  inform('BAUPHASE: Plane dein Netz in Ruhe. Starte Welle 1 erst, wenn du bereit bist.');update();draw();
 }
 function buildError(type,x,y){
@@ -326,19 +359,26 @@ function finish(win){
  win=!!win&&g.bossDefeated&&!g.bossEscaped;if(!win&&g.phase==='combat')captureWaveMetrics();
  g.mode=win?'won':'lost';g.paused=false;
  const chapterIndex=levelChapter(currentLevel.id)-1,chapter=CHAPTERS[chapterIndex];
- const firstChapterClear=win&&currentLevel.challenge===2&&!chapterCompleted(chapter)&&!devTestAccess;
+ const firstChapterClear=!customLevel&&win&&currentLevel.challenge===2&&!chapterCompleted(chapter)&&!devTestAccess;
  const stars=win?storeVictory():null;
  g.chapterClear=firstChapterClear;
  overlay(win?'★':'⚠',firstChapterClear?(chapterIndex===3?'KAMPAGNE ABGESCHLOSSEN!':'KAPITEL '+(chapterIndex+1)+' ABGESCHLOSSEN!'):win?'BOSS BESIEGT!':g.bossEscaped?'BOSS ENTWISCHT!':'BASIS VERLOREN',
  win?'Boss besiegt! '+g.kills+' Abschüsse · '+g.leaks+' Durchbrüche · HQ: '+g.hp+' Leben.':
  g.bossEscaped?'Der Boss ist durchgekommen. Das Level ist unabhängig von den HQ-Leben verloren.':
  g.kills+' Gegner besiegt, '+g.leaks+' Durchbrüche. Verbessere Standorte und Versorgung.','Nochmal versuchen');
- $('result-rating').hidden=!win;$('result-rating').textContent=win?('★'.repeat(stars)+'☆'.repeat(3-stars)+'  ·  '+DIFFICULTIES[selectedDifficulty].name):'';
+ $('result-rating').hidden=!win;$('result-rating').textContent=win?('★'.repeat(stars)+'☆'.repeat(3-stars)+'  ·  '+DIFFICULTIES[g.difficulty].name):'';
  $('result-unlock').hidden=!firstChapterClear;
  $('result-unlock').textContent=firstChapterClear?(chapterIndex===0?'✹ KANONE FREIGESCHALTET · KAPITEL 2':chapterIndex===1?'◉ MÖRSER FREIGESCHALTET · KAPITEL 3':chapterIndex===2?'⚗ KAPITEL 4 FREIGESCHALTET · LABOR FOLGT':'★ ALLE KAPITEL ABGESCHLOSSEN'):'';
  const next=ALL_LEVELS[ALL_LEVELS.findIndex(l=>l.id===currentLevel.id)+1];
- $('result-next').hidden=!win||!next||!availableLevel(next.id);
+ $('result-next').hidden=!!customLevel||!win||!next||!availableLevel(next.id);
  $('result-next').textContent=currentLevel.challenge===2?'Nächstes Kapitel':'Nächstes Level';
+ if(customLevel){
+  // Only the actual engine conclusion can unlock saving, not a drawn path.
+  window.dispatchEvent(new CustomEvent('forgefront-custom-result',{detail:{
+   won:win&&g.mode==='won'&&g.difficulty==='hard'&&g.bossDefeated&&!g.bossEscaped&&g.hp>0&&g.wave===MAX_WAVES,
+   bossDefeated:g.bossDefeated,bossEscaped:g.bossEscaped,hp:g.hp,leaks:g.leaks,wave:g.wave
+  }}));
+ }
  inform(win?'Sieg: Boss besiegt!':'Niederlage – Beim nächsten Versuch cleverer planen.');update();
 }
 // KISS: Connections are pipes/bridges (buildings are endpoints, never relay nodes).
@@ -810,14 +850,15 @@ $('speed-controls').addEventListener('click',e=>{
 
 function goto(x,y){const scale=canvas.getBoundingClientRect().width/(W*S);boardbox.scrollLeft=Math.max(0,(x+.5)*S*scale-boardbox.clientWidth/2);boardbox.scrollTop=Math.max(0,(y+.5)*S*scale-boardbox.clientHeight/2);drawMini();}
 mini.addEventListener('click',e=>{const r=mini.getBoundingClientRect();goto(Math.floor((e.clientX-r.left)/r.width*W),Math.floor((e.clientY-r.top)/r.height*H));});
-$('reset').addEventListener('click',()=>{if(currentLevel)startLevel(currentLevel.id);});
-$('back-to-campaign').addEventListener('click',showCampaign);
+$('reset').addEventListener('click',()=>{if(customLevel)reset();else if(currentLevel)startLevel(currentLevel.id);});
+function leaveGame(){const wasCustom=!!customLevel;showCampaign();if(wasCustom){$('campaign').hidden=true;$('map-editor').hidden=false;}}
+$('back-to-campaign').addEventListener('click',leaveGame);
 $('difficulty').addEventListener('change',e=>changeDifficulty(e.target.value));
 $('difficulty-buttons').addEventListener('click',e=>{const b=e.target.closest('button[data-difficulty]');if(b)changeDifficulty(b.dataset.difficulty);});
 $('chapter-tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-chapter]');if(b&&!b.disabled){activeChapter=b.dataset.chapter;renderCampaign();}});
 $('level-grid').addEventListener('click',e=>{const b=e.target.closest('button[data-level]');if(b&&!b.disabled)startLevel(b.dataset.level);});
-$('start').addEventListener('click',()=>{if(currentLevel)startLevel(currentLevel.id);});
-$('result-hub').addEventListener('click',()=>{if(g?.chapterClear){const ix=levelChapter(currentLevel.id);if(CHAPTERS[ix])activeChapter=CHAPTERS[ix].id;}showCampaign();});
+$('start').addEventListener('click',()=>{if(customLevel)reset();else if(currentLevel)startLevel(currentLevel.id);});
+$('result-hub').addEventListener('click',()=>{if(g?.chapterClear){const ix=levelChapter(currentLevel.id);if(CHAPTERS[ix])activeChapter=CHAPTERS[ix].id;}leaveGame();});
 $('result-next').addEventListener('click',()=>{if(currentLevel){const next=ALL_LEVELS[ALL_LEVELS.findIndex(l=>l.id===currentLevel.id)+1];if(next)startLevel(next.id);}});
 $('settings-open').addEventListener('click',()=>{$('settings-panel').hidden=false;$('theme-choice').value=save.theme;});
 $('settings-close').addEventListener('click',()=>{$('settings-panel').hidden=true;});
@@ -831,6 +872,7 @@ $('help').addEventListener('click',()=>{if(g.mode!=='playing'){inform('Starte zu
 document.addEventListener('keydown',e=>{if(e.key==='1')select('turret');if(e.key==='2')select('mine');if(e.key==='3')select('factory');if(e.key==='4')select('pipe');if(e.key==='5')select('bridge');if(e.key==='6'||e.key==='Delete')select('eraser');if(e.key==='Escape'&&g){g.selected=null;update();}if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();pause();}});
 document.addEventListener('visibilitychange',()=>{previous=performance.now();acc=0;});
 
+window.ForgefrontCustom={start:startCustomMap,active:()=>!!customLevel,verifiedWin:()=>!!customLevel&&g?.mode==='won'&&g?.difficulty==='hard'&&g?.bossDefeated===true&&g?.bossEscaped===false&&g?.hp>0&&g?.wave===MAX_WAVES};
 window.ForgefrontDebug={buildId:()=>BUILD_ID,setDifficulty:changeDifficulty,setSpeed,speed:()=>speedValues[speedIndex],startLevel,showCampaign,levels:()=>ALL_LEVELS.map(l=>({id:l.id,ready:l.ready,unlocked:unlocked(l.id)})),chapters:()=>CHAPTERS.map((ch,i)=>({id:ch.id,unlocked:chapterUnlocked(i),completed:chapterCompleted(ch),reward:ch.reward})),map:()=>({hq:{...HQ},path:PATH.map(p=>[...p]),ore:[...ORE]}),save:()=>JSON.parse(JSON.stringify(save)),score,difficulties:()=>JSON.parse(JSON.stringify(DIFFICULTIES)),pipeMedium:(x,y)=>{const b=at(x,y);return isPipe(b)?pipeTypes().get(b.id):undefined;},snapshot:()=>JSON.parse(JSON.stringify(g)),advance:seconds=>{for(let i=0;i<Math.ceil(seconds*30);i++)simulate(1/30);update();draw();},place:(type,x,y)=>place(type,x,y),erase,select,startWave,routes:(id,kind)=>g.buildings.filter(b=>b.type===(kind==='metal'?'factory':'turret')&&netReachable(g.buildings.find(s=>s.id===id),b)).map(b=>({id:b.id})),goto,paint:(a,b)=>drawAcross(a,b,'pipe'),setZoom,config:()=>JSON.parse(JSON.stringify(ECONOMY)),rates:()=>g.buildings.filter(b=>!isPipe(b)).map(b=>({id:b.id,type:b.type,...productionInfo(b)})),weapons:()=>JSON.parse(JSON.stringify(WEAPONS)),allowedBuilding:buildingAvailable,testAccess:()=>devTestAccess,waves:()=>levelWaves().map((w,i)=>({label:w.label,composition:wavePreview(i),count:w.count,bossHp:w.bossHp||null})),forecast:()=>Array.from(flow(false).infos).map(([id,info])=>({id,...info})),tutorial:()=>JSON.parse(JSON.stringify(g.tutorial)),inspect,visiblePercent:(x,y)=>{const b=at(x,y);return b&&!isPipe(b)?visibleRatio(b,productionInfo(b)):null;},stepDisplay:(seconds=.25)=>{sampleDisplayRatios(seconds);update();draw();}};
 function frame(now){
  if(warningExpires&&now>=warningExpires){warningExpires=0;$('gold-warning').hidden=true;$('gold').classList.remove('low-gold');}
