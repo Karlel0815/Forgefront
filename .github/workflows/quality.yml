@@ -29,15 +29,17 @@ jobs:
         run: node --test tests/map-battle-k3.test.cjs
       - name: Internal P1 engine smoke run
         run: node tools/map-battle.cjs --count 3 --seed 52741 --budget 2
-      - name: K3 12-card pilot on Hard (feature branch only)
+      - name: K3 reinvestment regression tests
+        run: node --test tests/k3-retry.test.cjs
+      - name: K3 retry eight failed pilot cards (feature branch only)
         if: github.ref == 'refs/heads/feat/internal-map-battle-k3'
-        run: node tools/map-battle-k3.cjs --count 12 --seed 52741 --out generated/map-k3
-      - name: Archive K3 12-card pilot
+        run: node tools/k3-retry.cjs
+      - name: Archive K3 eight-map retry
         if: github.ref == 'refs/heads/feat/internal-map-battle-k3'
         uses: actions/upload-artifact@v4
         with:
-          name: forgefront-k3-12-card-pilot
-          path: generated/map-k3/
+          name: forgefront-k3-eight-map-retry
+          path: generated/map-k3-retry/
           retention-days: 14
       - name: Archive internal generator and battle reviews
         if: github.ref != 'refs/heads/main'
