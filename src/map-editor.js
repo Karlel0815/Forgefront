@@ -144,12 +144,40 @@
   const undoButton = document.getElementById('editor-undo');
   const buttons = Array.from(section.querySelectorAll('[data-editor-tool]'));
   let state = makeState(), history = [], tool = 'path', zoom = 0.75, pointer = null;
-  let clearedSignature = null, testSignature = null, editingId = null;
+  let clearedSignature = null, testSignature = null, editingId = null, lastSavedSignature = null;
   const LOCAL_KEY = 'forgefront.editor.maps.v1';
   const testButton = document.getElementById('editor-test');
   const saveButton = document.getElementById('editor-save');
   const nameInput = document.getElementById('editor-name');
   const localList = document.getElementById('editor-local-list');
+  const selection = document.getElementById('editor-map-selection');
+  const workspace = document.getElementById('editor-workspace');
+  const workTitle = document.getElementById('editor-work-title');
+
+  function hasUnsavedChanges() {
+    const occupied = state.path.size || state.ore.size || state.spawn || state.hq;
+    return !!occupied && (lastSavedSignature === null || mapSignature(state) !== lastSavedSignature);
+  }
+  function mayLeaveEditor() {
+    return !hasUnsavedChanges() || window.confirm('Nicht gespeicherte Änderungen an dieser Karte verwerfen?');
+  }
+  function newDraft() {
+    state = makeState(); history = []; editingId = null;
+    clearedSignature = null; testSignature = null; lastSavedSignature = null;
+    nameInput.value = ''; workTitle.textContent = 'Neue Karte zeichnen';
+    render(); chooseTool('path');
+  }
+  function showWorkspace() {
+    selection.hidden = true; workspace.hidden = false;
+    applyZoom(0.75);
+    viewport.scrollLeft = 0; viewport.scrollTop = 0;
+    render();
+  }
+  function showSelection() {
+    workspace.hidden = true; selection.hidden = false;
+    refreshSavedList();
+  }
+
 
 
   function updateButtons(){const sig=mapSignature(state);testButton.disabled=!sig;saveButton.disabled=!sig||sig!==clearedSignature;}
@@ -280,12 +308,37 @@
     setMessage(result.message);
   });
   testButton.addEventListener('click',()=>{const snapshot=mapSnapshot(state);if(!snapshot){setMessage(validate(state).message);return;}testSignature=mapSignature(state);if(window.ForgefrontCustom?.start(snapshot)){section.hidden=true;}else{testSignature=null;setMessage('Testspiel konnte nicht gestartet werden.');}});
-  function onTestResult(e){clearedSignature=e.detail?.won&&window.ForgefrontCustom?.verifiedWin?.()&&mapSignature(state)===testSignature?testSignature:null;updateButtons();}
+  function onTestResult(e){
+    clearedSignature=e.detail?.won&&window.ForgefrontCustom?.verifiedWin?.()&&mapSignature(state)===testSignature?testSignature:null;
+    updateButtons();
+    setMessage(clearedSignature?'Boss auf Schwer besiegt! Karte jetzt benennen und speichern.':'Noch kein gültiger Schwer-Sieg. Karte weiter testen.');
+  }
   window.addEventListener('forgefront-custom-result',onTestResult);
   function refreshSavedList(){localList.replaceChildren();try{showSavedEntries();}catch{}}
-  function showSavedEntries(){const cards=JSON.parse(window.localStorage.getItem(LOCAL_KEY)||'[]');if(!Array.isArray(cards))return;for(const card of cards){const row=document.createElement('div'),label=document.createElement('span'),btn=document.createElement('button');label.textContent=String(card.name||'Karte');btn.textContent='Öffnen';btn.addEventListener('click',()=>loadSavedCard(card));row.append(label,btn);localList.append(row);}}
+  function showSavedEntries(){
+    const cards=JSON.parse(window.localStorage.getItem(LOCAL_KEY)||'[]');
+    if(!Array.isArray(cards)||!cards.length){
+      const empty=document.createElement('p');empty.className='editor-empty';
+      empty.textContent='Noch keine gespeicherten Karten auf diesem Gerät.';localList.append(empty);return;
+    }
+    for(const card of cards){
+      const row=document.createElement('div'),label=document.createElement('span'),btn=document.createElement('button');
+      row.className='editor-local-item';
+      label.textContent=String(card.name||'Karte');btn.textContent='Öffnen';
+      btn.addEventListener('click',()=>loadSavedCard(card));
+      row.append(label,btn);localList.append(row);
+    }
+  }
 
-  function loadSavedCard(card){const draft=restoreSnapshot(card.snapshot);if(!draft)return;state=draft;history=[];editingId=card.id;nameInput.value=card.name;clearedSignature=mapSignature(state);render();setMessage('Gespeicherte Karte geladen. Änderungen brauchen einen neuen Sieg.');}
+  function loadSavedCard(card){
+    const draft=restoreSnapshot(card.snapshot);
+    if(!draft)return;
+    state=draft;history=[];editingId=card.id;nameInput.value=String(card.name||'');
+    lastSavedSignature=mapSignature(state);clearedSignature=lastSavedSignature;testSignature=null;
+    workTitle.textContent=nameInput.value||'Gespeicherte Karte';
+    showWorkspace();
+    setMessage('Karte geöffnet. Nach Änderungen ist ein neuer Schwer-Sieg erforderlich.');
+  }
   function saveTestedMap(){
     const snapshot=mapSnapshot(state);
     if(!snapshot||mapSignature(state)!==clearedSignature)return;
@@ -296,7 +349,9 @@
       const cards=Array.isArray(raw)?raw:[];
       const id=editingId||('map-'+Date.now().toString(36));
       window.localStorage.setItem(LOCAL_KEY,JSON.stringify(cards.filter(c=>c.id!==id).concat([{id,name,snapshot}]).slice(-30)));
-      editingId=id;setMessage('Nach Schwer-Sieg lokal gespeichert. Freigabe für alle folgt in AP3.');refreshSavedList();
+      editingId=id;lastSavedSignature=mapSignature(state);
+      workTitle.textContent=name;
+      setMessage('Nach Schwer-Sieg lokal gespeichert. Freigabe für alle folgt in AP3.');refreshSavedList();
     }catch{setMessage('Speichern im Browser fehlgeschlagen.');}
   }
   saveButton.addEventListener('click',saveTestedMap);
@@ -308,23 +363,27 @@
   });
   document.getElementById('editor-clear').addEventListener('click', () => {
     if (!window.confirm('Die aktuelle, nicht gespeicherte Karte verwerfen?')) return;
-    state = makeState(); history = []; editingId = null; clearedSignature = null; nameInput.value = '';
-    render(); setMessage('Neue leere Karte.');
+    newDraft();setMessage('Neue leere Karte.');
+  });
+  document.getElementById('editor-new').addEventListener('click', () => {
+    newDraft();showWorkspace();
+  });
+  document.getElementById('editor-to-list').addEventListener('click', () => {
+    if (!mayLeaveEditor()) return;
+    if (pointer) endStroke(true);
+    showSelection();
   });
   openButton.addEventListener('click', () => {
     if (!document.getElementById('game-shell').hidden) return;
-    state = makeState(); history = []; editingId = null; clearedSignature = null; nameInput.value = '';
-    campaign.hidden = true;
-    section.hidden = false;
-    applyZoom(0.75);
-    viewport.scrollLeft = 0; viewport.scrollTop = 0;
-    render(); chooseTool('path'); refreshSavedList();
+    newDraft();
+    campaign.hidden = true;section.hidden = false;
+    showSelection();
   });
   document.getElementById('editor-back').addEventListener('click', () => {
-    if ((state.path.size || state.ore.size || state.spawn || state.hq) && !window.confirm('Nicht gespeicherte Karte verwerfen und zur Kampagne zurück?')) return;
+    if (!workspace.hidden && !mayLeaveEditor()) return;
     if (pointer) endStroke(true);
     section.hidden = true;
     campaign.hidden = false;
-    state = makeState(); history = [];
+    newDraft();
   });
 })();
