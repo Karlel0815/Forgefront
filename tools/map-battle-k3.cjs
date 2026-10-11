@@ -30,13 +30,19 @@ function evaluate(m,source){
  if(JSON.stringify(startSign(std))!==JSON.stringify(startSign(smart))||
    JSON.stringify(startSign(std))!==JSON.stringify(startSign(basic)))
    throw Error('Different opening builds: comparison invalid');
- const summary=r=>({name:r.name,result:r.status,verifiedWin:r.verifiedWin,
+ const summary=r=>{
+  const usedWeapons=[...new Set(r.actions.filter(a=>
+    ['turret','cannon','mortar'].includes(a.type)).map(a=>a.type))];
+  // Construction is not supply. Use actual engine delivery, not gun counts.
+  const suppliedWeapons=[...new Set(r.history.flatMap(h=>
+    h.weaponSupply.filter(b=>b.delivered>0.001).map(b=>b.type)))];
+  return {name:r.name,result:r.status,verifiedWin:r.verifiedWin,
    wave:r.history.length,leaks:r.final.leaks,hq:r.final.hp,
    bossDefeated:r.final.bossDefeated,bossEscaped:r.final.bossEscaped,
    stars:r.verifiedWin?(r.final.leaks===0?3:r.final.leaks<=4?2:1):0,
-   paid:r.actions.length,usedWeapons:[...new Set(r.actions.filter(a=>
-    ['turret','cannon','mortar'].includes(a.type)).map(a=>a.type))],
-   history:r.history,actions:r.actions,error:r.error});
+   paid:r.actions.length,usedWeapons,suppliedWeapons,
+   history:r.history,actions:r.actions,error:r.error};
+ };
  return {candidateId:m.candidateId,seed:m.seed,motif:m.motif,route:m.routeId,
    mapHash:m.mapHash,profile,combatProfileHash:runs[0].combatProfileHash,
    classification:'DIFFICULTY_NOT_CALIBRATED',runs:runs.map(summary)};
@@ -60,8 +66,8 @@ function cli(args=process.argv.slice(2)){
  const output={generated:batch.maps.length,assessed:results.length,
   attempts:results.reduce((n,r)=>n+r.runs.length,0),
   confirmedBosskillMaps:results.filter(r=>r.runs.some(x=>x.verifiedWin)).length,
-  withCannon:results.filter(r=>r.runs.some(x=>x.usedWeapons?.includes('cannon'))).length,
-  withMortar:results.filter(r=>r.runs.some(x=>x.usedWeapons?.includes('mortar'))).length,
+  withCannon:results.filter(r=>r.runs.some(x=>x.suppliedWeapons?.includes('cannon'))).length,
+  withMortar:results.filter(r=>r.runs.some(x=>x.suppliedWeapons?.includes('mortar'))).length,
   out:path.resolve(opt.out)};
  console.log(JSON.stringify(output));return {output,results};
 }

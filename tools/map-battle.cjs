@@ -173,7 +173,10 @@ function simulate(m,source,strategy){
    const s=dbg.snapshot();
    history.push({wave,hp:s.hp,mode:s.mode,phase:s.phase,gold:s.gold,
      leaks:s.leaks,kills:s.kills,bossDefeated:s.bossDefeated,
-     bossEscaped:s.bossEscaped,producedAmmo:s.producedAmmo,ammoSpent:s.ammoSpent});
+     bossEscaped:s.bossEscaped,producedAmmo:s.producedAmmo,ammoSpent:s.ammoSpent,
+     shotsFired:s.shotsFired,
+     weaponSupply:s.buildings.filter(b=>['turret','cannon','mortar'].includes(b.type))
+       .map(b=>({type:b.type,x:b.x,y:b.y,delivered:+b.waveAmount.toFixed(4)}))});
    if(s.mode!=='playing')break;
    if(s.phase!=='build'){error='Simulation time budget reached';break;}
  }

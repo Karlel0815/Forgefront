@@ -25,6 +25,8 @@ jobs:
         run: node --test tests/map-generator.test.cjs
       - name: Internal P1 engine tests
         run: node --test tests/map-battle.test.cjs
+      - name: Internal K3 engine, ammo-supply and negative tests
+        run: node --test tests/map-battle-k3.test.cjs
       - name: Internal P1 engine smoke run
         run: node tools/map-battle.cjs --count 3 --seed 52741 --budget 2
       - name: Archive internal generator and battle reviews
