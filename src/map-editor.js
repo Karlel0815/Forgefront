@@ -4,16 +4,15 @@
   const WIDTH = 18, HEIGHT = 20, TILE = 40;
   const key = (x, y) => x + ',' + y;
   const inside = (x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT;
-  const border = (x, y) => x === 0 || y === 0 || x === WIDTH - 1 || y === HEIGHT - 1;
-  const at = (a, x, y) => a.x === x && a.y === y;
+  const at = (a, x, y) => !!a && a.x === x && a.y === y;
 
   function makeState() {
-    return { path: new Set(), ore: new Set(), spawn: { x: 0, y: 3 }, hq: { x: 16, y: 18 } };
+    return { path: new Set(), ore: new Set(), spawn: null, hq: null };
   }
   function cloneState(s) {
     return {
       path: new Set(s.path), ore: new Set(s.ore),
-      spawn: { x: s.spawn.x, y: s.spawn.y }, hq: { x: s.hq.x, y: s.hq.y }
+      spawn: s.spawn ? { ...s.spawn } : null, hq: s.hq ? { ...s.hq } : null
     };
   }
   // A brush operation only changes a tile. No map is saved by AP1.
@@ -31,20 +30,19 @@
       return true;
     }
     if (tool === 'erase') {
-      // The markers themselves are moved with their respective tools.
-      const changed = s.ore.delete(k) || s.path.delete(k);
-      return changed;
+      // Delete markers first, then path/ore on a second tap if needed.
+      if (at(s.spawn, x, y)) { s.spawn = null; return true; }
+      if (at(s.hq, x, y)) { s.hq = null; return true; }
+      return s.ore.delete(k) || s.path.delete(k);
     }
     if (tool === 'spawn') {
-      if (!border(x, y) || at(s.hq, x, y) || s.ore.has(k) || at(s.spawn, x, y)) return false;
+      if (at(s.hq, x, y) || s.ore.has(k) || at(s.spawn, x, y)) return false;
       s.spawn = { x, y };
-      s.path.add(k);
       return true;
     }
     if (tool === 'hq') {
       if (at(s.spawn, x, y) || s.ore.has(k) || at(s.hq, x, y)) return false;
       s.hq = { x, y };
-      s.path.add(k);
       return true;
     }
     return false;
@@ -71,8 +69,9 @@
 
   function validate(s) {
     const fail = reason => ({ valid: false, message: reason });
-    if (!inside(s.spawn.x, s.spawn.y) || !border(s.spawn.x, s.spawn.y)) return fail('Start muss am Kartenrand liegen.');
-    if (!inside(s.hq.x, s.hq.y) || at(s.spawn, s.hq.x, s.hq.y)) return fail('HQ und Start müssen getrennte Felder sein.');
+    if (!s.spawn || !inside(s.spawn.x, s.spawn.y)) return fail('Setze zuerst einen Startpunkt (S).');
+    if (!s.hq || !inside(s.hq.x, s.hq.y)) return fail('Setze zuerst das Ziel/HQ (H).');
+    if (at(s.spawn, s.hq.x, s.hq.y)) return fail('HQ und Start müssen getrennte Felder sein.');
     if (s.path.size < 6) return fail('Zeichne einen Gegnerweg mit mindestens sechs Feldern.');
     if (!s.path.has(key(s.spawn.x, s.spawn.y)) || !s.path.has(key(s.hq.x, s.hq.y))) {
       return fail('Der Gegnerweg muss Start und HQ erreichen.');
@@ -138,6 +137,7 @@
       ctx.strokeRect(px + 0.5, py + 0.5, TILE, TILE);
     }
     function marker(pos, color, label) {
+      if (!pos) return;
       ctx.fillStyle = color;
       ctx.fillRect(pos.x * TILE + 3, pos.y * TILE + 3, TILE - 6, TILE - 6);
       ctx.font = 'bold 19px system-ui';
@@ -158,11 +158,11 @@
       b.setAttribute('aria-pressed', String(selected));
     });
     const hints = {
-      path: 'Weg: mit dem Finger zeichnen. Berührte Rasterfelder verbinden sich.',
+      path: 'Weg: Start und Ziel selbst festlegen und mit dem Finger verbinden.',
       ore: 'Erz: Felder einzeln oder durch Ziehen markieren.',
-      erase: 'Radiergummi: über Weg oder Erz wischen, um einzelne Felder zu löschen.',
-      spawn: 'Start: Feld am Kartenrand antippen.',
-      hq: 'HQ: Zielposition antippen.',
+      erase: 'Radiergummi: Felder löschen. Start/HQ zuerst löschen, darunterliegenden Weg beim zweiten Tippen.',
+      spawn: 'Start: beliebiges Rasterfeld antippen, um den Start zu setzen oder zu verschieben.',
+      hq: 'Ziel/HQ: beliebiges Rasterfeld antippen, um das Ziel zu setzen oder zu verschieben.',
       pan: 'Verschieben: Spielfeld mit einem Finger bewegen.'
     };
     setMessage(hints[tool]);
@@ -260,7 +260,7 @@
     render(); chooseTool('path');
   });
   document.getElementById('editor-back').addEventListener('click', () => {
-    if ((state.path.size || state.ore.size) && !window.confirm('Nicht gespeicherte Karte verwerfen und zur Kampagne zurück?')) return;
+    if ((state.path.size || state.ore.size || state.spawn || state.hq) && !window.confirm('Nicht gespeicherte Karte verwerfen und zur Kampagne zurück?')) return;
     if (pointer) endStroke(true);
     section.hidden = true;
     campaign.hidden = false;

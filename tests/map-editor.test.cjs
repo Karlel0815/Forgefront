@@ -8,12 +8,15 @@ function completeMap() {
   paintLine(s,'path',{x:0,y:3},{x:16,y:3});
   paintLine(s,'path',{x:16,y:3},{x:16,y:18});
   paintCell(s,'ore',5,8);
+  paintCell(s,'spawn',0,3);
+  paintCell(s,'hq',16,18);
   return s;
 }
 test('AP1 uses the unchanged 18 x 20 Forgefront raster',()=>{
   assert.equal(WIDTH,18);
   assert.equal(HEIGHT,20);
-  assert.deepEqual(makeState().spawn,{x:0,y:3});
+  assert.equal(makeState().spawn,null);
+  assert.equal(makeState().hq,null);
 });
 test('complete nonbranching route with ore passes technical validation',()=>{
   const s=completeMap();
@@ -49,12 +52,13 @@ test('unwanted branches and loops cannot be validated',()=>{
   paintCell(b,'path',15,4);
   assert.equal(validate(b).valid,false);
 });
-test('start must remain at edge and HQ/ore/path must not overlap',()=>{
+test('start and goal are chosen by creator, never overlapping',()=>{
   const s=completeMap();
-  assert.equal(paintCell(s,'spawn',7,7),false);
   assert.equal(paintCell(s,'hq',0,3),false);
-  assert.equal(paintCell(s,'ore',3,3),false);
+  assert.equal(paintCell(s,'spawn',5,8),false);
+  assert.equal(paintCell(s,'ore',0,3),false);
   assert.equal(paintCell(s,'ore',16,18),false);
+  assert.equal(paintCell(s,'ore',3,3),false);
   assert.equal(paintCell(s,'path',5,8),false);
   assert.equal(validate(s).valid,true);
 });
@@ -62,6 +66,7 @@ test('route missing HQ and empty ore are both rejected',()=>{
   const a=makeState();
   paintLine(a,'path',{x:0,y:3},{x:10,y:3});
   paintCell(a,'ore',3,9);
+  paintCell(a,'spawn',0,3);
   assert.match(validate(a).message,/HQ/);
   const b=completeMap();
   b.ore.clear();
