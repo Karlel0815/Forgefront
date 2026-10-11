@@ -94,6 +94,6 @@ test('K3 illegal placement and empty plan cannot create a win',()=>{
  assert.notEqual(empty.final.mode,'won');
 });
 test('K3 CLI limits bound simulation work',()=>{
- assert.throws(()=>K3.cli(['--count','7']),/Invalid seed\/count/);
+ assert.throws(()=>K3.cli(['--count','13']),/Invalid seed\/count/);
  assert.throws(()=>K3.cli(['--seed','-1']),/Invalid seed\/count/);
 });

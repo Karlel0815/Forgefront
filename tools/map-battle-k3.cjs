@@ -54,7 +54,7 @@ function cli(args=process.argv.slice(2)){
   opt[args[i++].slice(2)]=args[i];
  }
  const count=Number(opt.count),seed=Number(opt.seed);
- if(!Number.isInteger(count)||count<1||count>6||!Number.isSafeInteger(seed)||seed<0||seed>4294967295)
+ if(!Number.isInteger(count)||count<1||count>12||!Number.isSafeInteger(seed)||seed<0||seed>4294967295)
   throw Error('Invalid seed/count');
  const source=fs.readFileSync(path.join(__dirname,'../src/game.js'),'utf8');
  const batch=G.run({seed,count,out:opt.out,silent:true});
@@ -69,7 +69,19 @@ function cli(args=process.argv.slice(2)){
   withCannon:results.filter(r=>r.runs.some(x=>x.suppliedWeapons?.includes('cannon'))).length,
   withMortar:results.filter(r=>r.runs.some(x=>x.suppliedWeapons?.includes('mortar'))).length,
   out:path.resolve(opt.out)};
- console.log(JSON.stringify(output));return {output,results};
+ const pilotRows=batch.maps.map(m=>{
+  const r=results.find(x=>x.candidateId===m.candidateId);
+  return {id:m.candidateId,route:m.routeId,seed:m.seed,motif:m.motif,
+   valid:m.validation.valid,startCost:m.analysis.minStartGold,
+   reason:m.validation.valid?undefined:m.validation.errors,
+   strategies:(r?.runs||[]).map(a=>({
+    name:a.name,win:a.verifiedWin,wave:a.wave,hq:a.hq,leaks:a.leaks,
+    stars:a.stars,builds:a.paid,remainingGold:a.history.at(-1)?.gold??null,
+    bossKilled:a.bossDefeated,bossEscaped:a.bossEscaped,
+    supplied:a.suppliedWeapons,error:a.error
+   }))};
+ });
+ console.log(JSON.stringify({summary:output,pilotRows}));return {output,results,pilotRows};
 }
 if(require.main===module)try{cli();}catch(e){console.error(e.stack||e);process.exitCode=1;}
 module.exports={coverage,evaluate,cli};
